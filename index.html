@@ -706,6 +706,25 @@
     [SPH, 0xffe45c, M4(0, .96, 0, .08, .08, .08)],
   ]);
 
+  // power-up mushroom in Promobile blue (our own look, not the red-and-white original)
+  GEO.shroom = (() => {
+    const parts = [
+      [SPH, 0xf6e7c8, M4(0, .24, 0, .24, .25, .24)],
+      [CYL, 0xead6ad, M4(0, .37, 0, .42, .04, .42)],
+      [HEMI, 0x4262ff, M4(0, .36, 0, .44, .36, .44)],
+      [SPH, INK, M4(-.08, .28, .23, .035, .06, .02)],
+      [SPH, INK, M4(.08, .28, .23, .035, .06, .02)],
+    ];
+    const up = new T.Vector3(0, 1, 0);
+    for (const d of [[0, 1, 0], [.62, .55, .56], [-.62, .55, .56], [.7, .45, -.55], [-.7, .45, -.55], [0, .5, -.87]]) {
+      const n = new T.Vector3(d[0], d[1], d[2]).normalize();
+      const pos = new T.Vector3(n.x * .44, .36 + n.y * .36, n.z * .44);
+      const nrm = new T.Vector3(n.x / .44, n.y / .36, n.z / .44).normalize();
+      parts.push([SPH, 0xffffff, new T.Matrix4().compose(pos, new T.Quaternion().setFromUnitVectors(up, nrm), new T.Vector3(.1, .035, .1))]);
+    }
+    return mergedGeo(parts);
+  })();
+
   // ================= NPC models =================
   const FACE = Math.PI / 2; // rotates a cylinder so its flat face looks along +z
   GEO.robot = mergedGeo([
@@ -896,6 +915,8 @@
       tick: () => tone('square', 1800, 0, .03, .05),
       pop: () => { noise(.35, .3, 0, 3000); tone('sine', 300, 80, .3, .2); },
       warn: () => seq('square', [84, 0, 84, 0, 84], .08, .1, .09),
+      grow: () => seq('square', [60, 67, 72, 64, 71, 76, 67, 74, 79], .07, .12, .055),
+      shrink: () => seq('square', [79, 74, 67, 76, 71, 64, 72, 67, 60], .07, .1, .055),
       over: () => seq('triangle', [67, 64, 60, 55, 52, 48], .25, .3, .22),
       ui: () => tone('square', 880, 0, .05, .08),
       talk: () => seq('square', [84, 88, 86], .05, .07, .055),
@@ -1242,7 +1263,7 @@
     ]);
     B.npc('robot', 4.5, 0, 150, 'Промобот', ['Видишь лестницу? Разбегись и прыгай на флагшток повыше: чем выше, тем больше очков.']);
     B.coinRow(0, 1.2, 8, 14, 1.5);
-    B.block(-2, 3.2, 18, 'brick'); B.block(-1, 3.2, 18, 'q'); B.block(0, 3.2, 18, 'brick'); B.block(1, 3.2, 18, 'qshield'); B.block(2, 3.2, 18, 'brick');
+    B.block(-2, 3.2, 18, 'brick'); B.block(-1, 3.2, 18, 'q'); B.block(0, 3.2, 18, 'brick'); B.block(1, 3.2, 18, 'qpower'); B.block(2, 3.2, 18, 'brick');
     B.enemy('walker', 0, 0, 25, 'x', 4.5, 1.6);
     B.pipe(-2.5, 31, 2); B.coin(-2.5, 2.9, 31);
     B.enemy('walker', 0, 0, 35, 'x', 4, 1.4, .5);
@@ -1317,7 +1338,7 @@
 
     B.island(-5, 5, 39, 56, 1, 4);
     B.checkpoint(-3.5, 1, 42);
-    B.block(-1, 4.2, 45, 'brick'); B.block(0, 4.2, 45, 'qshield'); B.block(1, 4.2, 45, 'brick');
+    B.block(-1, 4.2, 45, 'brick'); B.block(0, 4.2, 45, 'qpower'); B.block(1, 4.2, 45, 'brick');
     B.enemy('spiky', 0, 1, 49.5, 'x', 3.5, 2.2);
     B.npc('robot', 3.8, 1, 52.5, 'Промобот', ['Прыгни на пружину и держи прыжок: улетишь на остров сверху.']);
     B.spring(0, 1, 54);
@@ -1408,7 +1429,7 @@
     B.pipe(-2.5, 64.5, 3.5); B.coin(-2.5, 4.4, 64.5);
     B.pipe(2.5, 64.5, 2.5); B.coin(2.5, 3.4, 64.5);
     for (const x of [-2, -1, 1, 2]) B.block(x, 3.2, 69, 'brick');
-    B.block(0, 3.2, 69, 'qshield');
+    B.block(0, 3.2, 69, 'qpower');
     for (const x of [-2, -1, 0, 1, 2]) B.coin(x, 4.9, 69);
     B.enemy('spiky', 0, 0, 74.5, 'x', 4.5, 2.1);
 
@@ -1457,7 +1478,7 @@
     B.iceSlab(-4, 4, 19, 30, .3, .3);
     B.enemy('walker', 0, .3, 24.5, 'x', 3, 1.5);
     B.coinRow(0, 1.5, 20, 29, 3);
-    B.block(-1, 3.2, 33, 'q'); B.block(0, 3.2, 33, 'brick'); B.block(1, 3.2, 33, 'q');
+    B.block(-1, 3.2, 33, 'q'); B.block(0, 3.2, 33, 'brick'); B.block(1, 3.2, 33, 'qpower');
 
     B.iceSlab(-2.5, 2.5, 39, 45, 0, 1); B.coin(0, 1.3, 42);
     B.iceSlab(-2, 2, 49, 55, 1, 1); B.coin(0, 2.3, 52);
@@ -1510,6 +1531,7 @@
       'Держи щит, пригодится!',
     ], { gift: 'shield' });
     B.coinRow(0, 1.2, 9, 13, 2);
+    B.block(0, 3.2, 11, 'qpower');
     B.firebar(0, 0, 18, 5, 1.5, 'y');
     B.coin(-4.5, 1.2, 18); B.coin(4.5, 1.2, 18);
     B.enemy('walker', 0, 0, 24, 'x', 4, 1.6);
@@ -1577,7 +1599,7 @@
     const def = LEVELS[i];
     bubblesEl.textContent = '';
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
-      orbs: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [],
+      orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [],
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     const B = makeBuilder(def.seed);
@@ -1602,7 +1624,8 @@
   }
 
   // ================= game state =================
-  const HW = .36, PH = 1.5;
+  const HW_SMALL = .36, PH_SMALL = 1.5, HW_BIG = .44, PH_BIG = 2.05, BIG_SCALE = 1.36;
+  let HW = HW_SMALL, PH = PH_SMALL;
   // standing jump ~3.8 m, running jump ~4.5 m: enough to land on top of the "?" blocks (4.2 m) with a run-up
   const GRAV = 36, JUMP_V = 16.5, RUN_JUMP = .22, SPRING_V = 24, MAX_SPD = 8.2, ACC_G = 55, ACC_A = 26, DEC_G = 50, DEC_A = 6, TERM = -30;
   const ACC_ICE = 18, DEC_ICE = 8;
@@ -1612,7 +1635,7 @@
     best: store.get('best', 0), unlocked: store.get('unlocked', 1),
   };
   const P = { pos: new T.Vector3(), vel: new T.Vector3(), prevY: 0, onGround: false, wasGround: false, ground: null, coyote: 0, jumpBuf: 0,
-    facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false };
+    facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1 };
   const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null };
   let time = 0;
 
@@ -1719,13 +1742,17 @@
       knockEnemy(e);
     }
     if (s.type === 'brick') {
-      s.active = false; s.mesh.visible = false; fxDebris(bx, s.by, bz); addScore(50); Snd.sfx.brick();
+      // only the big hero is strong enough to smash bricks; the small one just bumps them
+      if (P.big) { s.active = false; s.mesh.visible = false; fxDebris(bx, s.by, bz); addScore(50); Snd.sfx.brick(); }
+      else { s.bump = .22; Snd.sfx.bump(); }
       return;
     }
     if (s.used) { Snd.sfx.bump(); return; }
     s.bump = .22;
-    if (s.type === 'qshield') { spawnOrb(bx, s.by, bz); Snd.sfx.sprout(); s.left = 0; }
-    else { fxCoin(bx, s.max.y + .3, bz); addCoin(); s.left--; }
+    if (s.type === 'qpower') {
+      if (P.big) spawnOrb(bx, s.by, bz); else spawnMushroom(bx, s.max.y, bz);
+      Snd.sfx.sprout(); s.left = 0;
+    } else { fxCoin(bx, s.max.y + .3, bz); addCoin(); s.left--; }
     if (s.left <= 0) { s.used = true; s.mesh.material = MAT.used; }
   }
   function knockEnemy(e) {
@@ -1750,7 +1777,62 @@
       Snd.sfx.shieldPop(); emit(P.pos.x, P.pos.y + .8, P.pos.z, 0x8ff3ff, 18, 5, 1, 4, .5);
       return;
     }
+    if (P.big) {
+      setBig(false, true); P.inv = 2.2;
+      const dx = P.pos.x - e.x, dz = P.pos.z - e.z, l = Math.hypot(dx, dz) || 1;
+      P.vel.x = dx / l * 4; P.vel.z = dz / l * 4;
+      Snd.sfx.shrink();
+      return;
+    }
     die('hit');
+  }
+  // Super mushroom: small hero grows, breaks bricks and survives one hit
+  function setBig(on, animate) {
+    P.big = on;
+    HW = on ? HW_BIG : HW_SMALL; PH = on ? PH_BIG : PH_SMALL;
+    P.growT = animate ? .8 : 0;
+    if (animate) P.inv = Math.max(P.inv, .8);
+  }
+  function spawnMushroom(x, top, z) {
+    const m = new T.Mesh(GEO.shroom, MAT.vc); m.castShadow = true; m.position.set(x, top - .75, z); L.group.add(m);
+    // heads towards the camera side, where the hero comes from, so it is easy to catch in 3D
+    let dx = camera.position.x - x, dz = camera.position.z - z, l = Math.hypot(dx, dz);
+    if (l < .01) { dx = 0; dz = 1; l = 1; }
+    L.items.push({ m, x, y: top - .75, z, top, vx: dx / l * 2.6, vz: dz / l * 2.6, vy: 0, state: 'rise', t: 0 });
+  }
+  function itemBlocked(x, y, z) {
+    for (const s of L.solids) {
+      if (!s.active || s.max.y <= y + .06 || s.min.y >= y + .6) continue;
+      if (x + .28 > s.min.x && x - .28 < s.max.x && z + .28 > s.min.z && z - .28 < s.max.z) return true;
+    }
+    return false;
+  }
+  function updateItems(dt) {
+    for (let i = L.items.length - 1; i >= 0; i--) {
+      const it = L.items[i]; it.t += dt;
+      if (it.state === 'rise') {
+        it.y = Math.min(it.top, it.y + dt * 1.3);
+        if (it.y >= it.top) it.state = 'walk';
+      } else {
+        const nx = it.x + it.vx * dt; if (itemBlocked(nx, it.y, it.z)) it.vx = -it.vx; else it.x = nx;
+        const nz = it.z + it.vz * dt; if (itemBlocked(it.x, it.y, nz)) it.vz = -it.vz; else it.z = nz;
+        it.vy -= 30 * dt;
+        const ny = it.y + it.vy * dt, gy = groundAt(it.x, it.z, it.y + .05, .2);
+        if (ny <= gy) { it.y = gy; it.vy = 0; } else it.y = ny;
+        if (it.y < L.killY || (L.lavaY !== null && it.y < L.lavaY)) { L.group.remove(it.m); L.items.splice(i, 1); continue; }
+      }
+      it.m.position.set(it.x, it.y, it.z);
+      it.m.rotation.y = Math.atan2(it.vx, it.vz);
+      if (G.state !== 'playing' || it.t < .3) continue;
+      const p = P.pos;
+      if (Math.abs(p.x - it.x) < HW + .3 && Math.abs(p.z - it.z) < HW + .3 && p.y < it.y + .75 && p.y + PH > it.y) {
+        L.group.remove(it.m); L.items.splice(i, 1);
+        addScore(1000);
+        if (!P.big) { setBig(true, true); Snd.sfx.grow(); popup('СУПЕР-ГРИБ!', p.x, p.y + 2.8, p.z, 'gold'); }
+        else { Snd.sfx.power(); popup('1000', p.x, p.y + 2.8, p.z); }
+        emit(it.x, it.y + .4, it.z, 0x7d93ff, 16, 4, 1, 4, .5);
+      }
+    }
   }
   function reachCheckpoint(i) {
     for (let j = 0; j <= i; j++) markCheckpoint(L.checkpoints[j]);
@@ -2085,6 +2167,11 @@
     const r = hero.root;
     r.position.copy(P.pos);
     r.rotation.y = P.facing;
+    if (P.growT > 0) {
+      const seq = P.big ? [1.18, 1, 1.18, BIG_SCALE, 1.18, BIG_SCALE, 1.18, BIG_SCALE] : [1.18, BIG_SCALE, 1.18, 1, 1.18, 1, 1.18, 1];
+      P.scaleCur = seq[clamp(Math.floor((.8 - P.growT) / .1), 0, 7)];
+    } else P.scaleCur = P.big ? BIG_SCALE : 1;
+    r.scale.setScalar(P.scaleCur);
     P.squash += (1 - P.squash) * Math.min(1, dt * 10);
     const sq = P.squash, inv = 1 / Math.sqrt(sq);
     hero.body.scale.set(inv, sq, inv);
@@ -2118,7 +2205,7 @@
     const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, .12);
     if (gy === -Infinity) { blob.visible = false; return; }
     const k = clamp(1 - (P.pos.y - gy) * .07, .35, 1);
-    blob.visible = true; blob.position.set(P.pos.x, gy + .03, P.pos.z); blob.scale.setScalar(k); blob.material.opacity = .34 * k;
+    blob.visible = true; blob.position.set(P.pos.x, gy + .03, P.pos.z); blob.scale.setScalar(k * (P.big ? 1.25 : 1)); blob.material.opacity = .34 * k;
   }
 
   // ---------- camera ----------
@@ -2135,7 +2222,7 @@
     else {
       cam.tx = damp(cam.tx, P.pos.x, 10, dt); cam.tz = damp(cam.tz, P.pos.z, 10, dt);
       cam.ty = damp(cam.ty, ty, P.onGround ? 5 : (ty < cam.ty - .5 ? 6 : 2.6), dt);
-      cam.dist = damp(cam.dist, cam.distGoal, 4, dt);
+      cam.dist = damp(cam.dist, cam.distGoal + (P.big ? .9 : 0), 4, dt);
     }
     const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);
@@ -2256,11 +2343,11 @@
   }
   function newGame(li) {
     Snd.init(); goFullscreen(); keepAwake();
-    G.lives = 3; G.score = 0; G.coins = 0; G.gifts.clear();
+    G.lives = 3; G.score = 0; G.coins = 0; G.gifts.clear(); setBig(false, false);
     startLevel(li, true);
   }
   function loseLife() {
-    G.lives--;
+    G.lives--; setBig(false, false);
     if (G.lives <= 0) { gameOver(); return; }
     startLevel(G.li, false);
   }
@@ -2283,7 +2370,7 @@
   }
   function toTitle() {
     Snd.stopMusic();
-    G.state = 'title'; loadLevel(0); placePlayer(L.start); P.onGround = true; P.shield = false;
+    G.state = 'title'; setBig(false, false); loadLevel(0); placePlayer(L.start); P.onGround = true; P.shield = false;
     hudEl.hidden = true; touchEl.hidden = true; showScreen('title');
     renderLevelPick();
     const best = $('best'); best.hidden = !(G.best > 0); best.textContent = 'Рекорд: ' + G.best.toLocaleString('ru-RU');
@@ -2530,9 +2617,11 @@
     updateEnemies(dt);
     updateBlocks(dt);
     updateOrbs(dt);
+    updateItems(dt);
     updateSprings(dt);
     updateFx(dt);
     if (P.inv > 0) P.inv -= dt;
+    if (P.growT > 0) P.growT -= dt;
   }
 
   let last = performance.now();
