@@ -15,10 +15,20 @@ attenuated by where they happen, footsteps per surface, chiptune music with drum
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed
 per world (birdsong, wind, lava bubbles, candy chimes).
 
-- Three worlds, ten levels: Green Hills, Sky Trail; Sunny Dunes, Ice Peaks, Lava Fortress; Candy Valley, Jelly Bridges
-- A boss at the end of every world: King Chestnut (1-3), Fire Shell (2-4), Grumble the storm cloud (3-3).
+- Four worlds, fourteen levels: Green Hills, Sky Trail; Sunny Dunes, Ice Peaks, Lava Fortress; Candy Valley, Jelly Bridges;
+  Gear Works, Cloud Heights, Storm Tower
+- World 4 brings conveyor belts (with you, against you, or hanging over a drop), hydraulic presses with a warning
+  circle (ride on top of them or slip underneath), tiles that light up in turns, and fans whose wind lifts the hero
+- A boss at the end of every world: King Chestnut (1-3), Fire Shell (2-4), Grumble the storm cloud (3-3) and Megabot (4-4),
+  who fires fans of cannonballs, leaps with a shockwave and then overheats.
   Dodge the attack, then stomp or ground-pound the boss while it is dazed (stars circle its head); three hits
   win the fight, and each hit calls in help (chestnuts, hoppers or bugs)
+- The hero is a jointed puppet: knees, elbows, ankles, waist and neck bend in the run cycle and every pose, the hips
+  dip so planted feet stay on the ground, eyes blink and follow nearby enemies and coins, the mouth has several shapes,
+  and a scarf and a cowlick swing with the motion. Idle time brings fidgets (look around, stretch, tap a foot, wave at
+  the camera) and eventually a nap; on a ledge the hero teeters and windmills
+- Moves: a triple jump (land and jump again while running, the third one flips), a skid when reversing at speed with a
+  side flip out of it, wall slides and wall kicks, plus the spin, ground pound and fireballs below
 - Blocks, bricks, shields, springs, jelly bounce pads, moving and falling platforms, slippery ice, lava, rotating fire bars, checkpoints, flagpole finish
 - Action button: a spin attack on the ground (a small hop in the air), a ground pound when high in the air.
   The pound's shockwave flattens everything nearby, spiky shells included, smashes bricks when big,

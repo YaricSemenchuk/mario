@@ -249,7 +249,11 @@
     .btn-main { padding: 12px 36px; font-size: 19px; }
     .card { padding: 16px 18px 18px; gap: 10px; }
     .tagline { display: none; }
-    .lvl { min-width: 88px; padding: 6px 10px 7px; }
+    .lvl { min-width: 0; padding: 5px 9px 6px; font-size: 13px; gap: 2px; }
+    .lvl small { font-size: 9.5px; }
+    .level-pick { gap: 6px; max-width: 780px; }
+    .logo-big { font-size: clamp(52px, 19vh, 110px); }
+    .title-wrap { gap: 8px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #toast, .btn { transition: none; }
@@ -577,6 +581,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     for (let i = 0; i < 8; i++) { g.fillStyle = '#a8230c'; g.fillRect((r() * s) | 0, (r() * s) | 0, 3 + ((r() * 4) | 0), 1); }
   });
+  TX.belt = makeTex(32, (g, s) => {
+    g.fillStyle = '#3a3e52'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#2c3042'; g.fillRect(0, 0, 3, s); g.fillRect(s - 3, 0, 3, s);
+    g.fillStyle = '#ffc53d';
+    for (let i = 0; i < 9; i++) { g.fillRect(6 + i, 8 + i, 3, 3); g.fillRect(s - 9 - i, 8 + i, 3, 3); }
+    g.fillStyle = '#4a4f66'; for (let y = 1; y < s; y += 8) g.fillRect(3, y, s - 6, 1);
+  });
   // themed ground: grass lip on top of a body block, same layout for every theme
   function groundSet(seed, p) {
     const r = rng(seed);
@@ -587,7 +598,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const side = makeTex(32, (g, s) => {
       speckle(g, s, p.top, p.topDots, 60, r, 0, 18);
       speckle(g, s, p.body, p.bodyDots, 40, r, 18, 32);
-      for (let x = 0; x < s; x += 2) { g.fillStyle = r() < .5 ? p.drip[0] : p.drip[1]; g.fillRect(x, 17, 2, 1 + ((r() * 9) | 0)); }
+      if (p.stripes) { for (let y = 12; y < 20; y++) for (let x = 0; x < s; x++) { g.fillStyle = ((x + y) >> 2) % 2 ? p.stripes[0] : p.stripes[1]; g.fillRect(x, y, 1, 1); } }
+      else for (let x = 0; x < s; x += 2) { g.fillStyle = r() < .5 ? p.drip[0] : p.drip[1]; g.fillRect(x, 17, 2, 1 + ((r() * 9) | 0)); }
     });
     const body = makeTex(32, (g, s) => {
       speckle(g, s, p.body, p.bodyDots, 130, r);
@@ -665,6 +677,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   MAT.char = addRim(std({ vertexColors: true, roughness: .42 }));
   MAT.dinoLid = addRim(std({ color: 0xff9a3c, roughness: .42 }));
   MAT.fireball = std({ color: 0xffc04a, emissive: 0xff7a10, emissiveIntensity: 3.2, roughness: 1 });
+  MAT.belt = std({ map: TX.belt, roughness: .7 });
+  MAT.beltSide = std({ color: 0x2c3042, roughness: .6 });
+  MAT.blink = [std({ color: 0xff5ab4, emissive: 0xff2a90, emissiveIntensity: .6, transparent: true, opacity: .92, roughness: .3 }),
+    std({ color: 0x5ad8ff, emissive: 0x1aa8ff, emissiveIntensity: .6, transparent: true, opacity: .92, roughness: .3 })];
+  MAT.bulb = std({ color: 0xfff2c0, emissive: 0xffe29a, emissiveIntensity: 2.4, roughness: 1 });
+  MAT.rod = std({ color: 0xb8bfcc, roughness: .3, metalness: .6 });
   MAT.bugWing = std({ color: 0xe8f6ff, transparent: true, opacity: .6, roughness: .15, side: T.DoubleSide, depthWrite: false });
   MAT.jelly = [std({ color: 0xff7ab6, emissive: 0x5a0f35, emissiveIntensity: .5, roughness: .12, transparent: true, opacity: .88 }),
     std({ color: 0x8bf06a, emissive: 0x1f5a10, emissiveIntensity: .5, roughness: .12, transparent: true, opacity: .88 })];
@@ -681,6 +699,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sand: groundSet(31, { top: '#f0d08a', topDots: ['#e3be72', '#f8e0a4', '#d9b163', '#fbe7b5'], body: '#d39a5c', bodyDots: ['#c2884b', '#e0ad70', '#b97c42'], drip: ['#e3be72', '#f0d08a'], strata: '#b8793f' }),
     snow: groundSet(41, { top: '#f4f8ff', topDots: ['#e1ebf8', '#ffffff', '#d3e1f3'], body: '#6f7b93', bodyDots: ['#5f6a80', '#8591a8', '#56617a'], drip: ['#ffffff', '#e6eefa'] }),
     candy: groundSet(61, { top: '#ffb3d1', topDots: ['#ff5a8a', '#ffe45c', '#7de0ff', '#9dff7a', '#ffffff', '#c49bff'], body: '#c98a58', bodyDots: ['#b77a4a', '#d99c68'], drip: ['#ffd1e3', '#ffb3d1'], strata: '#fff1e0' }),
+    metal: groundSet(81, { top: '#9aa3b5', topDots: ['#8c95a8', '#a8b1c2', '#b5bdcc', '#7f889b'], grout: '#6b7385', body: '#4a5165', bodyDots: ['#3f4658', '#565d72'], drip: ['#ffc53d', '#2b2f4a'], stripes: ['#ffc53d', '#2b2f4a'], bricks: '#383e50' }),
+    cloud: groundSet(91, { top: '#ffffff', topDots: ['#f1f5ff', '#e6edfb', '#ffffff', '#dfe8fa'], body: '#c9d4f2', bodyDots: ['#bcc8ea', '#d6dff6', '#e4c8f0'], drip: ['#ffffff', '#f1f5ff'] }),
     stone: groundSet(51, { top: '#8e8aa0', topDots: ['#7f7b92', '#a19db2', '#8a869c'], grout: '#5f5b70', body: '#534f63', bodyDots: ['#47435a', '#615d74'], drip: ['#8e8aa0', '#7f7b92'], bricks: '#3d394d' }),
   };
   // per-theme decor: which tree, ground litter, bush and pipe colours
@@ -689,6 +709,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sand: { ground: 'sand', tree: 'cactus', tuft: [0xc9a55a, 0xb18d45], litter: [0xa5988a, 0xc2b19b], bush: [0x9bb561, 0x87a34f], under: [0xc2884b, 0xb07843], pipe: [0xd9824a, 0xeb9a5f] },
     snow: { ground: 'snow', tree: 'pine', tuft: null, litter: [0xffffff, 0xe8f0fb], bush: [0xeef4fc, 0xdbe6f5], under: [0x6f7b93, 0x626d85], pipe: [0x3aa7c9, 0x5cc3e0] },
     candy: { ground: 'candy', tree: 'lollipop', tuft: null, litter: [0xff5a8a, 0xffe45c, 0x7de0ff, 0x9dff7a, 0xc49bff], bush: [0x9dff7a, 0xff9ad1], under: [0xc98a58, 0xb77a4a], pipe: [0xff7aa8, 0xffe0ee] },
+    metal: { ground: 'metal', tree: 'lamp', tuft: null, litter: [0x6d7385, 0xffc53d, 0x8a92a4], bush: [0x5a6275, 0x6d7589], under: [0x4a5165, 0x3f4658], pipe: [0x8a92a4, 0xffc53d] },
+    cloud: { ground: 'cloud', tree: 'balloon', tuft: null, litter: [0xffffff, 0xe6edfb], bush: [0xffffff, 0xeef3ff], under: [0xc9d4f2, 0xdcc9f0], pipe: [0xffd23f, 0xffffff] },
     stone: { ground: 'stone', tree: 'pillar', tuft: null, litter: [0x6d6880, 0x57536a], bush: [0x57536a, 0x6d6880], under: [0x3f3b4f, 0x4a4659], pipe: [0x6d6880, 0x8a85a0] },
   };
   const PIPE_MATS = {};
@@ -920,6 +942,60 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     [SPH_HI, 0x5a5f86, M4(-.14, .2, .12, .09, .06, .05, .5, 0, .5)],
   ]);
 
+  // hydraulic press with an angry face on the front and hazard stripes around the top
+  GEO.crusher = (() => {
+    const parts = [
+      [BOX, 0x6d7385, M4(0, .55, 0, 2.4, 1.1, 2.4)],
+      [BOX, 0x3b3f50, M4(0, .04, 0, 2.3, .08, 2.3)],
+      [BOX, 0xffc53d, M4(0, .92, 0, 2.44, .16, 2.44)],
+      [SPH_HI, 0xffffff, M4(-.45, .56, 1.2, .26, .2, .05)], [SPH_HI, 0xffffff, M4(.45, .56, 1.2, .26, .2, .05)],
+      [SPH_HI, INK, M4(-.42, .53, 1.24, .12, .12, .03)], [SPH_HI, INK, M4(.42, .53, 1.24, .12, .12, .03)],
+      [BOX, INK, M4(-.45, .78, 1.22, .5, .08, .04, 0, 0, -.35)], [BOX, INK, M4(.45, .78, 1.22, .5, .08, .04, 0, 0, .35)],
+      [BOX, 0x2c3050, M4(0, .24, 1.21, 1.1, .16, .03)], [BOX, 0xffffff, M4(0, .24, 1.225, 1.0, .07, .02)],
+    ];
+    for (let i = 0; i < 6; i++) parts.push([BOX, 0x2c3050, M4(-1 + i * .4, .92, 1.225, .12, .16, .02, 0, 0, .6)]);
+    for (const [x, z] of [[-1.05, 1.05], [1.05, 1.05], [-1.05, -1.05], [1.05, -1.05]]) parts.push([SPH_HI, 0xb8bfcc, M4(x, .2, z, .08, .08, .08)]);
+    return mergedGeo(parts);
+  })();
+  GEO.fanBase = mergedGeo([
+    [CYL, 0x3b3f50, M4(0, .12, 0, 1.0, .24, 1.0)],
+    [CYL, 0xffc53d, M4(0, .27, 0, 1.02, .06, 1.02)],
+    [CYL, 0x1c1e2e, M4(0, .29, 0, .88, .04, .88)],
+    [BOX, 0x8a92a4, M4(0, .37, 0, 1.9, .03, .05)], [BOX, 0x8a92a4, M4(0, .37, 0, .05, .03, 1.9)],
+    [SPH_HI, 0x8a92a4, M4(0, .35, 0, .16, .1, .16)],
+  ]);
+  GEO.fanBlades = mergedGeo([0, 1, 2, 3].map((i) => [BOX, 0xdfe4ee, M4(Math.cos(i * Math.PI / 2) * .45, 0, Math.sin(i * Math.PI / 2) * .45, .6, .03, .22, 0, -i * Math.PI / 2, .35)]));
+  GEO.gear = (() => {
+    const parts = [[CYL, 0x8a92a4, M4(0, 0, 0, 1, .25, 1, Math.PI / 2)], [CYL, 0x5a6275, M4(0, 0, 0, .35, .32, .35, Math.PI / 2)]];
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; parts.push([BOX, 0x8a92a4, M4(Math.cos(a) * 1.08, Math.sin(a) * 1.08, 0, .28, .3, .25, 0, 0, a)]); }
+    for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; parts.push([BOX, 0x6d7385, M4(Math.cos(a) * .62, Math.sin(a) * .62, .02, .5, .14, .27, 0, 0, a)]); }
+    return mergedGeo(parts);
+  })();
+  // Megabot, the last boss: a broken copy of Promobot in gunmetal, with cannon hands and one red eye
+  GEO.mech = mergedGeo([
+    [BOX, 0x2c3050, M4(-.55, .22, .1, .6, .44, 1.1)], [BOX, 0x2c3050, M4(.55, .22, .1, .6, .44, 1.1)],
+    [BOX, 0xffc53d, M4(-.55, .46, .1, .62, .06, 1.12)], [BOX, 0xffc53d, M4(.55, .46, .1, .62, .06, 1.12)],
+    [CYL, 0x8a92a4, M4(-.55, .8, 0, .2, .7, .2)], [CYL, 0x8a92a4, M4(.55, .8, 0, .2, .7, .2)],
+    [BOX, 0x3b3f63, M4(0, 1.2, 0, 1.5, .35, .95)],
+    [BOX, 0x5a6275, M4(0, 1.9, 0, 1.8, 1.1, 1.2)],
+    [BOX, 0x2c3050, M4(0, 1.95, .61, 1.2, .7, .04)],
+    [BOX, 0xf0503a, M4(0, 1.95, .64, .5, .5, .03)],
+    [BOX, 0xffc53d, M4(0, 1.4, .61, 1.8, .1, .04)],
+    [SPH_HI, 0x8a92a4, M4(-1.1, 2.3, 0, .42, .38, .42)], [SPH_HI, 0x8a92a4, M4(1.1, 2.3, 0, .42, .38, .42)],
+    [CYL, 0x6d7385, M4(-1.2, 1.8, 0, .17, .8, .17)], [CYL, 0x6d7385, M4(1.2, 1.8, 0, .17, .8, .17)],
+    [CYL, 0x2c3050, M4(-1.2, 1.35, .25, .26, .7, .26, Math.PI / 2)], [CYL, 0x2c3050, M4(1.2, 1.35, .25, .26, .7, .26, Math.PI / 2)],
+    [CYL, 0xffc53d, M4(-1.2, 1.35, .6, .3, .1, .3, Math.PI / 2)], [CYL, 0xffc53d, M4(1.2, 1.35, .6, .3, .1, .3, Math.PI / 2)],
+    [CYL, 0x111326, M4(-1.2, 1.35, .66, .18, .02, .18, Math.PI / 2)], [CYL, 0x111326, M4(1.2, 1.35, .66, .18, .02, .18, Math.PI / 2)],
+    [CYL, 0x6d7385, M4(0, 2.55, 0, .25, .2, .25)],
+    [BOX, 0x8a92a4, M4(0, 2.95, 0, 1.1, .7, .9)],
+    [BOX, INK, M4(0, 2.98, .46, .9, .3, .03)],
+    [BOX, 0xf0503a, M4(-.25, 3.22, .47, .4, .07, .04, 0, 0, -.3)], [BOX, 0xf0503a, M4(.25, 3.22, .47, .4, .07, .04, 0, 0, .3)],
+    [BOX, 0x2c3050, M4(0, 2.72, .46, .5, .08, .03)],
+    [CYL, 0x6d7385, M4(0, 3.45, 0, .03, .35, .03)], [SPH_HI, 0xf0503a, M4(0, 3.65, 0, .09, .09, .09)],
+    [CYL, 0x6d7385, M4(-.6, 2.95, 0, .12, .1, .12, 0, 0, Math.PI / 2)], [CYL, 0x6d7385, M4(.6, 2.95, 0, .12, .1, .12, 0, 0, Math.PI / 2)],
+  ]);
+  const ARC_THIN = shared(new T.TorusGeometry(1, .08, 6, 28, Math.PI));
+
   // ================= NPC models =================
   const FACE = Math.PI / 2; // rotates a cylinder so its flat face looks along +z
   GEO.robot = mergedGeo([
@@ -1080,82 +1156,140 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const PYR = shared(new T.ConeGeometry(.75, 1, 4)); PYR.rotateY(Math.PI / 4);
 
   // ================= hero =================
-  // Our own hero, built in a glossy toy-like style: big head, big eyes, soft round shapes
+  // Our own hero in a glossy toy style: big head, big eyes, soft round shapes. Jointed like a puppet (hips, knees,
+  // ankles, waist, shoulders, elbows, wrists, neck) so the animation can bend every limb; eyes with moving pupils
+  // and blinks, several mouth shapes, a scarf and a cowlick that swing with the motion.
   const hero = (() => {
     const gloss = (color, shininess = 38) => addRim(std({ color, roughness: glossToRough(shininess) }));
     const m = {
-      cap: gloss(0x16a39c, 70, 0x3a3a3a), capDark: gloss(0x0f7f79, 60), shirt: gloss(0xff8a2a), over: gloss(0x2c3f93, 45),
-      skin: gloss(0xffcaa0, 25, 0x1c1c1c), nose: gloss(0xffb08a, 45, 0x2a2a2a), blush: gloss(0xff9f9a, 20, 0x111111),
-      glove: gloss(0xffffff, 40), shoe: gloss(0x7a4524, 60, 0x333333), sole: gloss(0x3b2414, 20), hair: gloss(0x5a3a22, 30),
-      gold: gloss(0xffd23f, 90, 0x666666), white: gloss(0xffffff, 110, 0x777777), iris: gloss(0x2f86e0, 110, 0x777777),
-      ink: gloss(INK, 110, 0x777777), mouth: gloss(0x9c2f3a, 30), brand: gloss(0x4262ff, 80, 0x444444), shine: new T.MeshBasicMaterial({ color: 0xffffff }),
+      cap: gloss(0x16a39c, 70), capDark: gloss(0x0f7f79, 60), shirt: gloss(0xff8a2a), over: gloss(0x2c3f93, 45),
+      skin: gloss(0xffcaa0, 25), nose: gloss(0xffb08a, 45), blush: gloss(0xff9f9a, 20), sock: gloss(0xf4f1ea, 20),
+      glove: gloss(0xffffff, 40), shoe: gloss(0x7a4524, 60), sole: gloss(0x4a2e1a, 20), hair: gloss(0x5a3a22, 30),
+      gold: gloss(0xffd23f, 90), white: gloss(0xffffff, 110), iris: gloss(0x2f86e0, 110), ink: gloss(INK, 110),
+      mouth: gloss(0x7a1f2c, 30), tongue: gloss(0xff6f7d, 40), teeth: gloss(0xffffff, 60), brand: gloss(0x4262ff, 80),
+      scarf: gloss(0x4262ff, 60), scarf2: gloss(0xffffff, 60), shine: new T.MeshBasicMaterial({ color: 0xffffff }),
     };
     const root = new T.Group(), body = new T.Group(); root.add(body);
     const part = (geo, mat, parent, x, y, z, sx, sy, sz, rx = 0, ry = 0, rz = 0) => {
       const o = new T.Mesh(geo, m[mat]); o.position.set(x, y, z); o.scale.set(sx, sy, sz); o.rotation.set(rx, ry, rz); parent.add(o); return o;
     };
-    // legs and shoes
-    const legL = new T.Group(); legL.position.set(-.15, .42, 0); body.add(legL);
-    const legR = new T.Group(); legR.position.set(.15, .42, 0); body.add(legR);
-    for (const Lg of [legL, legR]) {
-      part(CYL, 'over', Lg, 0, -.12, 0, .1, .24, .1);
-      part(SPH_HI, 'shoe', Lg, 0, -.3, .07, .15, .11, .22);
-      part(BOX, 'sole', Lg, 0, -.395, .07, .27, .03, .4);
-    }
-    // overalls, shirt, straps and buttons
-    part(SPH_HI, 'over', body, 0, .58, 0, .36, .32, .33);
-    part(SPH_HI, 'shirt', body, 0, .84, 0, .34, .23, .3);
-    part(BOX, 'over', body, -.13, .88, .268, .08, .3, .04, -.15);
-    part(BOX, 'over', body, .13, .88, .268, .08, .3, .04, -.15);
-    part(SPH_HI, 'gold', body, -.13, .76, .262, .05, .05, .03);
-    part(SPH_HI, 'gold', body, .13, .76, .262, .05, .05, .03);
-    // head
-    const head = new T.Group(); head.position.set(0, 1.3, 0); body.add(head);
-    part(SPH_HI, 'skin', head, 0, 0, 0, .38, .36, .36);
-    part(SPH_HI, 'skin', head, -.36, -.03, 0, .08, .1, .06);
-    part(SPH_HI, 'skin', head, .36, -.03, 0, .08, .1, .06);
-    part(SPH_HI, 'hair', head, -.3, .05, -.1, .1, .14, .13);
-    part(SPH_HI, 'hair', head, .3, .05, -.1, .1, .14, .13);
-    part(SPH_HI, 'hair', head, 0, .04, -.22, .3, .2, .16);
-    part(SPH_HI, 'nose', head, 0, -.08, .36, .1, .085, .09);
-    part(SPH_HI, 'blush', head, -.22, -.1, .27, .07, .045, .03);
-    part(SPH_HI, 'blush', head, .22, -.1, .27, .07, .045, .03);
-    const mouth = part(TORUS_ARC, 'mouth', head, 0, -.19, .305, .065, .065, .065, 0, 0, Math.PI);
-    const mouthO = part(SPH_HI, 'mouth', head, 0, -.2, .305, .045, .058, .025); mouthO.visible = false;
-    const eyes = [], brows = [], happy = [];
+    const joint = (parent, x, y, z) => { const g = new T.Group(); g.position.set(x, y, z); parent.add(g); return g; };
+
+    // hips with legs: thigh, knee, shin in a white sock, ankle, shoe
+    const hips = joint(body, 0, .52, 0);
+    part(SPH_HI, 'over', hips, 0, 0, 0, .31, .2, .28);
+    const legs = [-1, 1].map((s) => {
+      const hip = joint(hips, s * .14, -.02, 0);
+      part(CYL, 'over', hip, 0, -.09, 0, .105, .2, .105);
+      const knee = joint(hip, 0, -.2, 0);
+      part(SPH_HI, 'over', knee, 0, 0, 0, .1, .09, .1);
+      part(CYL, 'sock', knee, 0, -.09, 0, .08, .18, .08);
+      const ankle = joint(knee, 0, -.19, 0);
+      part(SPH_HI, 'shoe', ankle, 0, .005, .065, .15, .11, .22);
+      part(SPH_HI, 'shoe', ankle, 0, .05, .02, .11, .07, .1);
+      part(SPH_HI, 'sole', ankle, 0, -.07, .065, .15, .035, .215);
+      return { hip, knee, ankle };
+    });
+    // torso from the waist: bib overalls over a shirt, straps front and back, a scarf
+    const torso = joint(hips, 0, .06, 0);
+    part(SPH_HI, 'over', torso, 0, .05, 0, .35, .28, .32);
+    part(SPH_HI, 'shirt', torso, 0, .28, 0, .33, .23, .29);
+    part(BOX, 'over', torso, 0, .15, .27, .26, .16, .04, -.1);
     for (const s of [-1, 1]) {
-      const eye = new T.Group(); eye.position.set(s * .12, .02, 0); head.add(eye);
-      part(SPH_HI, 'white', eye, 0, 0, .315, .085, .13, .05, 0, 0, s * .08);
-      part(SPH_HI, 'iris', eye, -s * .005, -.015, .345, .058, .085, .03);
-      part(SPH_HI, 'ink', eye, -s * .008, -.02, .362, .032, .05, .02);
-      part(SPH_HI, 'shine', eye, -s * .03, .02, .374, .018, .022, .01);
-      brows.push(part(BOX, 'hair', head, s * .12, .17, .3, .12, .03, .04, 0, 0, -s * .12));
-      const hp = part(TORUS_ARC, 'ink', head, s * .12, .0, .335, .055, .055, .055); hp.visible = false; happy.push(hp);
-      eyes.push(eye);
+      part(BOX, 'over', torso, s * .13, .31, .265, .08, .26, .04, -.15);
+      part(BOX, 'over', torso, s * .1, .28, -.255, .08, .3, .04, .15, 0, s * .28);
+      part(SPH_HI, 'gold', torso, s * .13, .2, .262, .05, .05, .03);
     }
-    // cap with a visor and the Promobile mark on a white badge
+    part(CYL, 'brand', torso, 0, .15, .292, .06, .02, .06, Math.PI / 2);
+    part(CYL, 'glove', torso, 0, .15, .298, .036, .02, .036, Math.PI / 2);
+    part(DONUT, 'scarf', torso, 0, .45, 0, .2, .2, .18, Math.PI / 2);
+    // the scarf's tail: three links that trail and flutter behind the neck
+    const scarf = [];
+    let link = joint(torso, .2, .45, -.13);
+    link.rotation.y = .95;
+    link = joint(link, 0, 0, 0);
+    for (let i = 0; i < 3; i++) {
+      part(SPH_HI, i % 2 ? 'scarf2' : 'scarf', link, 0, 0, -.065, .1 - i * .01, .045, .085);
+      scarf.push(link);
+      link = joint(link, 0, 0, -.12);
+    }
+    part(CONE, 'scarf', link, 0, 0, -.02, .06, .06, .025, -Math.PI / 2);
+    // arms: shoulder, upper arm, elbow, forearm, wrist, a mitten with a thumb
+    const arms = [-1, 1].map((s) => {
+      const sh = joint(torso, s * .35, .38, 0);
+      part(SPH_HI, 'shirt', sh, 0, -.02, 0, .11, .11, .11);
+      part(CYL, 'shirt', sh, 0, -.09, 0, .075, .17, .075);
+      const el = joint(sh, 0, -.18, 0);
+      part(SPH_HI, 'shirt', el, 0, 0, 0, .072, .072, .072);
+      part(CYL, 'shirt', el, 0, -.07, 0, .07, .14, .07);
+      const wr = joint(el, 0, -.15, 0);
+      part(CYL, 'glove', wr, 0, .015, 0, .1, .05, .1);
+      part(SPH_HI, 'glove', wr, 0, -.075, .005, .12, .12, .11);
+      part(SPH_HI, 'glove', wr, -s * .075, -.05, .06, .045, .065, .045, .3, 0, -s * .3);
+      return { sh, el, wr };
+    });
+    // neck and head
+    const neck = joint(torso, 0, .47, 0);
+    part(CYL, 'skin', neck, 0, .03, 0, .09, .1, .09);
+    const head = joint(neck, 0, .27, 0);
+    part(SPH_HI, 'skin', head, 0, 0, 0, .38, .36, .36);
+    part(SPH_HI, 'skin', head, 0, -.12, .06, .3, .2, .28);
+    for (const s of [-1, 1]) {
+      part(SPH_HI, 'skin', head, s * .36, -.03, 0, .08, .1, .06);
+      part(SPH_HI, 'blush', head, s * .36, -.03, .02, .04, .055, .04);
+      part(SPH_HI, 'hair', head, s * .3, .05, -.1, .1, .14, .13);
+      part(SPH_HI, 'blush', head, s * .22, -.11, .27, .07, .045, .03);
+    }
+    part(SPH_HI, 'hair', head, 0, .04, -.22, .3, .2, .16);
+    part(SPH_HI, 'hair', head, 0, -.08, -.28, .22, .14, .1);
+    part(SPH_HI, 'nose', head, 0, -.08, .36, .1, .085, .09);
+    part(SPH_HI, 'shine', head, -.03, -.05, .43, .02, .016, .01);
+    // mouths: a smile, a frown, an open "o" with a tongue, a wide grin with teeth
+    const smile = part(TORUS_ARC, 'mouth', head, 0, -.19, .308, .065, .065, .065, 0, 0, Math.PI);
+    const frown = part(TORUS_ARC, 'mouth', head, 0, -.225, .3, .05, .045, .05);
+    const open = joint(head, 0, -.2, .3);
+    part(SPH_HI, 'mouth', open, 0, 0, 0, .06, .07, .03);
+    part(SPH_HI, 'tongue', open, 0, -.035, .012, .04, .025, .02);
+    const grin = joint(head, 0, -.19, .3);
+    part(SPH_HI, 'mouth', grin, 0, -.01, 0, .11, .06, .03);
+    part(BOX, 'teeth', grin, 0, .03, .018, .15, .025, .02);
+    part(SPH_HI, 'tongue', grin, 0, -.04, .014, .06, .02, .015);
+    // eyes: the pupil group slides to look at things, the eye group squashes to blink
+    const eyes = [], looks = [], brows = [], happy = [], lids = [];
+    for (const s of [-1, 1]) {
+      const eye = joint(head, s * .12, .02, 0);
+      part(SPH_HI, 'white', eye, 0, 0, .315, .085, .13, .05, 0, 0, s * .08);
+      const look = joint(eye, 0, 0, 0);
+      part(SPH_HI, 'iris', look, -s * .005, -.015, .345, .058, .085, .03);
+      part(SPH_HI, 'ink', look, -s * .008, -.02, .362, .032, .05, .02);
+      part(SPH_HI, 'shine', look, -s * .03, .02, .374, .018, .022, .01);
+      part(SPH_HI, 'shine', look, s * .01, -.05, .37, .008, .01, .005);
+      const lid = part(SPH_HI, 'skin', eye, 0, .06, .33, .094, .075, .045, 0, 0, s * .08); lid.visible = false;
+      brows.push(part(BOX, 'hair', head, s * .12, .17, .3, .12, .032, .04, 0, 0, -s * .12));
+      const hp = part(TORUS_ARC, 'ink', head, s * .12, .0, .338, .055, .055, .055); hp.visible = false; happy.push(hp);
+      eyes.push(eye); looks.push(look); lids.push(lid);
+    }
+    // cap with a visor, a back strap and the Promobile mark on a white badge
     part(HEMI_HI, 'cap', head, 0, .2, 0, .4, .32, .4);
     part(CYL, 'capDark', head, 0, .21, 0, .405, .04, .405);
     part(SPH_HI, 'capDark', head, 0, .2, .3, .3, .045, .24);
-    const badge = new T.Group(); badge.position.set(0, .38, .345); badge.rotation.x = -.52; head.add(badge);
+    part(SPH_HI, 'capDark', head, 0, .36, 0, .06, .04, .06);
+    part(BOX, 'capDark', head, 0, .2, -.38, .16, .05, .04, .25);
+    const badge = joint(head, 0, .38, .345); badge.rotation.x = -.52;
     part(CYL, 'glove', badge, 0, 0, .004, .12, .02, .12, Math.PI / 2);
     part(CYL, 'brand', badge, 0, -.012, .012, .072, .02, .072, Math.PI / 2);
     part(CYL, 'glove', badge, 0, -.012, .018, .045, .02, .045, Math.PI / 2);
     part(CYL, 'brand', badge, 0, -.012, .024, .018, .02, .018, Math.PI / 2);
     part(CYL, 'brand', badge, 0, .082, .012, .018, .02, .018, Math.PI / 2);
-    // arms with gloves and cuffs
-    const armL = new T.Group(); armL.position.set(-.37, .96, 0); body.add(armL);
-    const armR = new T.Group(); armR.position.set(.37, .96, 0); body.add(armR);
-    for (const A of [armL, armR]) {
-      part(SPH_HI, 'shirt', A, 0, -.04, 0, .11, .11, .11);
-      part(CYL, 'shirt', A, 0, -.17, 0, .075, .24, .075);
-      part(CYL, 'glove', A, 0, -.3, 0, .1, .05, .1);
-      part(SPH_HI, 'glove', A, 0, -.39, 0, .12, .12, .12);
-    }
+    // a cowlick poking out of the cap's back strap; it springs about as the hero moves
+    const tuft = joint(head, 0, .26, -.36);
+    part(CONE, 'hair', tuft, 0, .08, -.02, .05, .2, .05, -.5);
+    part(CONE, 'hair', tuft, .05, .06, -.03, .04, .15, .04, -.7, 0, -.4);
+    part(CONE, 'hair', tuft, -.05, .06, -.03, .04, .15, .04, -.7, 0, .4);
     const shield = new T.Mesh(SPH, new T.MeshBasicMaterial({ color: 0x8ff3ff, transparent: true, opacity: .24, depthWrite: false }));
     shield.position.y = .85; shield.scale.setScalar(1.02); shield.visible = false; root.add(shield);
     scene.add(root);
-    return { root, body, head, legL, legR, armL, armR, shield, eyes, brows, happy, mouth, mouthO, m };
+    return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m };
   })();
   const blob = new T.Mesh(new T.CircleGeometry(.5, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
   blob.rotation.x = -Math.PI / 2;
@@ -1367,6 +1501,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     snow: { cols: [0xffffff, 0xeef4ff], n: 340, size: .14, vy: [-.9, -1.7], sway: .6, drift: .4, alpha: .95 },
     sprinkles: { cols: [0xff5a8a, 0xffe45c, 0x7de0ff, 0x9dff7a, 0xc49bff, 0xffffff], n: 170, size: .1, vy: [-1.1, -1.9], sway: .35, drift: .2, alpha: 1 },
     ash: { cols: [0x9a8e96, 0xff8a3a, 0x6f6570], n: 180, size: .09, vy: [-.35, -.8], sway: .55, drift: .35, alpha: .8 },
+    motes: { cols: [0xffe2a8, 0xffffff, 0xffc070], n: 120, size: .07, vy: [-.1, .25], sway: .4, drift: .3, alpha: .85 },
+    wisps: { cols: [0xffffff, 0xf2f6ff], n: 80, size: .32, vy: [-.1, .1], sway: .5, drift: 1.6, alpha: .45 },
+    rain: { cols: [0xbfd0ff, 0xdfe8ff], n: 340, size: .06, vy: [-14, -18], sway: .1, drift: 1.5, alpha: .55 },
   };
   const WX = makePool(340, T.NormalBlending, .7, 2);
   const WX_BOX = { x: 36, y: 18, z: 36 };
@@ -1547,9 +1684,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       chain: (n) => { const m = 72 + Math.min(n, 12) * 2; tone('pulse', mtof(m), 0, .07, .09); tone('pulse', mtof(m + 7), 0, .12, .09, .06); },
       pepper: () => { seq('pulse', [67, 71, 74, 79, 83, 86, 91], .08, .12, .05); swoosh(.5, .3, 400, 3000, .1); },
       poof: () => noise(.25, .3, 0, 1200, 'bandpass', 300, .7),
+      // movement and the factory
+      skid: () => { noise(.32, .3, 0, 2600, 'bandpass', 900, 1.4); tone('square', 540, 320, .16, .025); },
+      wallKick: () => { tone('triangle', 300, 720, .13, .3); noise(.06, .25, 0, 3000); },
+      triple: () => seq('pulse', [72, 79, 84, 91], .07, .11, .045),
+      crush: () => { noise(.4, .55, 0, 450); tone('sine', 120, 38, .35, .55); tone('square', 260, 180, .06, .08); },
+      creak: () => { tone('sawtooth', 95, 72, .5, .05); tone('sawtooth', 142, 110, .4, .02, .1); },
+      blip: () => { tone('sine', 1320, 0, .06, .05); tone('sine', 1760, 0, .08, .04, .05); },
+      rumble: () => { noise(1.8, .3, 0, 380); tone('sine', 55, 32, 1.4, .25); },
+      zzz: () => tone('sine', 330, 250, .5, .03),
     };
     // pitch-varied sounds, so frequent ones do not sound mechanical
-    const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz']);
+    const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush']);
     function spotNode(p) {
       _sv.set(p[0], p[1], p[2]);
       const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
@@ -1614,6 +1760,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         bpm: 156, drums: 'pop', chords: [48, 45, 53, 55, 48, 45, 50, 55],
         lead: [79, 76, 79, 84, 0, 83, 81, 79, 76, 72, 76, 81, 0, 79, 77, 76, 77, 81, 84, 81, 77, 0, 76, 74, 79, 0, 83, 0, 86, 0, 0, 0,
           84, 0, 83, 81, 79, 81, 83, 84, 81, 0, 79, 77, 76, 77, 79, 81, 77, 76, 74, 72, 74, 76, 77, 79, 79, 83, 86, 83, 84, 0, 0, 0],
+      },
+      factory: {
+        bpm: 144, drums: 'march', chords: [50, 50, 46, 48, 50, 50, 45, 45],
+        lead: [74, 0, 77, 74, 81, 0, 79, 77, 74, 0, 72, 74, 77, 0, 0, 0, 70, 0, 74, 70, 77, 0, 74, 72, 72, 76, 79, 76, 72, 0, 0, 0,
+          74, 74, 0, 77, 81, 0, 84, 0, 83, 81, 79, 77, 76, 0, 74, 0, 73, 0, 76, 79, 81, 0, 79, 76, 77, 0, 76, 0, 74, 0, 0, 0],
+      },
+      clouds: {
+        bpm: 124, drums: 'soft', chords: [53, 45, 50, 46, 53, 45, 46, 48],
+        lead: [77, 0, 81, 84, 81, 0, 77, 0, 76, 0, 72, 76, 81, 0, 0, 0, 77, 0, 74, 77, 81, 84, 81, 77, 74, 0, 70, 74, 77, 0, 0, 0,
+          77, 81, 84, 89, 88, 84, 81, 0, 81, 0, 79, 0, 76, 0, 72, 0, 74, 77, 82, 81, 77, 0, 74, 0, 76, 0, 79, 0, 77, 0, 0, 0],
       },
       boss: {
         bpm: 172, drums: 'boss', chords: [45, 45, 46, 46, 45, 45, 43, 44],
@@ -1680,6 +1836,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       desert: { f: 650, q: .5, vol: .035, ev: null, rate: 0 },
       lava: { f: 170, q: .8, vol: .1, ev: 'bubble', rate: 1.1 },
       candy: { f: 2400, q: .3, vol: .012, ev: 'chime', rate: .35 },
+      factory: { f: 140, q: 1.4, vol: .07, ev: 'clank', rate: .6 },
+      storm: { f: 420, q: .5, vol: .075, ev: null, rate: 0 },
     };
     function ambGain(on) { if (amb) amb.g.gain.setTargetAtTime(on ? amb.a.vol : 0, ctx.currentTime, on ? .6 : .1); }
     function setAmbient(kind) {
@@ -1698,6 +1856,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = (Math.random() - .5) * 1.4; p.connect(g); D = p; }
       if (ev === 'chirp') { const f = 2400 + Math.random() * 1400, n = 2 + ((Math.random() * 3) | 0); for (let i = 0; i < n; i++) tone('sine', f, f * 1.3, .07, .03, i * .1); }
       else if (ev === 'bubble') { const f = 80 + Math.random() * 80; tone('sine', f, f * 2.6, .16, .1); }
+      else if (ev === 'clank') { const f = 480 + Math.random() * 400; tone('triangle', f, f * .92, .18, .04); tone('square', f * 2.7, 0, .03, .012, .01); }
       else if (ev === 'chime') { const m = [84, 86, 88, 91, 93, 96][(Math.random() * 6) | 0]; tone('sine', mtof(m), 0, .7, .03); tone('sine', mtof(m + 12), 0, .35, .012, .02); }
       D = sfxBus;
     }
@@ -1723,7 +1882,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return s;
   }
   function makeBuilder(seed) {
-    const near = new Merger(false), far = new Merger(false), stone = new Merger(true), sky = new Merger(false);
+    const near = new Merger(false), far = new Merger(false), stone = new Merger(true), sky = new Merger(false), lit = new Merger(false);
     const R = rng(seed);
     const add = (o) => { L.group.add(o); return o; };
     const TREE_GREENS = [[0x3faa48, 0x55c25a], [0x37a04a, 0x4cc05e], [0x4bb143, 0x69cf52]];
@@ -1806,6 +1965,72 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const s = addSolid(x - .5, top, z - .5, x + .5, top + 1.5, z + .5, 'hard');
         L.cannons.push({ x, y: top, z, s, pivot, barrel, period, t: phase * period, yaw: 0, recoil: 0, charging: false });
       },
+      // conveyor belt: carries whatever stands on it; dir +1 runs forward (along the level), -1 back to the start.
+      // With a thickness it can hang in the air as a bridge.
+      belt(x0, x1, d0, d1, top, dir, th = .4) {
+        const w = x1 - x0, dd = d1 - d0, cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2, spd = 3.2;
+        const body = new T.Mesh(boxGeo(w, th, dd, 2), MAT.beltSide);
+        body.position.set(cx, top - th / 2, cz); body.castShadow = body.receiveShadow = true; add(body);
+        const pg = new T.PlaneGeometry(w - .12, dd); pg.rotateX(-Math.PI / 2);
+        const uv = pg.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * (w - .12) / 1.2, uv.getY(i) * dd);
+        const topM = new T.Mesh(pg, MAT.belt); topM.position.set(cx, top + .006, cz); topM.rotation.y = dir > 0 ? Math.PI : 0; topM.receiveShadow = true; add(topM);
+        for (const d of [d0, d1]) near.add(CYL, 0xffc53d, M4(cx, top - th / 2, -d, th * .55, w + .1, th * .55, 0, 0, Math.PI / 2));
+        addSolid(x0, top - th, -d1, x1, top, -d0, 'belt', { belt: true, bvx: 0, bvz: -dir * spd });
+      },
+      // hydraulic press: waits up high, shakes, slams down, rises again. Standing under it when it lands hurts.
+      crusher(x, top, d, h = 3.6, period = 2.8, phase = 0, w = 2.4) {
+        const z = -d, g = new T.Group(); add(g);
+        const block = new T.Mesh(GEO.crusher, MAT.char); block.scale.set(w / 2.4, 1, w / 2.4); block.castShadow = true; g.add(block);
+        const rod = new T.Mesh(CYL, MAT.rod); rod.scale.set(.22, 12, .22); rod.position.y = 7.1; g.add(rod);
+        const marker = new T.Mesh(DISC_GEO, MAT.marker); marker.rotation.x = -Math.PI / 2; marker.scale.setScalar(w * .6); marker.position.set(x, top + .05, z); marker.visible = false; add(marker);
+        const s = addSolid(x - w / 2, top + h, z - w / 2, x + w / 2, top + h + 1.1, z + w / 2, 'crusher',
+          { mesh: g, marker, cx: x, cz: z, base: top, hTop: top + h, w, st: 'up', t: phase * period, period, vy: 0 });
+        g.position.set(x, top + h, z);
+        L.crushers.push(s);
+      },
+      // tiles that light up in turn: group 0 and group 1 alternate
+      blinker(x, top, d, w, dd, group) {
+        const m = new T.Mesh(boxGeo(w, .5, dd, 2), MAT.blink[group]); m.position.set(x, top - .25, -d); m.castShadow = m.receiveShadow = true; add(m);
+        near.add(BOX, group ? 0x1aa8ff : 0xff2a90, M4(x, top - .52, -d, w * .7, .06, dd * .7));
+        L.blinkers.push(addSolid(x - w / 2, top - .5, -d - dd / 2, x + w / 2, top, -d + dd / 2, 'blink', { mesh: m, group }));
+      },
+      // fan: a column of wind that lifts the hero while he stays in it
+      fan(x, top, d, h = 8) {
+        const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
+        const base = new T.Mesh(GEO.fanBase, MAT.char); base.receiveShadow = true; g.add(base);
+        const blades = new T.Mesh(GEO.fanBlades, MAT.char); blades.position.y = .32; g.add(blades);
+        addSolid(x - 1, top, z - 1, x + 1, top + .3, z + 1, 'hard');
+        L.fans.push({ x, y: top + .3, z, h, r: 1.3, blades });
+      },
+      building(x, y, z, w, h) {
+        const c = [0x5a6275, 0x4a5165, 0x6d7385][(R() * 3) | 0];
+        far.add(BOX, c, M4(x, y + h / 2, z, w, h, w * .8));
+        far.add(BOX, 0x3b3f50, M4(x, y + h + .3, z, w + .4, .6, w * .8 + .4));
+        for (let i = 0; i < 8; i++) {
+          if (R() < .4) continue;
+          far.add(BOX, R() < .7 ? 0xffd98a : 0x3b3f50, M4(x + (R() - .5) * w * .7, y + h * (.2 + R() * .7), z + w * .4 + .02, w * .12, h * .06, .05));
+        }
+      },
+      chimney(x, y, z, h) {
+        far.add(CYL, 0x8a4a3a, M4(x, y + h / 2, z, 1.4, h, 1.4));
+        far.add(CYL, 0xf4f1ea, M4(x, y + h * .8, z, 1.45, h * .06, 1.45));
+        far.add(CYL, 0xf4f1ea, M4(x, y + h * .9, z, 1.45, h * .06, 1.45));
+        L.smokers.push({ x, y: y + h + .5, z });
+      },
+      gearDeco(x, y, z, sc, spd) {
+        const m = new T.Mesh(GEO.gear, MAT.vc); m.position.set(x, y, z); m.scale.setScalar(sc); add(m);
+        L.gears.push({ m, spd });
+      },
+      rainbow(x, y, z, r) {
+        [0xff5a5a, 0xffa13a, 0xffe45c, 0x7ddf6a, 0x5ab4ff, 0xa87aff].forEach((c, i) => { const sc = r * (1 - i * .15); far.add(ARC_THIN, c, M4(x, y, z, sc, sc, sc)); });
+      },
+      hotAir(x, y, z, sc) {
+        const [c1, c2] = [[0xff5a8a, 0xffe45c], [0x5ab4ff, 0xffffff], [0x7ddf6a, 0xffa13a], [0xa87aff, 0xffd6ec]][(R() * 4) | 0];
+        far.add(SPH, c1, M4(x, y + 2.4 * sc, z, 1.6 * sc, 1.8 * sc, 1.6 * sc));
+        far.add(SPH, c2, M4(x, y + 2.4 * sc, z, 1.62 * sc, .5 * sc, 1.62 * sc));
+        far.add(CONE, c1, M4(x, y + .9 * sc, z, .9 * sc, 1.1 * sc, .9 * sc, Math.PI, 0, 0));
+        far.add(BOX, 0x9a6038, M4(x, y, z, .7 * sc, .5 * sc, .7 * sc));
+      },
       // bouncy jelly block: landing on it throws the hero up
       jelly(x0, x1, d0, d1, top, th = 1) {
         const w = x1 - x0, dd = d1 - d0;
@@ -1842,6 +2067,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         } else if (type === 'shell') {
           refs.body = new T.Mesh(GEO.bossShell, mat); refs.body.scale.setScalar(2.6); refs.body.castShadow = true; g.add(refs.body);
           refs.spikes = new T.Mesh(GEO.bossSpikes, MAT.spikeGold); refs.spikes.scale.setScalar(2.6); refs.spikes.castShadow = true; g.add(refs.spikes);
+        } else if (type === 'mech') {
+          refs.body = new T.Mesh(GEO.mech, mat); refs.body.castShadow = true; g.add(refs.body);
+          refs.eyeMat = std({ color: 0xff3a2a, emissive: 0xff2a1a, emissiveIntensity: 2, roughness: .4 });
+          const eye = new T.Mesh(BOX, refs.eyeMat); eye.scale.set(.7, .12, .04); eye.position.set(0, 2.98, .48); refs.body.add(eye);
         } else {
           refs.body = new T.Mesh(GEO.bossCloud, mat); refs.body.castShadow = true; g.add(refs.body);
           const marker = new T.Mesh(DISC_GEO, MAT.marker); marker.rotation.x = -Math.PI / 2; marker.scale.setScalar(1.7); marker.visible = false; add(marker);
@@ -1854,7 +2083,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           const st = new T.Mesh(STAR_GEO, MAT.gold); st.scale.setScalar(.8); st.position.set(Math.cos(i * 2.09) * 1.1, 0, Math.sin(i * 2.09) * 1.1); dizzy.add(st);
         }
         L.boss = Object.assign({ type, name: def.name, hp: 3, x, y: top, z, vx: 0, vy: 0, vz: 0, face: 0, state: 'idle', t: 0, inv: 0,
-          active: false, dead: false, gone: false, deadT: 0, g, mat, dizzy, r: def.r, h: def.h, strikes: 0, spat: false, tx: 0, tz: 0 }, refs);
+          active: false, dead: false, gone: false, deadT: 0, g, mat, dizzy, r: def.r, h: def.h, strikes: 0, spat: false, tx: 0, tz: 0, volleys: 0 }, refs);
       },
       donut(x, y, z, sc) {
         const rx = (R() - .5) * 1.4, rz = (R() - .5) * 1.4;
@@ -1975,6 +2204,27 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           addSolid(x - .3, top, z - .3, x + .3, top + 3.8 * s, z + .3, 'tree');
           return;
         }
+        if (kind === 'lamp') { // street lamp leaning over the path, the bulb glows
+          const side = x > 0 ? -1 : 1, h = 3.4 * s;
+          near.add(CYL, 0x3b3f50, M4(x, top + h / 2, z, .09, h, .09));
+          near.add(BOX, 0x3b3f50, M4(x, top + .12, z, .45, .24, .45));
+          near.add(BOX, 0x3b3f50, M4(x + side * .45, top + h, z, .9, .08, .08));
+          near.add(CONE, 0x2c3042, M4(x + side * .85, top + h - .1, z, .3, .25, .3));
+          lit.add(SPH, 0xffffff, M4(x + side * .85, top + h - .28, z, .16, .12, .16));
+          addSolid(x - .25, top, z - .25, x + .25, top + h, z + .25, 'tree');
+          return;
+        }
+        if (kind === 'balloon') { // a bunch of balloons tied to a little weight
+          const cols = [0xff5a8a, 0xffe45c, 0x5ab4ff, 0x7ddf6a, 0xa87aff, 0xffa13a];
+          near.add(BOX, 0x8a92a4, M4(x, top + .15, z, .35, .3, .35));
+          for (let i = 0; i < 3; i++) {
+            const a = i * 2.1 + R(), bx = x + Math.cos(a) * .35 * s, bz = z + Math.sin(a) * .35 * s, by = top + (2.4 + i * .25) * s;
+            near.add(CYL, 0xffffff, M4((x + bx) / 2, top + by / 2 - top / 2 + .15, (z + bz) / 2, .015, by - top - .3, .015));
+            near.add(SPH, cols[(R() * cols.length) | 0], M4(bx, by + .4 * s, bz, .42 * s, .52 * s, .42 * s));
+          }
+          addSolid(x - .2, top, z - .2, x + .2, top + .3, z + .2, 'tree');
+          return;
+        }
         if (kind === 'pine') {
           near.add(CYL, 0x7a4f2c, M4(x, top + .45 * s, z, .16 * s, .9 * s, .16 * s));
           for (let k = 0; k < 3; k++) {
@@ -2058,6 +2308,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const b = far.build(MAT.vcFar); if (b) add(b);
         const c = stone.build(MAT.castle); if (c) { c.castShadow = c.receiveShadow = true; add(c); }
         const d = sky.build(MAT.cloud); if (d) add(d);
+        const e = lit.build(MAT.bulb); if (e) add(e);
       },
     };
     return B;
@@ -2091,6 +2342,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('frog', -2.5, 0, 94, 'Квак', [
       'Флажок сохранил прогресс. Упадёшь, начнёшь отсюда.',
       'Впереди движущиеся платформы. Прыгай, когда подъедут.',
+      'На бегу прыгни снова сразу после приземления, и ещё раз: третий прыжок выйдет самым высоким, с сальто!',
     ]);
     B.npc('robot', 4.5, 0, 150, 'Промобот', [
       'Если ты уже большой, из блока с сюрпризом выпадет огненный перец. С ним удар бросает огонь, даже колючки не устоят.',
@@ -2168,6 +2420,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('frog', 4, 0, 7, 'Квак', [
       'Красные доски падают, если на них постоять. Не зевай!',
       'Тут летают жужи. Зажужжали, значит сейчас спикируют: отбегай в сторону или прыгай на них сверху.',
+      'Прыгни на стену и держи к ней: будешь скользить. Жми прыжок, и оттолкнёшься от стены.',
     ]);
     B.coinRow(0, 1.2, 6, 10.5, 1.5);
     B.block(-1, 3.2, 13, 'q'); B.block(0, 3.2, 13, 'brick'); B.block(1, 3.2, 13, 'q');
@@ -2290,7 +2543,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.coin(0, 5, 104.5); B.coin(0, 7.5, 106); B.coin(0, 9, 107.5);
 
     B.island(-5, 5, 109, 130, 6.5, 4);
-    B.npc('robot', 3.6, 6.5, 111.5, 'Промобот', ['Отличный прыжок! Промобот одобряет.', 'Дальше спрыгивай вниз и беги к флагу.']);
+    B.npc('robot', 3.6, 6.5, 111.5, 'Промобот', [
+      'Отличный прыжок! Промобот одобряет.',
+      'Секрет: на бегу резко развернись и сразу прыгни, получится боковое сальто.',
+      'Дальше спрыгивай вниз и беги к флагу.',
+    ]);
     B.enemy('walker', 0, 6.5, 116, 'x', 3.5, 1.6);
     B.enemy('walker', 0, 6.5, 122, 'x', 3.5, 1.8, .5);
     B.coinRow(0, 7.7, 113, 127, 2);
@@ -2584,6 +2841,198 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sceneryCandy(B, 30, -200);
   }
 
+  function sceneryFactory(B, zFrom, zTo) {
+    const R = B.R, span = zFrom - zTo;
+    for (let i = 0; i < 30; i++) { const side = R() < .5 ? -1 : 1; B.building(side * (24 + R() * 50), -12, zFrom - R() * span, 6 + R() * 10, 10 + R() * 26); }
+    for (let i = 0; i < 7; i++) B.chimney((R() < .5 ? -1 : 1) * (28 + R() * 36), -12, zFrom - R() * span, 24 + R() * 14);
+    for (let i = 0; i < 7; i++) B.gearDeco((R() < .5 ? -1 : 1) * (17 + R() * 20), 1 + R() * 12, zFrom - R() * span, 2.5 + R() * 3.5, (R() < .5 ? -1 : 1) * (.25 + R() * .5));
+    for (let i = 0; i < 14; i++) B.cloud(-70 + R() * 140, 16 + R() * 16, zFrom - R() * span, .9 + R() * .9, 0xd8dbe4);
+  }
+  function sceneryClouds(B, zFrom, zTo) {
+    const R = B.R, span = zFrom - zTo;
+    for (let i = 0; i < 80; i++) B.puff(-90 + R() * 180, -13 - R() * 4, zFrom - R() * span, 5 + R() * 9, R() < .6 ? 0xffffff : 0xeef2ff);
+    for (let i = 0; i < 4; i++) B.rainbow((R() < .5 ? -1 : 1) * (32 + R() * 30), -14, zFrom - R() * span, 16 + R() * 10);
+    for (let i = 0; i < 8; i++) B.hotAir((R() < .5 ? -1 : 1) * (22 + R() * 40), 4 + R() * 18, zFrom - R() * span, 1.4 + R());
+    for (let i = 0; i < 22; i++) B.cloud(-80 + R() * 160, 10 + R() * 22, zFrom - R() * span, 1 + R(), 0xffffff);
+  }
+
+  // ---------- World 4-1: Gear Works ----------
+  function buildD1(B) {
+    B.start(0, 0, 3);
+    B.ground(-7, 7, -2, 32, 0);
+    B.npc('robot', 3.5, 0, 6, 'Промобот', [
+      'Это завод, где меня собрали! Жёлтые ленты-конвейеры везут всё, что на них стоит.',
+      'Прессы падают сверху. Смотри на красный круг на полу и проскакивай, пока пресс поднимается.',
+    ]);
+    B.coinRow(0, 1.2, 8, 13, 1.5);
+    B.belt(-2, 2, 15, 29, .4, -1);
+    for (let d = 16.5; d <= 28; d += 2.3) B.coin(0, 1.6, d);
+    B.block(-1, 3.8, 22, 'q'); B.block(0, 3.8, 22, 'brick'); B.block(1, 3.8, 22, 'qpower');
+    B.enemy('walker', -4.5, 0, 25, 'z', 3, 1.4);
+    B.enemy('walker', 4.5, 0, 25, 'z', 3, 1.4, .5);
+
+    B.ground(-7, 7, 35, 72, 0);
+    B.coinArc(0, 1.2, 31, 36, 4, 1.6);
+    B.checkpoint(-4.5, 0, 38);
+    B.crusher(0, 0, 45, 3.6, 2.6);
+    B.coin(0, 1.2, 45);
+    B.crusher(0, 0, 51, 3.6, 2.6, .5);
+    B.coin(0, 1.2, 51);
+    B.enemy('walker', 0, 0, 57, 'x', 4, 1.6);
+    B.cannon(5, 0, 62, 3.2);
+    B.pipe(-3.5, 64, 3); B.coin(-3.5, 3.9, 64);
+    B.enemy('hopper', 0, 0, 67.5, 'x', 3.5, 1.4, .3);
+
+    // a conveyor bridge over the drop carries the hero forward
+    B.belt(-1.6, 1.6, 74, 90, 0, 1, .6);
+    for (let d = 76; d <= 88; d += 3) B.coin(0, 1.3, d);
+    B.enemy('flyer', 0, 0, 83, 'x', 2.5, 1.1);
+
+    // a narrow walkway under three presses: time them or squeeze along the edge
+    B.ground(-7, 7, 92, 96, 0);
+    B.ground(-2, 2, 96, 116, 0);
+    B.crusher(0, 0, 100, 3.6, 2.2, 0, 2.6);
+    B.crusher(0, 0, 105.5, 3.6, 2.2, .35, 2.6);
+    B.crusher(0, 0, 111, 3.6, 2.2, .7, 2.6);
+    B.coin(0, 1.2, 100); B.coin(0, 1.2, 105.5); B.coin(0, 1.2, 111);
+
+    B.ground(-7, 7, 116, 150, 0);
+    B.checkpoint(-4.5, 0, 119);
+    B.belt(-5, -1.2, 123, 135, .4, 1); B.belt(1.2, 5, 123, 135, .4, -1);
+    B.enemy('walker', 0, 0, 127, 'z', 3, 1.5);
+    B.block(-1, 3.2, 131, 'brick'); B.block(0, 3.2, 131, 'qmulti'); B.block(1, 3.2, 131, 'brick');
+    B.enemy('hopper', 0, 0, 138, 'x', 3.5, 1.5);
+    B.cannon(-5.5, 0, 140, 3);
+    B.stairs(-3, 3, 142, 6, 0, 1);
+    B.hardBox(-3, 3, 148, 149, 0, 6);
+    for (let i = 0; i < 6; i++) B.coin(0, i + 2, 142.5 + i);
+
+    B.ground(-7, 7, 152, 186, 0);
+    B.goal(0, 0, 156);
+    B.castle(0, 0, 171);
+    const lamps = [[-6, 5], [6, 11], [-6, 20], [6, 30], [-6, 42], [6, 48], [-6, 60], [6, 69], [-6, 118], [6, 121], [-6, 146], [6, 146], [-6, 158], [6, 160], [-6, 180], [6, 181]];
+    lamps.forEach(([x, d], i) => B.tree(x, 0, d, .9 + ((i * 37) % 10) / 40));
+    sceneryFactory(B, 30, -240);
+  }
+
+  // ---------- World 4-2: Cloud Heights ----------
+  function buildD2(B) {
+    B.start(0, 0, 3);
+    B.island(-6, 6, -2, 20, 0, 4);
+    B.npc('frog', 4, 0, 6, 'Квак', [
+      'Добро пожаловать за облака! Встань в поток ветряка, и он поднимет тебя наверх.',
+      'Цветные плиты мигают по очереди. Прыгай на ту, что горит ярко, а бледная скоро появится.',
+    ]);
+    B.coinRow(0, 1.2, 8, 12, 2);
+    B.fan(0, 0, 16, 8.5);
+    B.coinCol(0, 2.5, 8.5, 16, 2);
+
+    B.ground(-3.5, 3.5, 19, 33, 6.5, 1.5);
+    B.enemy('walker', 0, 6.5, 26, 'x', 2.5, 1.5);
+    B.block(-1, 9.7, 29, 'q'); B.block(0, 9.7, 29, 'qpower'); B.block(1, 9.7, 29, 'q');
+    for (let i = 0; i < 5; i++) { const d = 36.5 + i * 4; B.blinker(0, 6.5, d, 2.6, 2.6, i % 2); B.coin(0, 7.8, d); }
+
+    B.island(-6, 6, 56, 76, 5, 4);
+    B.checkpoint(-4.5, 5, 58);
+    B.enemy('flyer', 0, 5, 64, 'x', 3, 1.2);
+    B.enemy('hopper', 0, 5, 69, 'x', 4, 1.5, .4);
+    B.fan(0, 5, 73, 7.5);
+    B.coinCol(0, 7, 11.5, 73, 1.5);
+
+    B.ground(-3, 3, 76, 92, 10.5, 1.2);
+    B.enemy('walker', 0, 10.5, 83, 'x', 2.3, 1.6);
+    B.enemy('walker', 0, 10.5, 88, 'x', 2.3, 1.7, .5);
+    B.coinRow(0, 11.7, 79, 91, 3);
+
+    // falling tiles and blinking tiles step back down
+    B.platform(0, 9.5, 95, 2.5, 2.5, { fall: true });
+    B.platform(1.5, 8.5, 99, 2.5, 2.5, { fall: true });
+    B.platform(-1, 7.5, 103, 2.5, 2.5, { fall: true });
+    B.platform(0, 6.5, 107, 3, 3, { move: { axis: 'x', range: 2.5, period: 3.8 } });
+    B.coin(0, 10.8, 95); B.coin(1.5, 9.8, 99); B.coin(-1, 8.8, 103);
+    B.blinker(0, 5.5, 111.5, 2.6, 2.6, 1); B.blinker(0, 5.5, 115.5, 2.6, 2.6, 0);
+
+    B.island(-6, 6, 119, 138, 4, 4);
+    B.enemy('flyer', 0, 4, 125, 'x', 3.5, 1.2, .5);
+    B.enemy('walker', 0, 4, 129, 'x', 4.5, 1.6);
+    B.stairs(-3, 3, 132, 5, 4, 1);
+    B.hardBox(-3, 3, 137, 138, 4, 9);
+    for (let i = 0; i < 5; i++) B.coin(0, 4 + i + 2, 132.5 + i);
+
+    B.island(-6, 6, 141, 172, 4, 5);
+    B.goal(0, 4, 145);
+    B.castle(0, 4, 159);
+    const balloons = [[-5, 4, 0], [5, 12, 0], [5, 59, 5], [-5, 70, 5], [-5, 121, 4], [5, 124, 4], [-5, 143, 4], [5, 148, 4], [-5, 167, 4], [5, 168, 4]];
+    balloons.forEach(([x, d, top], i) => B.tree(x, top, d, .9 + ((i * 37) % 10) / 40));
+    sceneryClouds(B, 30, -230);
+  }
+
+  // ---------- World 4-3: Storm Tower ----------
+  function buildD3(B) {
+    B.start(0, 0, 3);
+    B.ground(-7, 7, -2, 13, 0);
+    B.npc('robot', 3.5, 0, 6, 'Промобот', [
+      'Гроза над башней! Тут всё сразу: ленты, прессы, мигающие плиты и ветряки.',
+      'За башней ждёт Мегабот. Держи щит!',
+    ], { gift: 'shield' });
+    B.coinRow(0, 1.2, 8, 12, 2);
+    // a backwards conveyor bridge under a press
+    B.belt(-2, 2, 13, 26, 0, -1, .8);
+    B.crusher(0, 0, 19.5, 3.4, 2.4);
+    B.coin(0, 1.2, 16); B.coin(0, 1.2, 23);
+    B.ground(-4, 4, 26, 30, 0);
+    for (let i = 0; i < 3; i++) { const d = 33 + i * 4; B.blinker(0, 0, d, 2.6, 2.6, i % 2); B.coin(0, 1.3, d); }
+
+    B.ground(-7, 7, 44, 76, 1);
+    B.checkpoint(-4.5, 1, 46);
+    B.firebar(0, 1, 53, 6, 1.5, 'y');
+    B.coin(-4.5, 2.2, 53); B.coin(4.5, 2.2, 53);
+    B.enemy('walker', 0, 1, 58, 'x', 3, 1.6);
+    B.enemy('walker', 0, 1, 64, 'x', 3, 1.7, .5);
+    B.cannon(-5, 1, 60, 3); B.cannon(5, 1, 62.5, 3, .5);
+    B.block(-1, 4.2, 67, 'brick'); B.block(0, 4.2, 67, 'qpower'); B.block(1, 4.2, 67, 'brick');
+    B.fan(0, 1, 72, 8);
+    B.coinCol(0, 3.5, 9, 72, 1.8);
+    // a high conveyor bridge carries the hero forward through the rain
+    B.belt(-1.6, 1.6, 75, 92, 7.5, 1, .6);
+    B.enemy('flyer', 0, 7.5, 84, 'x', 2.5, 1.2);
+    for (let d = 78; d <= 90; d += 3) B.coin(0, 8.8, d);
+
+    B.ground(-6, 6, 94, 128, 5);
+    B.checkpoint(-4.5, 5, 96);
+    B.crusher(-2, 5, 102, 3.4, 2.4); B.crusher(2, 5, 102, 3.4, 2.4, .5);
+    B.enemy('hopper', 0, 5, 108, 'x', 3.5, 1.5);
+    B.enemy('hopper', 0, 5, 112, 'x', 3.5, 1.6, .5);
+    B.firebar(0, 5, 116, 6, 1.6, 'z', { h: 3.3, double: true });
+    B.stairs(-3, 3, 120, 6, 5, 1);
+    B.hardBox(-3, 3, 126, 127, 5, 11);
+    for (let i = 0; i < 6; i++) B.coin(0, 5 + i + 2, 120.5 + i);
+
+    B.ground(-7, 7, 130, 164, 5);
+    B.goal(0, 5, 134);
+    B.castle(0, 5, 148);
+    const lamps = [[-6, 4, 0], [6, 11, 0], [-6, 48, 1], [6, 50, 1], [-6, 69, 1], [6, 69, 1], [-5, 99, 5], [5, 99, 5], [-5, 110, 5], [5, 110, 5], [-6, 132, 5], [6, 132, 5], [-6, 158, 5], [6, 158, 5]];
+    lamps.forEach(([x, d, top], i) => B.tree(x, top, d, .9 + ((i * 37) % 10) / 40));
+    sceneryFactory(B, 30, -230);
+  }
+
+  // ---------- World 4-4: Megabot ----------
+  function buildB4(B) {
+    B.start(0, 0, 3);
+    B.ground(-7, 7, -2, 17, 0);
+    B.npc('robot', 3.5, 0, 7, 'Промобот', [
+      'Там Мегабот, моя сломанная копия! Он стреляет ядрами: перепрыгивай их или отбивай ударом.',
+      'Потом он прыгает, и по полу бежит волна. Прыгай через неё!',
+      'Когда он перегреется и задымит, прыгай ему на голову. Три раза!',
+    ]);
+    B.coinRow(0, 1.2, 8, 14, 2);
+    B.block(0, 3.2, 11, 'qpower');
+    B.arena(-12, 12, 18, 46, 0, 1.4, 4);
+    B.boss('mech', 0, 0, 36);
+    for (const [x, d] of [[-6, 4], [6, 12], [-6, 15]]) B.tree(x, 0, d, 1);
+    sceneryFactory(B, 30, -120);
+  }
+
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
       sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc, glow: [0xfff6d8, .45] },
@@ -2608,6 +3057,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       sky: [[0, '#8fd6ff'], [.5, '#e2c9ff'], [1, '#fff0fb']], fog: [0xf6ecff, 55, 165], hemi: [0xf7f0ff, 0xb08ac8, .88], sun: 0xfff2fa, glow: [0xfff0fb, .5] },
     { id: '3-3', name: 'Хмурь', boss: true, time: 300, seed: 73, killY: -12, music: 'candy', theme: 'candy', build: buildB3,
       sky: [[0, '#5b4a8a'], [.5, '#b39ad6'], [1, '#f2dcff']], fog: [0xeadcf8, 50, 150], hemi: [0xf2e6ff, 0x8a6aa0, .85], sun: 0xf0e6ff, glow: [0xffd6f0, .45], stars: true },
+    { id: '4-1', name: 'Шестерёнчатый завод', time: 320, seed: 81, killY: -12, music: 'factory', theme: 'metal', build: buildD1,
+      sky: [[0, '#5a6f9a'], [.55, '#a9b8d6'], [1, '#f3e2c4']], fog: [0xe9dcc8, 55, 150], hemi: [0xf4efe6, 0x6d6a7a, .85], sun: 0xffe7c4, glow: [0xffc98a, .6, true] },
+    { id: '4-2', name: 'Облачные высоты', time: 320, seed: 82, killY: -12, music: 'clouds', theme: 'cloud', build: buildD2,
+      sky: [[0, '#3f8fe8'], [.5, '#9fd4ff'], [1, '#ffffff']], fog: [0xf2f8ff, 70, 190], hemi: [0xffffff, 0xa9b6e0, .95], sun: 0xffffff, glow: [0xffffff, .6, true] },
+    { id: '4-3', name: 'Грозовая башня', time: 340, seed: 83, killY: -12, music: 'factory', theme: 'metal', build: buildD3, storm: true, weather: 'rain', amb: 'storm',
+      sky: [[0, '#11152e'], [.55, '#2f3563'], [1, '#7a6fa8']], fog: [0x3a3a66, 40, 130], hemi: [0xc9d2ff, 0x4a4a78, .8], sun: 0xc9d6ff, sunI: .65, glow: [0x9f8cff, .5], stars: true },
+    { id: '4-4', name: 'Мегабот', boss: true, time: 300, seed: 84, killY: -12, music: 'factory', theme: 'metal', build: buildB4,
+      sky: [[0, '#1a1026'], [.55, '#4b2a4a'], [1, '#c0603a']], fog: [0x4a2a3a, 40, 130], hemi: [0xffd2c0, 0x6a3a4a, .82], sun: 0xffc8a8, sunI: .7, glow: [0xff7a4a, .55], stars: true },
   ];
 
   function spawnEnemy(type, x, y, z, axis = 'x', range = 3, speed = 1.5, phase = 0) {
@@ -2633,6 +3090,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     king: { name: 'Король Каштан', r: 1.5, h: 2.8 },
     shell: { name: 'Огненный Панцирь', r: 1.4, h: 2.4 },
     cloud: { name: 'Хмурь', r: 1.9, h: 1.9 },
+    mech: { name: 'Мегабот', r: 1.6, h: 3.2 },
   };
   function disposeGroup(g) { g.traverse((o) => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); }); }
   function loadLevel(i) {
@@ -2642,7 +3100,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
       orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [], dinos: [], jellies: [], rings: [], shots: [], boss: null, arena: null, gate: null,
-      cannons: [], balls: [], fireballs: [],
+      cannons: [], balls: [], fireballs: [], crushers: [], blinkers: [], blinkPh: -1, fans: [], gears: [], smokers: [], stormT: 4,
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     const B = makeBuilder(def.seed);
@@ -2675,6 +3133,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sand: { weather: 'sand', amb: 'desert', dust: 0xf3d99a },
     snow: { weather: 'snow', amb: 'wind', dust: 0xffffff },
     stone: { weather: 'ash', amb: 'lava', dust: 0xb9b4c8 },
+    metal: { weather: 'motes', amb: 'factory', dust: 0xc8ccd6 },
+    cloud: { weather: 'wisps', amb: 'wind', dust: 0xffffff },
     candy: { weather: 'sprinkles', amb: 'candy', dust: 0xffd6e8 },
   };
 
@@ -2695,7 +3155,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   };
   const P = { pos: new T.Vector3(), vel: new T.Vector3(), prevY: 0, onGround: false, wasGround: false, ground: null, coyote: 0, jumpBuf: 0,
     facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1, riding: null, airJumps: 0, lastSafe: null, happyT: 0, hurtT: 0, jumpFaceT: 0, landT: 0, landK: 0,
-    fire: false, spinT: 0, spinCd: 0, spinAir: false, spinHit: new Set(), pound: null, poundT: 0, poundJT: 0, flipT: 0, fireCd: 0, throwT: 0, stepT: 0 };
+    fire: false, spinT: 0, spinCd: 0, spinAir: false, spinHit: new Set(), pound: null, poundT: 0, poundJT: 0, flipT: 0, fireCd: 0, throwT: 0, stepT: 0,
+    flipDur: .5, flipAxis: 'x', flipDir: 1, jumpN: 0, landedT: 1, skidT: 0, wallN: new T.Vector3(), wallT: 0, wallLock: 0, wallSlide: false, wallKickT: 0, inFan: false };
   const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null };
   let time = 0;
 
@@ -2726,7 +3187,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         continue;
       }
       p[axis] = amt > 0 ? s.min[axis] - HW : s.max[axis] + HW;
-      if (isPlayerMove) P.vel[axis] = 0;
+      if (isPlayerMove) {
+        P.vel[axis] = 0;
+        // a wall taller than the hero's chest, met in the air, can be slid down and kicked off
+        if (!P.wasGround && s.kind !== 'npc' && s.max.y > p.y + PH * .7 && s.min.y < p.y + PH * .3) {
+          P.wallN.set(axis === 'x' ? -Math.sign(amt) : 0, 0, axis === 'z' ? -Math.sign(amt) : 0); P.wallT = .14;
+        }
+      }
     }
   }
   function cornerSlip(s) {
@@ -2803,6 +3270,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       return;
     }
     if (!P.wasGround) {
+      P.landedT = 0; if (P.jumpN >= 3) P.jumpN = 0;
+      P.wallT = 0; P.wallLock = 0; P.flipT = 0;
       if (P.vel.y < -6) { P.landK = clamp(-P.vel.y / 24, .25, 1); P.landT = .22; }
       P.squash = P.vel.y < -14 ? .76 : .88;
       if (P.vel.y < -8 && !pounded) Snd.sfx.land(clamp((-P.vel.y - 8) / 16, 0, 1));
@@ -3132,12 +3601,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (c.t >= c.period) {
         c.t = 0; c.charging = false; c.recoil = 1; c.barrel.scale.setScalar(1);
         const sx = Math.sin(c.yaw), sz = Math.cos(c.yaw), bx = c.x + sx * 1.05, by = c.y + 1.2, bz = c.z + sz * 1.05;
-        const m = new T.Mesh(GEO.ball, MAT.char); m.castShadow = true; m.position.set(bx, by, bz); m.rotation.y = c.yaw; L.group.add(m);
-        L.balls.push({ m, x: bx, y: by, z: bz, vx: sx * 7.5, vz: sz * 7.5, life: 6, own: c.s });
+        fireBall(bx, by, bz, c.yaw, 7.5, c.s);
         Snd.at(c.x, c.y + 1.2, c.z).boom(); G.shake = Math.max(G.shake, d < 10 ? .2 : 0);
         puff(bx, by, bz, 0xcfcfdc, 6, 2.2, .6, .6, .9); glow(bx, by, bz, 0xffd35a, 8, 3, .5, 0, .2, .35);
       }
     }
+  }
+  function fireBall(x, y, z, yaw, speed, own) {
+    const m = new T.Mesh(GEO.ball, MAT.char); m.castShadow = true; m.position.set(x, y, z); m.rotation.y = yaw; L.group.add(m);
+    L.balls.push({ m, x, y, z, vx: Math.sin(yaw) * speed, vz: Math.cos(yaw) * speed, life: 6, own });
   }
   function popBall(b, pts) {
     b.dead = true; addScore(pts); popup(String(pts), b.x, b.y + 1, b.z); chainAdd();
@@ -3362,26 +3834,39 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.prevY = P.pos.y;
     P.wasGround = P.onGround;
     const g = P.onGround ? P.ground : null;
-    if (g && g.kind === 'platform') {
+    if (g && (g.kind === 'platform' || g.kind === 'crusher')) {
       if (g.dx) moveH('x', g.dx, false);
       if (g.dz) moveH('z', g.dz, false);
       if (g.dy) P.pos.y += g.dy;
     }
+    if (g && g.belt) { moveH('x', g.bvx * dt, false); moveH('z', g.bvz * dt, false); }
     if (input.actQueued) { input.actQueued = false; action(); }
     const inp = readInput();
     const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
     const wx = cy * inp.x - sy * inp.y, wz = -sy * inp.x - cy * inp.y;
     const mag = Math.min(1, Math.hypot(inp.x, inp.y));
+    const spd0 = Math.hypot(P.vel.x, P.vel.z);
+    // skid: reversing hard at speed digs the heels in; a jump out of it becomes a side flip
+    if (P.onGround && !P.riding && !P.pound && P.skidT <= 0 && mag > .6 && spd0 > 5.5 && (wx * P.vel.x + wz * P.vel.z) / (spd0 * mag) < -.6) {
+      P.skidT = .34; Snd.sfx.skid();
+    }
+    if (P.skidT > 0 && (!P.onGround || spd0 < 1)) P.skidT = 0;
+    // wall slide: falling while pushing into a wall slows the fall
+    const push = P.wallT > 0 ? -(wx * P.wallN.x + wz * P.wallN.z) : 0;
+    P.wallSlide = P.wallT > .05 && !P.onGround && !P.riding && !P.pound && P.vel.y < 0 && push > .3;
     if (P.pound) { P.vel.x = P.vel.z = 0; } // no steering during a ground pound
     else {
       const icy = P.onGround && P.ground && P.ground.ice;
-      const acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
+      let acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
+      if (P.skidT > 0) acc = 26;
+      if (P.wallLock > 0) acc *= .2; // right after a wall kick the hero flies away from the wall
       const spdMax = P.riding ? RIDE_SPD : MAX_SPD;
       let dvx = wx * spdMax - P.vel.x, dvz = wz * spdMax - P.vel.z;
       const dl = Math.hypot(dvx, dvz), md = acc * dt;
       if (dl > md) { dvx *= md / dl; dvz *= md / dl; }
       P.vel.x += dvx; P.vel.z += dvz;
-      if (mag > .08) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), 16, dt);
+      if (P.wallSlide) P.facing = angleDamp(P.facing, Math.atan2(-P.wallN.x, -P.wallN.z), 18, dt);
+      else if (mag > .08 && P.wallLock <= 0) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), 16, dt);
     }
 
     if (input.jumpQueued) { P.jumpBuf = .14; input.jumpQueued = false; }
@@ -3389,14 +3874,35 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.coyote = P.onGround ? .11 : P.coyote - dt;
     if (P.pound) P.jumpBuf = 0;
     if (P.jumpBuf > 0 && P.coyote > 0) {
-      // right after a ground pound the jump springs much higher, with a flip
-      const high = P.poundJT > 0;
-      P.vel.y = (high ? JUMP_V * 1.28 : JUMP_V) + (P.riding ? RIDE_JUMP : 0) + Math.hypot(P.vel.x, P.vel.z) * RUN_JUMP;
-      P.onGround = false; P.coyote = 0; P.jumpBuf = 0; P.ground = null; P.squash = 1.22; P.noCut = high;
+      const spdH = Math.hypot(P.vel.x, P.vel.z);
+      // jumps landed back to back while running build up: double, then a triple jump with a flip
+      P.jumpN = !P.riding && P.landedT < .2 && spdH > 4.5 && P.jumpN > 0 && P.jumpN < 3 ? P.jumpN + 1 : 1;
+      const high = P.poundJT > 0, side = P.skidT > 0 && !high;
+      const mult = high ? 1.28 : side ? 1.24 : P.jumpN === 3 ? 1.3 : P.jumpN === 2 ? 1.12 : 1;
+      P.vel.y = JUMP_V * mult + (P.riding ? RIDE_JUMP : 0) + (side ? 0 : spdH * RUN_JUMP);
+      P.onGround = false; P.coyote = 0; P.jumpBuf = 0; P.ground = null; P.squash = 1.22; P.noCut = high || side || P.jumpN === 3;
       P.airJumps = P.riding ? 1 : 0; P.jumpFaceT = .35; P.poundJT = 0;
       Snd.sfx.jump();
       puff(P.pos.x, P.pos.y + .1, P.pos.z, dustColor(), 3, 1.2, .3, .4, .55);
-      if (high) { P.flipT = .5; G.kick = .8; Snd.sfx.flutter(); glow(P.pos.x, P.pos.y + .3, P.pos.z, 0xbff6ff, 16, 4, 1, 3, .45, .28); wave(P.pos.x, P.pos.y, P.pos.z, 0xbff6ff, 2, .35); }
+      if (high) { // backflip out of a ground pound
+        startFlip('x', -1, .5); G.kick = .8; Snd.sfx.flutter();
+        glow(P.pos.x, P.pos.y + .3, P.pos.z, 0xbff6ff, 16, 4, 1, 3, .45, .28); wave(P.pos.x, P.pos.y, P.pos.z, 0xbff6ff, 2, .35);
+      } else if (side) { // side flip out of a skid, towards where the stick points
+        const l = mag || 1; P.vel.x = wx / l * 3.5; P.vel.z = wz / l * 3.5; P.facing = Math.atan2(wx, wz); P.skidT = 0; P.jumpN = 0;
+        startFlip('z', -1, .55); G.kick = .6; Snd.sfx.triple();
+        glow(P.pos.x, P.pos.y + .5, P.pos.z, 0xfff3a0, 14, 3, 1, 3, .45, .25);
+      } else if (P.jumpN === 3) {
+        startFlip('x', 1, .6); G.kick = .7; Snd.sfx.triple();
+        glow(P.pos.x, P.pos.y + .3, P.pos.z, 0xfff3a0, 18, 4, 1, 3, .5, .28); wave(P.pos.x, P.pos.y, P.pos.z, 0xfff3a0, 2.2, .35);
+      }
+    } else if (P.jumpBuf > 0 && P.wallT > 0 && !P.onGround && !P.riding && !P.pound) {
+      // wall kick: spring off the wall, facing away from it
+      P.vel.y = JUMP_V * 1.02; P.vel.x = P.wallN.x * 8.5; P.vel.z = P.wallN.z * 8.5;
+      P.facing = Math.atan2(P.wallN.x, P.wallN.z); P.jumpBuf = 0; P.wallT = 0; P.wallLock = .24; P.wallSlide = false;
+      P.noCut = false; P.squash = 1.2; P.jumpN = 0; P.wallKickT = .4; P.spinAir = false; P.jumpFaceT = .3;
+      Snd.sfx.wallKick();
+      const wxp = P.pos.x - P.wallN.x * HW, wzp = P.pos.z - P.wallN.z * HW;
+      puff(wxp, P.pos.y + .8, wzp, 0xe9e4d8, 4, 1.5, .3, .4, .6); glow(wxp, P.pos.y + .8, wzp, 0xffffff, 8, 3, .5, 2, .3, .22);
     } else if (P.jumpBuf > 0 && P.airJumps > 0 && !P.onGround) {
       P.airJumps--; P.jumpFaceT = .25; P.vel.y = JUMP_V * .92; P.jumpBuf = 0; P.noCut = false; P.squash = 1.15;
       Snd.sfx.flutter(); emit(P.pos.x, P.pos.y + .2, P.pos.z, 0xffffff, 10, 2.5, -1, 2, .4);
@@ -3411,6 +3917,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       let grav = GRAV;
       if (P.vel.y > 0 && !jumpHeld() && !P.noCut) grav *= 2.3;
       P.vel.y = Math.max(P.vel.y - grav * dt, TERM);
+      if (P.wallSlide) {
+        P.vel.y = Math.max(P.vel.y, -4);
+        if (Math.random() < dt * 14) puff(P.pos.x - P.wallN.x * HW, P.pos.y + .3, P.pos.z - P.wallN.z * HW, 0xe9e4d8, 1, .4, .6, .4, .45);
+      }
+      fanLift(dt);
     }
 
     P.onGround = false; P.ground = null;
@@ -3418,10 +3929,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     moveH('z', P.vel.z * dt, true);
     moveV(P.vel.y * dt);
     if (P.spinT > 0) spinHits();
-    // footsteps
+    if (P.skidT > 0 && Math.random() < dt * 30) puff(P.pos.x, P.pos.y + .1, P.pos.z, dustColor(), 1, 1, .3, .35, .55);
+    // footsteps while riding follow the dino's stride; on foot they come from the run cycle in animateHero
     const spdH = Math.hypot(P.vel.x, P.vel.z);
-    if (P.onGround && spdH > 1.5) {
-      P.stepT += dt * spdH * (P.riding ? .3 : .44);
+    if (P.riding && P.onGround && spdH > 1.5) {
+      P.stepT += dt * spdH * .3;
       if (P.stepT >= 1) { P.stepT -= 1; footstep(); }
     } else P.stepT = .7;
     if (P.fire && Math.random() < dt * 5) glow(P.pos.x + Math.sin(P.facing) * .3, P.pos.y + PH * .45, P.pos.z + Math.cos(P.facing) * .3, 0xff8a2a, 1, .3, 1.2, -.3, .5, .15);
@@ -3433,6 +3945,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       Snd.sfx.burn(); die('burn');
     } else if (P.pos.y < L.killY) die('fall');
   }
+  function startFlip(axis, dir, dur) { P.flipT = dur; P.flipDur = dur; P.flipAxis = axis; P.flipDir = dir; }
 
   function checkPickups() {
     const cx = P.pos.x, cy = P.pos.y + PH / 2, cz = P.pos.z;
@@ -3557,6 +4070,85 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       for (const b of f.balls) {
         const dx = b.x - clamp(b.x, P.pos.x - HW, P.pos.x + HW), dy = b.y - clamp(b.y, P.pos.y, P.pos.y + PH), dz = b.z - clamp(b.z, P.pos.z - HW, P.pos.z + HW);
         if (dx * dx + dy * dy + dz * dz < .22 * .22) { hurt(b); break; }
+      }
+    }
+  }
+  // ---------- factory and sky mechanics: presses, blinking tiles, fans ----------
+  function updateCrushers(dt) {
+    for (const s of L.crushers) {
+      const oy = s.min.y; let ny = oy;
+      s.t += dt;
+      if (s.st === 'up') { ny = s.hTop; if (s.t >= s.period) { s.st = 'shake'; s.t = 0; if (Math.abs(s.cz - P.pos.z) < 16) Snd.at(s.cx, s.hTop, s.cz).creak(); } }
+      else if (s.st === 'shake') { if (s.t > .5) { s.st = 'fall'; s.t = 0; s.vy = 0; } }
+      else if (s.st === 'fall') {
+        s.vy = Math.min(s.vy + 70 * dt, 26); ny = Math.max(s.base, oy - s.vy * dt);
+        if (ny <= s.base) {
+          s.st = 'down'; s.t = 0;
+          const d = Math.hypot(s.cx - P.pos.x, s.cz - P.pos.z);
+          if (d < 18) { G.shake = Math.max(G.shake, .4 * (1 - d / 18)); Snd.at(s.cx, s.base, s.cz).crush(); }
+          wave(s.cx, s.base, s.cz, THEME_FX[L.theme.ground].dust, s.w * 1.2, .45, false);
+          for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; puff(s.cx + Math.cos(a) * s.w * .6, s.base + .2, s.cz + Math.sin(a) * s.w * .6, 0xcfd2da, 1, 1.5, .3, .6, .8); }
+          for (const e of L.enemies) if (e.alive && Math.abs(e.x - s.cx) < s.w / 2 + .3 && Math.abs(e.z - s.cz) < s.w / 2 + .3 && Math.abs(e.y - s.base) < 1) knockEnemy(e);
+        }
+      } else if (s.st === 'down') { ny = s.base; if (s.t > .8) { s.st = 'rise'; s.t = 0; } }
+      else { ny = Math.min(s.hTop, oy + 2.6 * dt); if (ny >= s.hTop) { s.st = 'up'; s.t = 0; } }
+      s.dx = s.dz = 0; s.dy = ny - oy;
+      s.min.y = ny; s.max.y = ny + 1.1;
+      s.mesh.position.set(s.cx + (s.st === 'shake' ? (Math.random() - .5) * .14 : 0), ny, s.cz);
+      s.marker.visible = s.st === 'shake' || s.st === 'fall';
+      if (s.marker.visible) s.marker.scale.setScalar(s.w * (.5 + .1 * Math.sin(time * 20)));
+      // a press coming down on the hero hurts and squeezes him out to the side
+      if (G.state === 'playing' && s.dy < 0) {
+        const p = P.pos, hw = s.w / 2;
+        if (Math.abs(p.x - s.cx) < hw + HW - .05 && Math.abs(p.z - s.cz) < hw + HW - .05 && p.y < ny && p.y + PH > ny) {
+          hurt({ x: s.cx, z: s.cz });
+          const dx = p.x - s.cx, dz = p.z - s.cz;
+          if (Math.abs(dx) > Math.abs(dz)) p.x = s.cx + Math.sign(dx || 1) * (hw + HW + .05); else p.z = s.cz + Math.sign(dz || 1) * (hw + HW + .05);
+        }
+      }
+    }
+  }
+  const BLINK_PERIOD = 3.2;
+  function updateBlinkers() {
+    if (!L.blinkers.length) return;
+    const ph = (time % BLINK_PERIOD) / BLINK_PERIOD, half = ph < .5 ? 0 : 1;
+    for (let g = 0; g < 2; g++) {
+      const on = half === g, left = (g === 0 ? .5 - ph : 1 - ph) * BLINK_PERIOD, mat = MAT.blink[g];
+      const flick = on && left < .6 && Math.floor(time * 14) % 2 === 0; // flickers just before it goes out
+      mat.opacity = on ? (flick ? .45 : .92) : .14; mat.emissiveIntensity = on ? .7 : .08; mat.depthWrite = on;
+    }
+    for (const s of L.blinkers) {
+      const on = s.group === half;
+      if (on && !s.active) { s.active = true; if (G.state === 'playing' && overlapP(s, P.pos.x, P.pos.y, P.pos.z)) pushOut(s); }
+      else if (!on) s.active = false;
+    }
+    if (half !== L.blinkPh) {
+      L.blinkPh = half;
+      let near = null, best = 16;
+      for (const s of L.blinkers) { const d = Math.hypot((s.min.x + s.max.x) / 2 - P.pos.x, (s.min.z + s.max.z) / 2 - P.pos.z); if (d < best) { best = d; near = s; } }
+      if (near) Snd.at((near.min.x + near.max.x) / 2, near.max.y, (near.min.z + near.max.z) / 2).blip();
+    }
+  }
+  // the fan's wind column: lifts the hero up to its top and holds him there
+  function fanLift(dt) {
+    P.inFan = false;
+    if (P.pound) return;
+    for (const f of L.fans) {
+      const dx = P.pos.x - f.x, dz = P.pos.z - f.z;
+      if (dx * dx + dz * dz > f.r * f.r || P.pos.y < f.y - .3 || P.pos.y > f.y + f.h) continue;
+      // steer the vertical speed towards a hover just under the top of the column
+      const want = clamp((f.y + f.h - .5 - P.pos.y) * 2.4, -2.5, 10);
+      P.vel.y = damp(P.vel.y + GRAV * dt, want, 5, dt);
+      P.noCut = true; P.inFan = true; P.spinAir = false; P.onGround = false; P.jumpN = 0;
+    }
+  }
+  function updateFans(dt) {
+    for (const f of L.fans) {
+      f.blades.rotation.y += dt * 22;
+      if (Math.abs(f.z - P.pos.z) > 40) continue;
+      if (Math.random() < dt * 16) {
+        const a = Math.random() * Math.PI * 2, r = Math.random() * f.r * .85;
+        spawnP(POOL.glow, f.x + Math.cos(a) * r, f.y + .2, f.z + Math.sin(a) * r, 0xffffff, 1, .3, 7.5, 0, f.h / 7.5, .22, .08, 0, .55);
       }
     }
   }
@@ -3758,7 +4350,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     const b = makeBubble('Фея Лира'); fairy.el = b.el; fairy.span = b.span;
     fairy.lines = fin
-      ? ['Ты одолел Хмурь и прошёл все миры!', 'Спасибо, герой! Держи мой волшебный бонус.']
+      ? ['Ты одолел Мегабота и прошёл все четыре мира!', 'Спасибо, герой! Держи мой волшебный бонус.']
       : L.def.boss
         ? ['Ты победил босса! Какой прыжок!', 'Путь в следующий мир открыт. Я буду ждать тебя там!']
         : ['Ура, ты добрался до замка!', 'Я фея Лира. Волшебный ветер уносит меня дальше: догоняй в следующем мире!'];
@@ -3794,6 +4386,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         G.emberT = .07;
         glow(P.pos.x + (Math.random() - .5) * 26, L.lavaY + .3, P.pos.z - 4 + (Math.random() - .5) * 26, Math.random() < .5 ? 0xff7a1a : 0xffc04a, 1, .3, 1.4, -.3, 2.4, .26);
       }
+    }
+    TX.belt.offset.y = (time * 3.2) % 1;
+    for (const gr of L.gears) gr.m.rotation.z += gr.spd * dt;
+    for (const c of L.smokers) if (Math.random() < dt * 2.5) puff(c.x + (Math.random() - .5), c.y, c.z, Math.random() < .5 ? 0xcfd2da : 0xb8bcc8, 1, .5, 1.6, 3.5, 4);
+    updateFans(dt);
+    if (L.def.storm && G.state === 'playing') {
+      L.stormT -= dt;
+      if (L.stormT <= 0) { L.stormT = 5 + Math.random() * 8; G.flash = Math.max(G.flash, .28); G.flashCol = '#dfe4ff'; Snd.at(P.pos.x + (Math.random() - .5) * 40, 20, P.pos.z - 25).rumble(); }
     }
     for (const t of L.torches) {
       t.mesh.scale.set(.22, .3 + Math.sin(time * 14 + t.x) * .05, .22);
@@ -3882,12 +4482,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       return;
     }
     // back up angrier and faster, and call in help: chestnuts for the king, hoppers for the shell, bugs for the cloud
-    b.state = b.type === 'cloud' ? 'rise' : b.type === 'shell' ? 'recover' : 'walk'; b.t = 0;
+    b.state = b.type === 'cloud' ? 'rise' : b.type === 'shell' ? 'recover' : 'walk'; b.t = 0; b.volleys = 0;
     const A = L.arena, n = 3 - b.hp;
     for (let i = 0; i < n; i++) {
       const z = i % 2 ? A.z0 + 3 : A.z1 - 4;
       if (b.type === 'king') spawnEnemy('walker', A.cx, A.top, z, 'x', (A.x1 - A.x0) / 2 - 2, 1.8 + i * .3, i * .5);
       else if (b.type === 'shell') spawnEnemy('hopper', A.cx, A.top, z, 'x', (A.x1 - A.x0) / 2 - 3, 1.5 + i * .2, i * .5);
+      else if (b.type === 'mech') { if (i % 2) spawnEnemy('flyer', A.cx + 5, A.top, A.cz, 'x', 3, 1.2); else spawnEnemy('walker', A.cx, A.top, z, 'x', (A.x1 - A.x0) / 2 - 2, 1.8, i * .5); }
       else spawnEnemy('flyer', A.cx + (i % 2 ? -5 : 5), A.top, A.cz + (i - 1) * 3, 'x', 3, 1.2, i * .4);
     }
   }
@@ -3990,6 +4591,52 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (b.t > 1.2) { b.state = 'hover'; b.t = 0; b.strikes = 0; }
     }
   }
+  // Megabot walks up, fires two fans of cannonballs, then leaps at the hero; the landing sends out a shockwave
+  // and he overheats: steam from the head, and that is the moment to stomp him
+  function updateMech(b, dt, tx, tz, dist, lost, A) {
+    const aim = Math.atan2(tx, tz);
+    b.eyeMat.emissiveIntensity = b.state === 'dazed' ? .15 : 1.6 + Math.sin(time * 8) * .4;
+    if (b.state === 'idle') { b.state = 'walk'; b.t = 0; b.volleys = 0; }
+    if (b.state === 'walk') {
+      b.face = aim;
+      const spd = 2 + lost * .5, st = Math.sin(time * 7);
+      b.x += tx / dist * spd * dt; b.z += tz / dist * spd * dt;
+      b.y = A.top + Math.abs(st) * .08; b.body.rotation.z = st * .05;
+      if (b.t > 1.5) { b.state = 'aim'; b.t = 0; Snd.at(b.x, b.y + 2, b.z).charge(); }
+    } else if (b.state === 'aim') {
+      b.face = aim; b.y = A.top; b.body.rotation.z = 0;
+      b.eyeMat.emissiveIntensity = 3 + Math.sin(time * 40);
+      if (b.t > .75 - lost * .1) {
+        const n = 3 + lost * 2, spread = .3 + lost * .08;
+        for (let i = 0; i < n; i++) {
+          const a = b.face + (n > 1 ? (i / (n - 1) - .5) * 2 * spread : 0);
+          fireBall(b.x + Math.sin(a) * 1.9, A.top + 1.2, b.z + Math.cos(a) * 1.9, a, 7 + lost, null);
+        }
+        Snd.at(b.x, b.y + 2, b.z).boom(); G.shake = Math.max(G.shake, .3);
+        puff(b.x + Math.sin(b.face) * 1.6, A.top + 1.4, b.z + Math.cos(b.face) * 1.6, 0xcfcfdc, 8, 2.5, .6, .6, 1.2);
+        b.volleys++;
+        if (b.volleys >= 2) { b.state = 'crouch'; b.t = 0; } else { b.state = 'walk'; b.t = .9; }
+      }
+    } else if (b.state === 'crouch') {
+      b.g.scale.set(1.1, .85, 1.1); b.face = aim;
+      if (b.t > .5) {
+        b.state = 'jump'; b.t = 0; b.vy = 17; b.g.scale.set(.93, 1.1, .93);
+        const reach = Math.min(dist, 11); b.vx = tx / dist * reach; b.vz = tz / dist * reach;
+      }
+    } else if (b.state === 'jump') {
+      b.vy -= 30 * dt; b.y += b.vy * dt; b.x += b.vx * dt; b.z += b.vz * dt;
+      if (b.y <= A.top && b.vy < 0) {
+        b.y = A.top; b.state = 'dazed'; b.t = 0; b.g.scale.set(1.2, .75, 1.2);
+        spawnRing(b.x, A.top, b.z); Snd.sfx.crush(); G.shake = .7;
+        for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; puff(b.x + Math.cos(a) * 2, A.top + .3, b.z + Math.sin(a) * 2, dustColor(), 1, 2, .4, .8, 1.3); }
+      }
+    } else if (b.state === 'dazed') { // overheated: steam and sparks
+      b.body.rotation.z = Math.sin(time * 3) * .06;
+      if (Math.random() < dt * 12) puff(b.x + (Math.random() - .5) * .6, b.y + 3.5, b.z, 0xe8e8ee, 1, .8, 2.2, .9, 1.1);
+      if (Math.random() < dt * 6) glow(b.x + (Math.random() - .5) * 1.6, b.y + 2 + Math.random(), b.z + .6, 0xffc04a, 2, 3, 1, 6, .3, .2);
+      if (b.t > 2.6 - lost * .3) { b.state = 'walk'; b.t = 0; b.volleys = 0; }
+    }
+  }
   function updateBoss(dt) {
     const b = L.boss; if (!b || b.gone) return;
     b.t += dt; if (b.inv > 0) b.inv -= dt;
@@ -3998,6 +4645,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       b.deadT += dt;
       if (b.type === 'king') b.g.scale.set(1.3, Math.max(.15, 1 - b.deadT * 2), 1.3);
       else if (b.type === 'shell') { b.body.rotation.z = Math.min(Math.PI, b.deadT * 5); b.y = A.top + Math.sin(Math.min(1, b.deadT) * Math.PI) * 1.5; }
+      else if (b.type === 'mech') {
+        b.body.rotation.x = Math.min(1.45, b.deadT * b.deadT * 1.6); b.eyeMat.emissiveIntensity = 0;
+        if (Math.random() < .4) glow(b.x + (Math.random() - .5) * 2, b.y + 1 + Math.random() * 2, b.z, 0xffc04a, 3, 4, 1, 6, .4, .25);
+        if (Math.random() < .2) puff(b.x + (Math.random() - .5) * 2, b.y + 2, b.z, 0x5a5a66, 1, 1, 1.5, .8, 1.4);
+      }
       else b.g.scale.setScalar(Math.max(.02, 1 - b.deadT * .8));
       b.g.position.set(b.x, b.y, b.z);
       if (Math.random() < .5) emit(b.x, b.y + b.h * .6, b.z, 0xffffff, 2, 3, 1, 2, .6);
@@ -4015,6 +4667,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const tx = P.pos.x - b.x, tz = P.pos.z - b.z, dist = Math.hypot(tx, tz) || 1, lost = 3 - b.hp;
     if (b.type === 'king') updateKing(b, dt, tx, tz, dist, lost, A);
     else if (b.type === 'shell') updateShell(b, dt, tx, tz, dist, lost, A);
+    else if (b.type === 'mech') updateMech(b, dt, tx, tz, dist, lost, A);
     else updateCloud(b, dt, tx, tz, dist, lost, A);
     b.x = clamp(b.x, A.x0 + b.r, A.x1 - b.r); b.z = clamp(b.z, A.z0 + b.r, A.z1 - b.r);
     b.g.position.set(b.x, b.y, b.z);
@@ -4048,11 +4701,176 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ---------- hero animation ----------
+  // Each frame builds a target pose (joint angles) from what the hero is doing and eases every joint towards it.
+  // Walking and running are procedural cycles with bending knees and elbows, the hips drop so the planted foot stays
+  // on the ground, and the head looks at whatever is interesting nearby. Idle time brings fidgets (looking around,
+  // a stretch, a foot tap, a wave at the camera) and eventually a nap. Scarf, cowlick and head ride on springs.
   const spinAngle = () => (P.spinT > 0 ? (1 - P.spinT / SPIN_T) * Math.PI * 4 : 0);
-  const LIMB = { legL: 0, legR: 0, armLx: 0, armRx: 0, armLz: .12, armRz: -.12, lean: 0, bob: 0, twist: 0, headYaw: 0, bank: 0, spread: 0 };
-  let prevFacing = Math.PI, idleT = 0;
+  const POSE0 = { hipL: 0, hipR: 0, sprL: .03, sprR: .03, kneeL: .08, kneeR: .08, ankL: 0, ankR: 0, shLx: 0, shRx: 0, shLz: .12, shRz: .12,
+    shLy: 0, shRy: 0, elL: -.25, elR: -.25, wrL: 0, wrR: 0, twist: 0, torsoX: 0, torsoZ: 0, hipsY: 0, headX: 0, headY: 0, headZ: 0,
+    bob: 0, sway: 0, lean: 0, bank: 0 };
+  const POSE = Object.assign({}, POSE0), TGT = Object.assign({}, POSE0);
+  const spring = (o, target, k, damping, dt) => { o.v += (target - o.x) * k * dt; o.v *= Math.exp(-damping * dt); o.x += o.v * dt; return o.x; };
+  const SPR = { scarf: [0, 1, 2].map(() => ({ x: -.85, v: 0 })), scarfY: [0, 1, 2].map(() => ({ x: 0, v: 0 })), tuft: { x: 0, v: 0 }, tuftZ: { x: 0, v: 0 }, nod: { x: 0, v: 0 } };
+  const FIDGETS = ['look', 'stretch', 'tap', 'wave'], FIDGET_T = { look: 2.8, stretch: 2.3, tap: 2.4, wave: 2.4 };
+  const FACES = { // eye height, eye width, eyelid, brow height, brow tilt (+ worried, - cross), mouth, mouth size, ^^ eyes
+    normal: [1, 1, 0, .17, .12, 'smile', .065], happy: [1, 1, 0, .19, .12, 'grin', .9, true], cheer: [1.1, 1.05, 0, .2, .1, 'grin', 1],
+    surprise: [1.25, 1.12, 0, .215, .04, 'open', 1.1], hurt: [.4, 1, 0, .15, .32, 'open', .7], worried: [1.1, 1.05, 0, .2, .38, 'frown', 1],
+    effort: [.8, 1, .55, .145, -.3, 'grin', .75], determined: [.9, 1, .45, .15, -.2, 'smile', .05], yawn: [.12, 1, 0, .2, .2, 'open', 1.5],
+    sleepy: [.12, 1, 0, .16, .1, 'smile', .04],
+  };
+  let prevFacing = Math.PI, prevSpd = 0, idleT = 0, idleAll = 0, fidget = null, fidgetT = 0, fidgetN = 0, zzzT = 0;
+  let blinkT = 2, blinkK = 0, eyeH = 1, eyeW = 1, lookT = 0, lookTgt = null, lookX = 0, lookY = 0, teeter = false, teeterT = 0;
+  const MOUTH = { smile: 0, frown: 0, open: 0, grin: 0 };
+  function resetIdle() { idleT = 0; idleAll = 0; fidget = null; }
+  function pickLook() {
+    lookTgt = null;
+    if (fidget === 'wave') { lookTgt = [camera.position.x, camera.position.y, camera.position.z, true]; return; }
+    let best = 81;
+    for (const e of L.enemies) {
+      if (!e.alive) continue;
+      const dx = e.x - P.pos.x, dz = e.z - P.pos.z, d = dx * dx + dz * dz;
+      if (d < best && Math.abs(e.y - P.pos.y) < 6) { best = d; lookTgt = [e.x, e.y + .5, e.z]; }
+    }
+    if (L.boss && L.boss.active && !L.boss.dead) lookTgt = [L.boss.x, L.boss.y + L.boss.h * .6, L.boss.z];
+    if (lookTgt) return;
+    best = 25;
+    for (const c of L.coins) {
+      if (c.taken) continue;
+      const dx = c.x - P.pos.x, dz = c.z - P.pos.z, d = dx * dx + dz * dz;
+      if (d < best && d > .6) { best = d; lookTgt = [c.x, c.y, c.z]; }
+    }
+    if (lookTgt) return;
+    for (const n of L.npcs) if (n.talking) { lookTgt = [n.x, n.y + n.h * .8, n.z]; return; }
+    if (fairy.active) lookTgt = [fairy.x, fairy.y + .8, fairy.z, true];
+  }
+  function heroPose(t, dt, spd, turn) {
+    const k = clamp(spd / 7.5, 0, 1), grounded = P.onGround || G.state === 'title';
+    let face = 'normal', rate = 20;
+    if (P.riding && G.state !== 'dying') {
+      t.hipL = t.hipR = -1.05; t.sprL = t.sprR = .5; t.kneeL = t.kneeR = 1.35; t.ankL = t.ankR = .3;
+      t.shLx = t.shRx = -.85; t.elL = t.elR = -.75; t.shLz = t.shRz = .25; t.torsoX = .18 + k * .12;
+      if (!P.onGround) { t.shLx = t.shRx = -2.2; t.elL = t.elR = -.3; t.shLz = t.shRz = .6; face = 'cheer'; }
+      else if (spd > 6) face = 'determined';
+      return [face, rate];
+    }
+    if (G.state === 'dying') {
+      if (G.dieKind === 'fall') { t.shLx = t.shRx = -2.4; t.shLz = t.shRz = .9; t.hipL = -.3; t.kneeL = .6; t.hipR = .2; t.kneeR = .3; }
+      else { t.shLx = t.shRx = -2.9; t.shLz = t.shRz = .5; t.hipL = -.6; t.hipR = .5; t.kneeL = .9; t.kneeR = .3; t.elL = t.elR = -.2; }
+      return ['hurt', rate];
+    }
+    if (G.state === 'goal' && G.goalPhase === 'slide') {
+      t.shLx = t.shRx = -2.7; t.elL = t.elR = -.35; t.shLz = t.shRz = -.05; t.hipL = -.6; t.kneeL = 1.1; t.hipR = .15; t.kneeR = .35;
+      return ['happy', rate];
+    }
+    if (P.pound === 'wind') { // curled up for the flip
+      t.hipL = t.hipR = -1.6; t.kneeL = t.kneeR = 2.1; t.shLx = t.shRx = -.9; t.elL = t.elR = -1.4; t.shLz = t.shRz = .3; t.torsoX = .45; t.headX = .3;
+      return ['effort', 40];
+    }
+    if (P.pound === 'drop') { // straight down, fists up
+      t.hipL = t.hipR = .05; t.kneeL = t.kneeR = .15; t.ankL = t.ankR = .6; t.shLx = t.shRx = -2.95; t.shLz = t.shRz = .3; t.elL = t.elR = -.1;
+      return ['effort', 40];
+    }
+    if (P.spinT > 0) { // arms out like a top
+      t.shLz = t.shRz = 1.5; t.elL = t.elR = -.25; t.hipL = -.25; t.hipR = .15; t.kneeL = .35; t.kneeR = .15; t.sprL = t.sprR = .15;
+      return ['effort', 40];
+    }
+    if (P.wallSlide) { // facing the wall: one hand on it, a knee braced against it
+      t.shRx = -2.1; t.elR = -.5; t.shRz = .25; t.shLz = 1.0; t.shLx = -.4; t.elL = -.6;
+      t.hipL = -.75; t.kneeL = 1.2; t.ankL = -.3; t.hipR = .1; t.kneeR = .45; t.torsoX = -.12; t.headY = .5; t.headX = -.15;
+      return ['effort', rate];
+    }
+    if (P.skidT > 0) { // heels dug in, leaning into the new direction
+      t.torsoX = .4; t.lean = .12; t.hipL = -.95; t.kneeL = .25; t.ankL = -.45; t.hipR = .75; t.kneeR = .9;
+      t.shLx = t.shRx = .85; t.shLz = t.shRz = .55; t.elL = t.elR = -.3; t.headX = -.2;
+      return ['surprise', 30];
+    }
+    if (P.inFan && !P.onGround) { // floating on the wind, arms spread, legs dangling
+      const sw = Math.sin(time * 3);
+      t.shLz = t.shRz = 1.9; t.shLx = t.shRx = -.3; t.elL = t.elR = -.45; t.hipL = -.15 + sw * .2; t.hipR = .2 - sw * .2; t.kneeL = .45; t.kneeR = .25; t.bank = sw * .06;
+      return ['cheer', 10];
+    }
+    if (P.hurtT > .35 && !P.riding) { // knocked back
+      t.torsoX = -.4; t.shLz = t.shRz = 1.3; t.shLx = t.shRx = -1.3; t.hipL = -.5; t.kneeL = .8; t.hipR = .3; t.kneeR = .3; t.headX = -.2;
+      return ['hurt', 30];
+    }
+    if (grounded) {
+      if (spd > .4 && G.state !== 'title') {
+        idleT = 0; idleAll = 0; fidget = null;
+        // walk blends into run: longer strides, higher knees, bent elbows, a forward lean
+        const c0 = Math.cos(P.anim);
+        P.anim += dt * (2.4 + spd * 1.72);
+        const s = Math.sin(P.anim), c = Math.cos(P.anim), A = .45 + .5 * k;
+        if (G.state === 'playing' && Math.sign(c) !== Math.sign(c0)) footstep();
+        t.hipL = s * A; t.hipR = -s * A;
+        t.kneeL = .12 + (.35 + 1.25 * k) * Math.max(0, -c) + .15 * k * Math.max(0, s);
+        t.kneeR = .12 + (.35 + 1.25 * k) * Math.max(0, c) + .15 * k * Math.max(0, -s);
+        t.ankL = .45 * k * Math.max(0, s) - .2 * Math.max(0, -c); t.ankR = .45 * k * Math.max(0, -s) - .2 * Math.max(0, c);
+        t.shLx = -s * (.4 + .75 * k); t.shRx = s * (.4 + .75 * k);
+        t.elL = -(.3 + .95 * k) - .3 * k * Math.max(0, -s); t.elR = -(.3 + .95 * k) - .3 * k * Math.max(0, s);
+        t.shLz = t.shRz = .1 + .12 * k;
+        t.hipsY = s * .14 * k; t.twist = -s * .28 * k; t.headY = s * .12 * k;
+        t.bob = Math.abs(c) * (.03 + .07 * k); t.torsoX = .08 + .14 * k; t.lean = .05 * k;
+        t.bank = clamp(-turn * .05, -.3, .3) * k;
+        if (spd > 6.5) face = 'determined';
+      } else {
+        idleT += dt; idleAll += dt;
+        const br = Math.sin(time * 2.2), sh = Math.sin(idleT * .9);
+        // breathing and a slow shift of weight from foot to foot
+        t.shLx = t.shRx = .04; t.shLz = t.shRz = .13 + br * .02; t.elL = t.elR = -.3;
+        t.sway = sh * .025; t.kneeL = .1 + .12 * Math.max(0, sh); t.kneeR = .1 + .12 * Math.max(0, -sh); t.hipL = -.06 * Math.max(0, sh); t.hipR = -.06 * Math.max(0, -sh);
+        t.torsoX = br * .02; t.torsoZ = -sh * .03; t.headZ = sh * .04;
+        if (teeter) { // on the very edge: windmilling arms, wobbling over the drop
+          const w = time * 10;
+          t.shLx = -1.5 + Math.sin(w) * 1.3; t.shRx = -1.5 - Math.sin(w) * 1.3; t.shLz = t.shRz = 1.2; t.elL = t.elR = -.2;
+          t.torsoX = .3 + Math.sin(time * 5) * .18; t.hipL = -.35; t.kneeL = .35; t.ankR = .4; face = 'worried'; fidget = null; idleT = 0;
+        } else if (idleAll > 20 && G.state !== 'goal') { // dozes off
+          t.headX = .35 + Math.sin(time * 1.2) * .06; t.torsoX = .12; t.shLz = t.shRz = .08; t.elL = t.elR = -.15; face = 'sleepy'; rate = 6;
+          zzzT -= dt; if (zzzT <= 0) { zzzT = 2.4; popup('z', P.pos.x + .4, P.pos.y + PH + .6, P.pos.z); if (G.state === 'playing') Snd.sfx.zzz(); }
+        } else {
+          if (!fidget && idleT > 3.5) { fidget = FIDGETS[fidgetN++ % FIDGETS.length]; fidgetT = 0; }
+          if (fidget) {
+            fidgetT += dt; const ft = fidgetT; rate = 9;
+            if (fidget === 'look') { t.headY = Math.sin(ft * 2.1) * .75; t.headX = -.12; face = 'normal'; }
+            else if (fidget === 'stretch') { t.shLx = t.shRx = -2.9; t.elL = t.elR = -.25; t.shLz = t.shRz = .3; t.torsoX = -.2; t.headX = -.3; t.ankL = t.ankR = .25; face = ft > .5 && ft < 1.7 ? 'yawn' : 'normal'; }
+            else if (fidget === 'tap') { t.shLz = t.shRz = .65; t.shLx = t.shRx = .35; t.elL = t.elR = -1.9; t.wrL = t.wrR = .3; t.ankR = -.3 + Math.sin(time * 16) * .3; t.kneeR = .2; t.headZ = .12; face = 'determined'; }
+            else if (fidget === 'wave') { t.shRz = 2.5; t.shRx = -.3; t.elR = -.5 + Math.sin(time * 13) * .45; t.wrR = Math.sin(time * 13) * .3; t.twist = .35; face = 'cheer'; }
+            if (ft >= FIDGET_T[fidget]) { fidget = null; idleT = 1.5; }
+          }
+        }
+        if (G.state === 'goal' && (G.goalPhase === 'bossWin' || G.goalPhase === 'fairy' || G.goalPhase === 'tally')) { // victory fist pump
+          t.shRx = -2.8; t.shRz = .2; t.elR = -.3 - .6 * Math.max(0, Math.sin(time * 9)); t.shLz = .6; t.shLx = .35; t.elL = -1.9; face = 'happy'; rate = 20;
+        }
+      }
+      if (P.landT > 0) { // crouch after a landing, deeper for harder landings
+        const lk = (P.landT / .22) * P.landK;
+        t.kneeL += 1.3 * lk; t.kneeR += 1.3 * lk; t.hipL -= .7 * lk; t.hipR -= .7 * lk; t.ankL -= .55 * lk; t.ankR -= .55 * lk;
+        t.shLz += .6 * lk; t.shRz += .6 * lk; t.torsoX += .3 * lk; rate = 30;
+      }
+    } else if (P.flipT > 0) { // tucked for a flip
+      t.hipL = t.hipR = -1.3; t.kneeL = t.kneeR = 1.9; t.shLx = t.shRx = -1.1; t.elL = t.elR = -1.4; t.shLz = t.shRz = .35;
+      face = 'cheer'; rate = 30;
+    } else if (P.wallKickT > 0) { // star jump off the wall
+      t.shLz = t.shRz = 2.1; t.elL = t.elR = -.2; t.sprL = t.sprR = .45; t.kneeL = t.kneeR = .25; face = 'cheer';
+    } else if (P.vel.y > 2.5) { // take-off: one fist up, one knee up
+      const alt = P.jumpN === 2;
+      t[alt ? 'shLx' : 'shRx'] = -2.7; t[alt ? 'elL' : 'elR'] = -.2; t[alt ? 'shLz' : 'shRz'] = .15;
+      t[alt ? 'shRx' : 'shLx'] = .55; t[alt ? 'elR' : 'elL'] = -.7; t[alt ? 'shRz' : 'shLz'] = .35;
+      t[alt ? 'hipR' : 'hipL'] = -1.1; t[alt ? 'kneeR' : 'kneeL'] = 1.6; t[alt ? 'hipL' : 'hipR'] = .35; t[alt ? 'kneeL' : 'kneeR'] = .45;
+      t.ankL = t.ankR = .4; t.torsoX = .05;
+    } else if (P.vel.y > -7) { // floating at the top of the jump
+      t.hipL = -.55; t.kneeL = 1.1; t.hipR = .15; t.kneeR = .7; t.shLz = t.shRz = .85; t.shLx = t.shRx = -.55; t.elL = t.elR = -.5;
+    } else { // falling: arms flail up and out, legs reach for the ground
+      const f = Math.sin(time * 18) * .3;
+      t.shLx = -2.1 + f; t.shRx = -2.1 - f; t.shLz = t.shRz = 1.0; t.elL = t.elR = -.3; t.hipL = -.2; t.hipR = .12; t.kneeL = .4; t.kneeR = .25; t.ankL = t.ankR = -.2;
+      if (P.vel.y < -14) face = 'surprise';
+    }
+    if (P.throwT > 0) { t.shRx = -1.75; t.shRz = .1; t.elR = -.15; t.twist -= .25; face = 'effort'; }
+    return [face, rate];
+  }
   function animateHero(dt) {
-    const r = hero.root;
+    const r = hero.root, t = TGT;
+    for (const key in POSE0) t[key] = POSE0[key];
     if (P.riding) {
       const f = P.facing, bob = P.onGround ? Math.abs(Math.sin(P.riding.walk)) * .05 : 0;
       r.position.set(P.pos.x - Math.sin(f) * .06, P.pos.y + .95 + bob, P.pos.z - Math.cos(f) * .06);
@@ -4065,90 +4883,113 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else P.scaleCur = P.big ? BIG_SCALE : 1;
     r.scale.setScalar(P.scaleCur);
     const spd = Math.hypot(P.vel.x, P.vel.z);
-    // squash & stretch: timed squash from take-offs and landings, stretch with vertical speed, breathing at rest
+    const turn = dt > 0 ? wrapPi(P.facing - prevFacing) / dt : 0; prevFacing = P.facing;
+    const accel = dt > 0 ? (spd - prevSpd) / dt : 0; prevSpd = spd;
+    // teetering: standing still with nothing under the toes
+    teeterT -= dt;
+    if (teeterT <= 0) {
+      teeterT = .1;
+      teeter = G.state === 'playing' && P.onGround && !P.riding && spd < .4 &&
+        groundAt(P.pos.x + Math.sin(P.facing) * (HW + .2), P.pos.z + Math.cos(P.facing) * (HW + .2), P.pos.y + .05, 0) < P.pos.y - 1.2;
+    }
+    let [face, rate] = heroPose(t, dt, spd, turn);
+    if (!(P.onGround || G.state === 'title') || P.spinT > 0 || P.pound || P.throwT > 0) { idleT = 0; idleAll = 0; fidget = null; }
+    if (G.state !== 'dying' && G.state !== 'title' && face !== 'hurt' && (G.state === 'goal' || P.happyT > 0) && !teeter) face = face === 'cheer' ? 'cheer' : 'happy';
+    else if (P.hurtT > 0 && face === 'normal') face = 'hurt';
+    else if (P.jumpFaceT > 0 && face === 'normal') face = 'surprise';
+    // eyes and head follow something interesting
+    lookT -= dt;
+    if (lookT <= 0) { lookT = .3; pickLook(); }
+    let lyaw = 0, lpitch = 0;
+    if (lookTgt) {
+      const dx = lookTgt[0] - P.pos.x, dy = lookTgt[1] - (P.pos.y + 1.3 * P.scaleCur), dz = lookTgt[2] - P.pos.z;
+      lyaw = wrapPi(Math.atan2(dx, dz) - P.facing); lpitch = Math.atan2(dy, Math.hypot(dx, dz));
+      if (Math.abs(lyaw) > (lookTgt[3] ? 3.2 : 2.1)) { lyaw = 0; lpitch = 0; }
+    }
+    const lim = lookTgt && lookTgt[3] ? 1.25 : spd > 3 ? .35 : .8, hy = clamp(lyaw * .75, -lim, lim);
+    if (!P.pound && P.spinT <= 0 && !teeter) { t.headY += hy; t.headX += clamp(-lpitch * .5, -.35, .3); }
+    lookX = damp(lookX, clamp((lyaw - hy) * .05, -.028, .028), 12, dt); lookY = damp(lookY, clamp(lpitch * .06, -.025, .03), 12, dt);
+    // accelerating tips the body forward, braking tips it back
+    if (P.onGround && !P.riding) { t.lean += clamp(accel * .012, -.18, .18); t.headX -= clamp(accel * .008, -.1, .1); }
+    // ease every joint towards the target pose
+    const kk = 1 - Math.exp(-dt * rate);
+    for (const key in t) POSE[key] += (t[key] - POSE[key]) * kk;
+    const J = POSE, legs = hero.legs, arms = hero.arms;
+    legs[0].hip.rotation.set(J.hipL, 0, -J.sprL); legs[1].hip.rotation.set(J.hipR, 0, J.sprR);
+    legs[0].knee.rotation.x = J.kneeL; legs[1].knee.rotation.x = J.kneeR;
+    legs[0].ankle.rotation.x = J.ankL; legs[1].ankle.rotation.x = J.ankR;
+    arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz); arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz);
+    arms[0].el.rotation.x = J.elL; arms[1].el.rotation.x = J.elR;
+    arms[0].wr.rotation.x = J.wrL; arms[1].wr.rotation.x = J.wrR;
+    // the hips drop so the lower foot stays on the ground when knees bend
+    const legH = (h, kn, sp) => (.2 * Math.cos(h) + .19 * Math.cos(h + kn)) * Math.cos(sp);
+    const drop = (P.onGround || G.state === 'title') && !P.riding ? .39 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR)) : 0;
+    hero.hips.position.set(J.sway, .52 - drop + J.bob, 0); hero.hips.rotation.y = J.hipsY;
+    hero.torso.rotation.set(J.torsoX, J.twist, J.torsoZ);
+    // squash & stretch: timed squash from take-offs and landings, stretch with vertical speed
     P.squash += (1 - P.squash) * Math.min(1, dt * 10);
     const inAir = !P.onGround && !P.riding && G.state === 'playing';
     const stretch = inAir ? clamp(Math.abs(P.vel.y) / 90, 0, .1) : 0;
-    const breathe = P.onGround && spd < .4 ? Math.sin(time * 2.4) * .012 : 0;
-    const sq = P.squash * (1 + stretch + breathe), inv = 1 / Math.sqrt(sq);
+    const sq = P.squash * (1 + stretch), inv = 1 / Math.sqrt(sq);
     hero.body.scale.set(inv, sq, inv);
-    const turn = dt > 0 ? wrapPi(P.facing - prevFacing) / dt : 0; prevFacing = P.facing;
-    const t = { legL: 0, legR: 0, armLx: 0, armRx: 0, armLz: .12, armRz: -.12, lean: 0, bob: 0, twist: 0, headYaw: 0, bank: 0, spread: 0 };
-    if (P.riding && G.state !== 'dying') {
-      t.legL = -1.25; t.legR = -1.25; t.armLx = -1.0; t.armRx = -1.0; t.armLz = .2; t.armRz = -.2; t.lean = .2; t.spread = .35;
-    } else if (G.state === 'dying' && G.dieKind !== 'fall') {
-      t.armLx = -2.9; t.armRx = -2.9; t.armLz = .5; t.armRz = -.5; t.legL = .5; t.legR = -.5;
-    } else if (G.state === 'goal' && G.goalPhase === 'slide') {
-      t.armLx = -2.6; t.armRx = -2.6; t.armLz = -.2; t.armRz = .2; t.legL = -.4; t.legR = .2;
-    } else if (P.pound === 'wind') { // tucked for the flip
-      t.legL = -1.5; t.legR = -1.5; t.armLx = -1.1; t.armRx = -1.1; t.armLz = .4; t.armRz = -.4; t.spread = .15;
-    } else if (P.pound === 'drop') { // straight down, fists up
-      t.armLx = -2.95; t.armRx = -2.95; t.armLz = .3; t.armRz = -.3; t.legL = .1; t.legR = .1;
-    } else if (P.spinT > 0) { // arms out like a top
-      t.armLz = 1.45; t.armRz = -1.45; t.legL = .2; t.legR = -.2; t.spread = .12; t.lean = -.05;
-    } else if (P.onGround || G.state === 'title') {
-      if (spd > .4) {
-        idleT = 0;
-        P.anim += dt * (4 + spd * 1.25);
-        const k = Math.min(1, spd / 7), s = Math.sin(P.anim), c = Math.cos(P.anim);
-        t.legL = s * 1.05 * k; t.legR = -s * 1.05 * k;
-        t.armLx = -s * 1.15 * k; t.armRx = s * 1.15 * k;
-        t.armLz = .12 + .12 * k; t.armRz = -.12 - .12 * k;
-        t.bob = Math.abs(c) * .09 * k; t.lean = .16 * k;
-        t.twist = s * .16 * k; t.headYaw = -s * .1 * k;
-        t.bank = clamp(-turn * .05, -.28, .28) * k;
-      } else {
-        idleT += dt;
-        const b = Math.sin(time * 3); t.armLx = b * .05; t.armRx = -b * .05; t.bob = b * .012;
-        if (idleT > 2) t.headYaw = Math.sin((idleT - 2) * .8) * .45; // looks around while standing
+    // flips turn around the waist: the pound wind-up, the backflip after it, the triple jump, the side flip
+    let flipA = 0, flipZ = 0;
+    if (!P.riding) {
+      if (P.pound === 'wind') flipA = (1 - P.poundT / POUND_WIND) * Math.PI * 2;
+      else if (P.flipT > 0) {
+        const a = (1 - P.flipT / P.flipDur) * Math.PI * 2 * P.flipDir;
+        if (P.flipAxis === 'z') flipZ = a; else flipA = a;
       }
-      if (P.landT > 0) { // crouch after a landing, deeper for harder landings
-        const lk = (P.landT / .22) * P.landK;
-        t.bob -= .16 * lk; t.armLz += .7 * lk; t.armRz -= .7 * lk; t.spread = .25 * lk; t.lean += .15 * lk;
-      }
-    } else if (P.vel.y > 0) {
-      t.armLx = -2.7; t.armLz = .25; t.armRx = .5; t.armRz = -.35; t.legL = -.7; t.legR = .45;
-    } else { // falling: arms flail up and out, legs dangle
-      const f = Math.sin(time * 18) * .25;
-      t.armLx = -1.5 + f; t.armRx = -1.5 - f; t.armLz = 1.0; t.armRz = -1.0; t.legL = .35; t.legR = -.25; t.spread = .15;
     }
-    if (P.throwT > 0 && !P.riding) { t.armRx = -1.75; t.armRz = -.15; }
-    const k = 1 - Math.exp(-dt * (P.spinT > 0 || P.pound ? 40 : 20));
-    for (const key in t) LIMB[key] += (t[key] - LIMB[key]) * k;
-    hero.legL.rotation.x = LIMB.legL; hero.legR.rotation.x = LIMB.legR;
-    hero.legL.rotation.z = -LIMB.spread; hero.legR.rotation.z = LIMB.spread;
-    hero.armL.rotation.set(LIMB.armLx, 0, LIMB.armLz); hero.armR.rotation.set(LIMB.armRx, 0, LIMB.armRz);
-    // flips turn around the waist: a front flip winding up a ground pound, a backflip on the high jump after it
-    let flipA = 0;
-    if (P.riding) flipA = 0;
-    else if (P.pound === 'wind') flipA = (1 - P.poundT / POUND_WIND) * Math.PI * 2;
-    else if (P.flipT > 0) flipA = -(1 - P.flipT / .5) * Math.PI * 2;
-    hero.body.position.set(0, LIMB.bob + .8 * (1 - Math.cos(flipA)), -.8 * Math.sin(flipA));
-    hero.body.rotation.set(LIMB.lean + flipA, LIMB.twist + (P.riding ? 0 : spinA), LIMB.bank);
-    hero.head.rotation.y = LIMB.headYaw;
+    const h = .75;
+    hero.body.position.set(h * Math.sin(flipZ), h * (1 - Math.cos(flipA)) + h * (1 - Math.cos(flipZ)), -h * Math.sin(flipA));
+    hero.body.rotation.set(J.lean + flipA, P.riding ? 0 : spinA, J.bank + flipZ);
+    // secondary motion: the head nods with sudden stops and landings, the cowlick and the scarf trail behind
+    if (P.landT > .2) SPR.nod.v += P.landK * 3;
+    const nod = spring(SPR.nod, 0, 90, 9, dt);
+    hero.head.rotation.set(J.headX + nod * .5, J.headY, J.headZ);
+    hero.neck.rotation.x = nod * .3;
+    const vy = G.state === 'playing' && !P.riding ? P.vel.y : 0;
+    if (P.landT > .2) SPR.tuft.v -= P.landK * 12;
+    hero.tuft.rotation.x = spring(SPR.tuft, clamp(vy * .03, -.5, .6) - clamp(accel * .01, -.3, .3), 140, 5, dt);
+    hero.tuft.rotation.z = spring(SPR.tuftZ, clamp(-turn * .06, -.5, .5), 120, 6, dt);
+    const lift = -.85 + clamp(spd / 8, 0, 1) * .8 + clamp(-vy / 18, -.25, .9) + (P.inFan ? .8 : 0) + (P.pound === 'drop' ? 1.2 : 0);
+    const flut = .04 + .14 * clamp(spd / 8, 0, 1) + (P.inFan || vy < -10 ? .12 : 0);
+    for (let i = 0; i < 3; i++) {
+      const w = Math.sin(time * (9 + spd * 1.4) - i * 1.4) * flut;
+      hero.scarf[i].rotation.x = spring(SPR.scarf[i], (i ? .1 * lift + .1 : lift) + w, 70 - i * 15, 7, dt);
+      hero.scarf[i].rotation.y = spring(SPR.scarfY[i], clamp(-turn * .08, -.6, .6) + Math.sin(time * 3.1 + i) * .06, 50, 6, dt);
+    }
     hero.shield.visible = P.shield;
     if (P.shield) hero.shield.scale.setScalar(.98 * (1 + Math.sin(time * 5) * .03));
     hero.body.visible = !(P.inv > 0 && Math.floor(time * 16) % 2 === 0);
-
-    // facial expression: happy ^^ for pickups and the finish, surprise on jumps and big falls, worried when hurt
-    let face = 'normal';
-    if (G.state === 'dying') face = 'hurt';
-    else if (G.state === 'goal' || P.happyT > 0) face = 'happy';
-    else if (P.hurtT > 0) face = 'hurt';
-    else if (P.pound || P.jumpFaceT > 0 || (!P.onGround && !P.riding && P.vel.y < -13)) face = 'surprise';
-    const blink = face === 'normal' && (time % 3.4) < .12 ? .12 : 1;
-    const eyeY = face === 'surprise' ? 1.25 : face === 'hurt' ? .4 : 1, eyeX = face === 'surprise' ? 1.12 : 1;
-    const browY = face === 'surprise' ? .215 : face === 'hurt' ? .15 : .17, browK = face === 'hurt' ? .32 : face === 'surprise' ? .04 : .12;
+    applyFace(face, dt);
+  }
+  // facial expression: eye shape and blinks, eyelids, brows, mouth; pupils slide towards the look target
+  function applyFace(face, dt) {
+    const F = FACES[face] || FACES.normal;
+    blinkT -= dt;
+    if (blinkT <= 0) { blinkK = .14; blinkT = 1.8 + Math.random() * 3.2; if (Math.random() < .2) blinkT = .25; }
+    blinkK = Math.max(0, blinkK - dt);
+    const blink = blinkK > 0 ? .12 + .88 * Math.abs(blinkK / .07 - 1) : 1;
+    eyeH = damp(eyeH, F[0], 18, dt); eyeW = damp(eyeW, F[1], 18, dt);
     for (let i = 0; i < 2; i++) {
       const sd = i ? 1 : -1;
-      hero.eyes[i].visible = face !== 'happy';
-      hero.eyes[i].scale.set(eyeX, eyeY * blink, 1);
-      hero.happy[i].visible = face === 'happy';
-      hero.brows[i].position.y = browY; hero.brows[i].rotation.z = -sd * browK;
+      hero.eyes[i].visible = !F[7];
+      hero.eyes[i].scale.set(eyeW, eyeH * blink, 1);
+      hero.happy[i].visible = !!F[7];
+      hero.lids[i].visible = F[2] > .1;
+      hero.lids[i].position.y = .06 + (1 - F[2]) * .09;
+      hero.looks[i].position.set(lookX, lookY, 0);
+      hero.brows[i].position.y = damp(hero.brows[i].position.y, F[3], 18, dt);
+      hero.brows[i].rotation.z = damp(hero.brows[i].rotation.z, -sd * F[4], 18, dt);
     }
-    hero.mouth.visible = face === 'normal' || face === 'happy';
-    hero.mouth.scale.setScalar(face === 'happy' ? .085 : .065);
-    hero.mouthO.visible = face === 'surprise' || face === 'hurt';
+    for (const k in MOUTH) MOUTH[k] = damp(MOUTH[k], F[5] === k ? F[6] : 0, 20, dt);
+    const setM = (o, v, sx, sy, sz) => { o.visible = v > .004; if (o.visible) o.scale.set(sx * v, sy * v, sz * v); };
+    setM(hero.smile, MOUTH.smile, 1, 1, 1);
+    setM(hero.frown, MOUTH.frown, .05, .045, .05);
+    setM(hero.open, MOUTH.open, 1, 1, 1);
+    setM(hero.grin, MOUTH.grin, 1, 1, 1);
   }
   function updateBlob() {
     if (!hero.root.visible || G.state === 'dying') { blob.visible = false; return; }
@@ -4294,6 +5135,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.onGround = false; P.ground = null; P.facing = Math.PI; P.inv = 0; P.combo = 0; P.squash = 1; P.jumpBuf = 0; P.coyote = 0; P.noCut = false;
     P.riding = null; P.airJumps = 0; applySize(); P.lastSafe = { x: pt.x, y: pt.y, z: pt.z };
     P.pound = null; P.spinT = 0; P.spinCd = 0; P.spinAir = false; P.poundJT = 0; P.flipT = 0; P.throwT = 0; P.fireCd = 0;
+    resetIdle(); P.jumpN = 0; P.landedT = 1; P.skidT = 0; P.wallT = 0; P.wallLock = 0; P.wallSlide = false; P.wallKickT = 0; P.inFan = false;
     G.chain = 0; G.chainT = 0; G.hitStop = 0; G.kick = 0; comboEl.classList.remove('show');
     hero.root.visible = true; hero.root.rotation.set(0, Math.PI, 0);
     cam.yaw = 0; cam.yawGoal = null; cam.pitch = .38;
@@ -4629,6 +5471,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       else if (G.time < 60 && !G.warned) { G.warned = true; Snd.sfx.warn(); if (!L.boss) Snd.setTempo(1.12); }
     }
     updatePlatforms(dt);
+    updateCrushers(dt);
+    updateBlinkers();
     updateFirebars(dt);
     if (G.state === 'playing') { updatePlayer(dt); if (G.state === 'playing') { checkPickups(); checkTriggers(); } }
     else if (G.state === 'dying') updateDying(dt);
@@ -4657,6 +5501,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       P.spinT -= dt; if (P.spinT <= 0) { P.spinT = 0; P.spinCd = .12; }
     } else if (P.spinCd > 0) P.spinCd -= dt;
     P.poundJT -= dt; P.flipT -= dt; P.fireCd -= dt; P.throwT -= dt;
+    P.landedT += dt; P.skidT -= dt; P.wallT -= dt; P.wallLock -= dt; P.wallKickT -= dt;
   }
 
   const flashEl = $('flash');
