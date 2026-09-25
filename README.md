@@ -8,6 +8,9 @@ WebGL via Three.js, no build step: the whole game lives in `index.html`.
 - Enemies: walkers, spiky shells, bouncing hoppers
 - Power-up mushroom from "?" blocks: the hero grows, smashes bricks and survives one hit (already big: a shield instead)
 - Friendly NPCs (Promobot, Kvak the frog, Ping the penguin) give hints in speech bubbles, some hand out a shield
+- Dino: a rideable companion (faster, higher jump, one extra jump in the air, stomps spiky enemies; runs off when you get hit)
+- Iskra: a helper star that pulls in nearby coins and catches one fall into a pit or lava per checkpoint
+- Lira: a fairy who flies out of every castle and thanks the hero in the last one
 - Collectibles are the Promobile mark
 - Touch controls on phones (left thumb stick, jump button, swipe to turn the camera), keyboard and mouse on desktop
 
