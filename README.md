@@ -7,8 +7,10 @@ Rendering uses PBR materials, an image-based sky environment, neutral tone mappi
 bloom and ambient occlusion. Quality drops automatically (AO, then bloom, then resolution) when the
 frame rate falls, so older phones stay playable. Needs Safari 16.4+ or a current Chrome/Firefox.
 
-- Five worlds: Green Hills (1-1), Sky Trail (1-2), Sunny Dunes (2-1), Ice Peaks (2-2), Lava Fortress (2-3)
-- Blocks, bricks, shields, springs, moving and falling platforms, slippery ice, lava, rotating fire bars, checkpoints, flagpole finish
+- Three worlds, ten levels: Green Hills, Sky Trail; Sunny Dunes, Ice Peaks, Lava Fortress; Candy Valley, Jelly Bridges
+- A boss at the end of every world: King Chestnut (1-3), Fire Shell (2-4), Grumble the storm cloud (3-3).
+  Dodge the attack, then stomp the boss while it is dazed (stars circle its head); three hits win the fight
+- Blocks, bricks, shields, springs, jelly bounce pads, moving and falling platforms, slippery ice, lava, rotating fire bars, checkpoints, flagpole finish
 - Enemies: walkers, spiky shells, bouncing hoppers
 - Power-up mushroom from "?" blocks: the hero grows, smashes bricks and survives one hit (already big: a shield instead)
 - Friendly NPCs (Promobot, Kvak the frog, Ping the penguin) give hints in speech bubbles, some hand out a shield

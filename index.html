@@ -174,6 +174,16 @@
   .stats dt { font: 700 14px/1 var(--ui); color: var(--ink-soft); }
   .stats dd { margin: 0; font: 900 20px/1 var(--ui); font-variant-numeric: tabular-nums; }
 
+  /* ---------- boss health ---------- */
+  #bossBar {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 60px); transform: translateX(-50%); z-index: 6;
+    display: grid; justify-items: center; gap: 5px; pointer-events: none;
+  }
+  #bossName { font: 900 13px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--white); text-shadow: var(--outline); }
+  #bossHp { display: flex; gap: 6px; padding: 5px 8px; background: rgba(28, 30, 59, .55); border: 3px solid var(--ink); border-radius: 12px; }
+  #bossHp i { display: block; width: 34px; height: 12px; border-radius: 6px; background: var(--red); border: 2px solid var(--ink); }
+  #bossHp i.off { background: rgba(255, 255, 255, .25); }
+
   /* ---------- NPC speech bubbles ---------- */
   #bubbles { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 4; pointer-events: none; overflow: hidden; }
   .bubble {
@@ -249,6 +259,7 @@
 <div id="pops"></div>
 <div id="bubbles"></div>
 <div id="toast" aria-live="polite"></div>
+<div id="bossBar" hidden><span id="bossName"></span><div id="bossHp"></div></div>
 
 <section class="screen screen-title" id="scrTitle">
   <div class="title-wrap">
@@ -580,6 +591,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   MAT.ice = lam({ map: TX.ice, emissive: 0x10324a });
   MAT.char = std({ vertexColors: true, roughness: .42 });
   MAT.dinoLid = std({ color: 0xff9a3c, roughness: .42 });
+  MAT.jelly = [std({ color: 0xff7ab6, emissive: 0x5a0f35, emissiveIntensity: .5, roughness: .12, transparent: true, opacity: .88 }),
+    std({ color: 0x8bf06a, emissive: 0x1f5a10, emissiveIntensity: .5, roughness: .12, transparent: true, opacity: .88 })];
+  MAT.shock = std({ color: 0xffffff, emissive: 0xffd98a, emissiveIntensity: 1.4, transparent: true, opacity: .85, roughness: .5 });
+  MAT.marker = std({ color: 0xff5a2a, emissive: 0xff5a2a, emissiveIntensity: .9, transparent: true, opacity: .45, depthWrite: false, roughness: 1 });
+  MAT.bolt = std({ color: 0xffffff, emissive: 0xfff3a0, emissiveIntensity: 4, roughness: 1 });
+  MAT.spikeGold = std({ vertexColors: true, roughness: .35 });
   MAT.lava = std({ color: 0x000000, emissive: 0xffffff, emissiveMap: TX.lava, emissiveIntensity: 1.25, roughness: 1 });
   MAT.fire = std({ color: 0xff8a2a, emissive: 0xff4a00, emissiveIntensity: 1.3, roughness: 1 });
   TX.lava.repeat.set(150, 150);
@@ -588,6 +605,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     grass: { lip: MAT.groundLip, body: MAT.dirt },
     sand: groundSet(31, { top: '#f0d08a', topDots: ['#e3be72', '#f8e0a4', '#d9b163', '#fbe7b5'], body: '#d39a5c', bodyDots: ['#c2884b', '#e0ad70', '#b97c42'], drip: ['#e3be72', '#f0d08a'], strata: '#b8793f' }),
     snow: groundSet(41, { top: '#f4f8ff', topDots: ['#e1ebf8', '#ffffff', '#d3e1f3'], body: '#6f7b93', bodyDots: ['#5f6a80', '#8591a8', '#56617a'], drip: ['#ffffff', '#e6eefa'] }),
+    candy: groundSet(61, { top: '#ffb3d1', topDots: ['#ff5a8a', '#ffe45c', '#7de0ff', '#9dff7a', '#ffffff', '#c49bff'], body: '#c98a58', bodyDots: ['#b77a4a', '#d99c68'], drip: ['#ffd1e3', '#ffb3d1'], strata: '#fff1e0' }),
     stone: groundSet(51, { top: '#8e8aa0', topDots: ['#7f7b92', '#a19db2', '#8a869c'], grout: '#5f5b70', body: '#534f63', bodyDots: ['#47435a', '#615d74'], drip: ['#8e8aa0', '#7f7b92'], bricks: '#3d394d' }),
   };
   // per-theme decor: which tree, ground litter, bush and pipe colours
@@ -595,6 +613,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     grass: { ground: 'grass', tree: 'round', tuft: [0x4aa83a, 0x3d9432], litter: null, bush: [0x3d9e3c, 0x52b84a], under: [0x9a6038, 0x8f5733], pipe: [0x2fb84b, 0x45d465] },
     sand: { ground: 'sand', tree: 'cactus', tuft: [0xc9a55a, 0xb18d45], litter: [0xa5988a, 0xc2b19b], bush: [0x9bb561, 0x87a34f], under: [0xc2884b, 0xb07843], pipe: [0xd9824a, 0xeb9a5f] },
     snow: { ground: 'snow', tree: 'pine', tuft: null, litter: [0xffffff, 0xe8f0fb], bush: [0xeef4fc, 0xdbe6f5], under: [0x6f7b93, 0x626d85], pipe: [0x3aa7c9, 0x5cc3e0] },
+    candy: { ground: 'candy', tree: 'lollipop', tuft: null, litter: [0xff5a8a, 0xffe45c, 0x7de0ff, 0x9dff7a, 0xc49bff], bush: [0x9dff7a, 0xff9ad1], under: [0xc98a58, 0xb77a4a], pipe: [0xff7aa8, 0xffe0ee] },
     stone: { ground: 'stone', tree: 'pillar', tuft: null, litter: [0x6d6880, 0x57536a], bush: [0x57536a, 0x6d6880], under: [0x3f3b4f, 0x4a4659], pipe: [0x6d6880, 0x8a85a0] },
   };
   const PIPE_MATS = {};
@@ -614,6 +633,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const SPH_HI = shared(new T.SphereGeometry(1, 24, 18));
   const HEMI_HI = shared(new T.SphereGeometry(1, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2));
   const TORUS_ARC = shared(new T.TorusGeometry(1, .22, 8, 18, Math.PI));
+  const DONUT = shared(new T.TorusGeometry(1, .42, 10, 24));
+  const RING_GEO = shared(new T.TorusGeometry(1, .06, 6, 64));
+  const DISC_GEO = shared(new T.CircleGeometry(1, 40));
   const TORUS = shared(new T.TorusGeometry(.52, .035, 6, 28));
   // Coins are the Promobile mark itself, extruded: ring + centre dot + top dot.
   // Geometry follows promobile favicon.svg (16x16 viewBox), scaled to ~1 m tall.
@@ -875,6 +897,50 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     g.translate(0, 0, -.06);
     return shared(g);
   })();
+  // boss models (the king reuses the chestnut, scaled up and crowned)
+  function spikeParts(color, skipFace) {
+    const out = [], up = new T.Vector3(0, 1, 0), dirs = [new T.Vector3(0, 1, 0)];
+    for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + .45; dirs.push(new T.Vector3(Math.cos(a) * .82, .55, Math.sin(a) * .82).normalize()); }
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + .2; dirs.push(new T.Vector3(Math.cos(a), -.05, Math.sin(a)).normalize()); }
+    for (const d of dirs) {
+      if (skipFace && d.z > .55 && d.y < .7) continue;
+      const q = new T.Quaternion().setFromUnitVectors(up, d);
+      out.push([CONE, color, new T.Matrix4().compose(d.clone().multiplyScalar(.56).add(new T.Vector3(0, .5, 0)), q, new T.Vector3(.11, .3, .11))]);
+    }
+    return out;
+  }
+  GEO.bossShell = mergedGeo([
+    [SPH_HI, 0x5a2a1a, M4(-.18, .08, .06, .14, .08, .18)],
+    [SPH_HI, 0x5a2a1a, M4(.18, .08, .06, .14, .08, .18)],
+    [SPH_HI, 0xd8452b, M4(0, .5, 0, .46, .46, .46)],
+    [SPH_HI, 0xffd1a6, M4(0, .42, .2, .3, .27, .28)],
+    [SPH_HI, 0xffffff, M4(-.13, .6, .37, .09, .12, .06)],
+    [SPH_HI, 0xffffff, M4(.13, .6, .37, .09, .12, .06)],
+    [SPH_HI, INK, M4(-.12, .59, .42, .045, .065, .03)],
+    [SPH_HI, INK, M4(.12, .59, .42, .045, .065, .03)],
+    [SPH_HI, 0xffffff, M4(-.135, .615, .445, .016, .02, .008)],
+    [SPH_HI, 0xffffff, M4(.105, .615, .445, .016, .02, .008)],
+    [BOX, INK, M4(-.13, .72, .39, .14, .035, .04, 0, 0, -.4)],
+    [BOX, INK, M4(.13, .72, .39, .14, .035, .04, 0, 0, .4)],
+  ]);
+  GEO.bossSpikes = mergedGeo(spikeParts(0xffe27a, true));
+  GEO.bossCloud = mergedGeo([
+    [SPH_HI, 0x6f7897, M4(0, 1.0, 0, 1.25, 1.0, 1.1)],
+    [SPH_HI, 0x7c86a6, M4(-1.15, .85, 0, .85, .75, .8)],
+    [SPH_HI, 0x7c86a6, M4(1.15, .85, 0, .85, .75, .8)],
+    [SPH_HI, 0x8791b0, M4(-.55, 1.55, -.2, .75, .65, .7)],
+    [SPH_HI, 0x8791b0, M4(.6, 1.6, -.25, .7, .6, .65)],
+    [SPH_HI, 0x5f6886, M4(0, .55, .1, 1.0, .5, .9)],
+    [SPH_HI, 0xffffff, M4(-.38, 1.12, .98, .2, .25, .1)],
+    [SPH_HI, 0xffffff, M4(.38, 1.12, .98, .2, .25, .1)],
+    [SPH_HI, INK, M4(-.36, 1.08, 1.06, .1, .13, .05)],
+    [SPH_HI, INK, M4(.36, 1.08, 1.06, .1, .13, .05)],
+    [SPH_HI, 0xffffff, M4(-.4, 1.14, 1.1, .03, .035, .015)],
+    [SPH_HI, 0xffffff, M4(.32, 1.14, 1.1, .03, .035, .015)],
+    [BOX, INK, M4(-.38, 1.42, .95, .34, .07, .08, 0, 0, -.35)],
+    [BOX, INK, M4(.38, 1.42, .95, .34, .07, .08, 0, 0, .35)],
+    [TORUS_ARC, INK, M4(0, .72, 1.02, .22, .16, .2)],
+  ]);
   const NPC_H = { robot: 2.05, frog: 1.05, penguin: 1.2 };
   const PYR = shared(new T.ConeGeometry(.75, 1, 4)); PYR.rotateY(Math.PI / 4);
 
@@ -1113,6 +1179,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pop: () => { noise(.35, .3, 0, 3000); tone('sine', 300, 80, .3, .2); },
       warn: () => seq('square', [84, 0, 84, 0, 84], .08, .1, .09),
       flutter: () => tone('sine', 520, 980, .16, .25),
+      jelly: () => { tone('sine', 220, 660, .22, .35); tone('triangle', 440, 330, .15, .15, .05); },
+      bossRoar: () => { tone('sawtooth', 110, 55, .9, .22); noise(.8, .25, 0, 500); },
+      bossHit: () => { tone('square', 700, 160, .25, .2); noise(.2, .35, 0, 2500); },
+      bossDown: () => seq('square', [72, 67, 64, 60, 55, 48], .16, .14, .13),
+      shock: () => { noise(.5, .5, 0, 300); tone('sine', 90, 40, .45, .5); },
+      thunder: () => { noise(1.1, .55, 0, 900); tone('sawtooth', 70, 35, .6, .15); },
       mount: () => seq('square', [67, 71, 74, 79], .07, .12, .06),
       yelp: () => tone('square', 900, 280, .3, .12),
       star: () => seq('triangle', [84, 88, 91, 96], .09, .22, .06),
@@ -1150,6 +1222,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         bpm: 164, chords: [45, 45, 41, 43, 45, 45, 40, 40],
         lead: [69, 72, 76, 72, 69, 72, 76, 79, 77, 76, 74, 72, 74, 0, 0, 0, 69, 72, 76, 72, 69, 72, 76, 81, 79, 77, 76, 74, 76, 0, 0, 0,
           81, 0, 79, 0, 77, 0, 76, 0, 74, 76, 77, 79, 77, 0, 0, 0, 76, 0, 74, 0, 72, 0, 71, 0, 69, 71, 72, 74, 76, 0, 0, 0],
+      },
+      candy: {
+        bpm: 156, chords: [48, 45, 53, 55, 48, 45, 50, 55],
+        lead: [79, 76, 79, 84, 0, 83, 81, 79, 76, 72, 76, 81, 0, 79, 77, 76, 77, 81, 84, 81, 77, 0, 76, 74, 79, 0, 83, 0, 86, 0, 0, 0,
+          84, 0, 83, 81, 79, 81, 83, 84, 81, 0, 79, 77, 76, 77, 79, 81, 77, 76, 74, 72, 74, 76, 77, 79, 79, 83, 86, 83, 84, 0, 0, 0],
+      },
+      boss: {
+        bpm: 172, chords: [45, 45, 46, 46, 45, 45, 43, 44],
+        lead: [69, 0, 69, 72, 69, 0, 75, 74, 70, 0, 70, 74, 70, 0, 77, 76, 69, 0, 69, 72, 69, 0, 75, 74, 76, 75, 74, 73, 72, 71, 70, 68,
+          81, 0, 80, 0, 81, 84, 81, 0, 82, 0, 81, 0, 82, 86, 82, 0, 81, 0, 79, 77, 76, 74, 72, 71, 69, 71, 72, 74, 76, 0, 68, 0],
       },
     };
     function note(type, f, dur, vol, t) {
@@ -1217,7 +1299,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const w = x1 - x0, dd = d1 - d0, h = y1 - y0;
         const m = new T.Mesh(boxGeo(w, h, dd, 2), MAT.hard);
         m.position.set((x0 + x1) / 2, (y0 + y1) / 2, -(d0 + d1) / 2); m.castShadow = m.receiveShadow = true; add(m);
-        addSolid(x0, y0, -d1, x1, y1, -d0, 'hard');
+        return { m, s: addSolid(x0, y0, -d1, x1, y1, -d0, 'hard') };
       },
       stairs(x0, x1, d0, n, base, dir = 1) {
         for (let i = 0; i < n; i++) { const h = dir > 0 ? i + 1 : n - i; this.hardBox(x0, x1, d0 + i, d0 + i + 1, base, base + h); }
@@ -1260,10 +1342,66 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       coinRow(x, y, d0, d1, step = 1.5) { for (let d = d0; d <= d1 + 1e-6; d += step) this.coin(x, y, d); },
       coinArc(x, y, d0, d1, n, h = 1.5) { for (let i = 0; i < n; i++) { const t = i / (n - 1); this.coin(x, y + Math.sin(t * Math.PI) * h, d0 + (d1 - d0) * t); } },
       coinCol(x, y0, y1, d, step = 1.5) { for (let y = y0; y <= y1 + 1e-6; y += step) this.coin(x, y, d); },
-      enemy(type, x, y, d, axis = 'x', range = 3, speed = 1.5, phase = 0) {
-        const mesh = new T.Mesh(GEO[type], MAT.char); mesh.castShadow = true; mesh.position.set(x, y, -d); add(mesh);
-        L.enemies.push({ type, hx: x, hy: y, hz: -d, axis, range, speed, t: range + phase * range * 2, x, y, z: -d, alive: true, dead: 0, flip: false, vy: 0, mesh,
-          hw: type === 'spiky' ? .45 : .42, h: type === 'spiky' ? .95 : .85, face: 0, hopOff: phase * 1.3 + R() * .3 });
+      enemy(type, x, y, d, axis = 'x', range = 3, speed = 1.5, phase = 0) { spawnEnemy(type, x, y, -d, axis, range, speed, phase); },
+      // bouncy jelly block: landing on it throws the hero up
+      jelly(x0, x1, d0, d1, top, th = 1) {
+        const w = x1 - x0, dd = d1 - d0;
+        const m = new T.Mesh(new T.BoxGeometry(w, th, dd), MAT.jelly[L.jellies.length % 2]);
+        m.position.set((x0 + x1) / 2, top - th / 2, -(d0 + d1) / 2); m.castShadow = m.receiveShadow = true; add(m);
+        L.jellies.push(addSolid(x0, top - th, -d1, x1, top, -d0, 'jelly', { mesh: m, wob: 0, baseY: top - th / 2 }));
+      },
+      // walled arena with a gate at the entrance; the gate closes when the fight starts
+      arena(x0, x1, d0, d1, top, wallH, gateW) {
+        this.ground(x0, x1, d0 - 1, d1 + 1, top, 6);
+        this.hardBox(x0 - 1, x0, d0 - 1, d1 + 1, top, top + wallH);
+        this.hardBox(x1, x1 + 1, d0 - 1, d1 + 1, top, top + wallH);
+        this.hardBox(x0, x1, d1, d1 + 1, top, top + wallH);
+        this.hardBox(x0, -gateW / 2, d0 - 1, d0, top, top + wallH);
+        this.hardBox(gateW / 2, x1, d0 - 1, d0, top, top + wallH);
+        const gate = this.hardBox(-gateW / 2, gateW / 2, d0 - 1, d0, top, top + wallH);
+        gate.s.active = false; gate.m.visible = false; L.gate = gate;
+        L.arena = { x0, x1, z0: -d1, z1: -d0, top, cx: (x0 + x1) / 2, cz: -(d0 + d1) / 2 };
+      },
+      boss(type, x, top, d) {
+        const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
+        const mat = std({ vertexColors: true, roughness: .4 }), refs = {};
+        if (type === 'king') {
+          refs.body = new T.Mesh(GEO.walker, mat); refs.body.scale.setScalar(3.2); refs.body.castShadow = true; g.add(refs.body);
+          const crown = new T.Group(); crown.position.y = 3.05; g.add(crown);
+          const band = new T.Mesh(CYL, MAT.gold); band.scale.set(.75, .3, .75); crown.add(band);
+          for (let i = 0; i < 5; i++) {
+            const a = i / 5 * Math.PI * 2, pt = new T.Mesh(CONE, MAT.gold);
+            pt.scale.set(.16, .45, .16); pt.position.set(Math.cos(a) * .62, .36, Math.sin(a) * .62); crown.add(pt);
+          }
+          const gem = new T.Mesh(SPH_HI, std({ color: 0xff3a5a, emissive: 0xff1a3a, emissiveIntensity: .6, roughness: .2 }));
+          gem.scale.setScalar(.14); gem.position.set(0, 0, .76); crown.add(gem);
+          refs.crown = crown;
+        } else if (type === 'shell') {
+          refs.body = new T.Mesh(GEO.bossShell, mat); refs.body.scale.setScalar(2.6); refs.body.castShadow = true; g.add(refs.body);
+          refs.spikes = new T.Mesh(GEO.bossSpikes, MAT.spikeGold); refs.spikes.scale.setScalar(2.6); refs.spikes.castShadow = true; g.add(refs.spikes);
+        } else {
+          refs.body = new T.Mesh(GEO.bossCloud, mat); refs.body.castShadow = true; g.add(refs.body);
+          const marker = new T.Mesh(DISC_GEO, MAT.marker); marker.rotation.x = -Math.PI / 2; marker.scale.setScalar(1.7); marker.visible = false; add(marker);
+          const bolt = new T.Mesh(BOX, MAT.bolt); bolt.visible = false; add(bolt);
+          refs.marker = marker; refs.bolt = bolt;
+        }
+        const def = BOSS_DEFS[type];
+        const dizzy = new T.Group(); dizzy.position.y = def.h + .6; dizzy.visible = false; g.add(dizzy);
+        for (let i = 0; i < 3; i++) {
+          const st = new T.Mesh(STAR_GEO, MAT.gold); st.scale.setScalar(.8); st.position.set(Math.cos(i * 2.09) * 1.1, 0, Math.sin(i * 2.09) * 1.1); dizzy.add(st);
+        }
+        L.boss = Object.assign({ type, name: def.name, hp: 3, x, y: top, z, vx: 0, vy: 0, vz: 0, face: 0, state: 'idle', t: 0, inv: 0,
+          active: false, dead: false, gone: false, deadT: 0, g, mat, dizzy, r: def.r, h: def.h, strikes: 0, spat: false, tx: 0, tz: 0 }, refs);
+      },
+      donut(x, y, z, sc) {
+        const rx = (R() - .5) * 1.4, rz = (R() - .5) * 1.4;
+        far.add(DONUT, 0xd9a066, M4(x, y, z, sc, sc, sc, rx, 0, rz));
+        far.add(DONUT, [0xff9ad1, 0x8a5a3c, 0xfff1f8][(R() * 3) | 0], M4(x, y + sc * .12, z, sc * 1.02, sc * 1.02, sc * .75, rx, 0, rz));
+      },
+      cupcake(x, y, z, sc) {
+        far.add(CYL, [0xff9ad1, 0x7de0ff, 0xc49bff][(R() * 3) | 0], M4(x, y + sc * .4, z, sc * .7, sc * .8, sc * .7));
+        far.add(SPH, 0xfff1f8, M4(x, y + sc * .95, z, sc * .82, sc * .55, sc * .82));
+        far.add(SPH, 0xff2a4a, M4(x, y + sc * 1.55, z, sc * .18, sc * .18, sc * .18));
       },
       // slippery ice slab; lies on the ground (top a bit above it) or floats on its own
       iceSlab(x0, x1, d0, d1, top, th = 1) {
@@ -1361,6 +1499,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           near.add(SPH, c2, M4(x + .62 * s, top + 1.55 * s, z, .15 * s, .12 * s, .15 * s));
           near.add(SPH, 0xff7aa8, M4(x, top + 2.6 * s, z, .12 * s, .08 * s, .12 * s));
           addSolid(x - .3, top, z - .3, x + .3, top + 2.5 * s, z + .3, 'tree');
+          return;
+        }
+        if (kind === 'lollipop') {
+          const [c1, c2] = [[0xff5a8a, 0xffffff], [0x7de0ff, 0xffffff], [0xffd23f, 0xff7a1a], [0x9dff7a, 0xffffff]][(R() * 4) | 0];
+          near.add(CYL, 0xfff6ee, M4(x, top + 1.3 * s, z, .08 * s, 2.6 * s, .08 * s));
+          near.add(CYL, c1, M4(x, top + 2.9 * s, z, .85 * s, .22 * s, .85 * s, Math.PI / 2, 0, 0));
+          for (const zo of [.12, -.12]) {
+            near.add(TORUS, c2, M4(x, top + 2.9 * s, z + zo * s, 1.2 * s, 1.2 * s, 2 * s));
+            near.add(TORUS, c2, M4(x, top + 2.9 * s, z + zo * s, .62 * s, .62 * s, 2 * s));
+          }
+          addSolid(x - .3, top, z - .3, x + .3, top + 3.8 * s, z + .3, 'tree');
           return;
         }
         if (kind === 'pine') {
@@ -1802,27 +1951,192 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sceneryLava(B, 30, -220);
   }
 
+  function sceneryCandy(B, zFrom, zTo) {
+    const R = B.R;
+    for (let i = 0; i < 12; i++) B.donut((R() < .5 ? -1 : 1) * (26 + R() * 40), -2 + R() * 14, zFrom - R() * (zFrom - zTo), 3 + R() * 4);
+    for (let i = 0; i < 10; i++) B.cupcake((R() < .5 ? -1 : 1) * (30 + R() * 40), -12, zFrom - R() * (zFrom - zTo), 6 + R() * 6);
+    for (let i = 0; i < 18; i++) B.cloud(-70 + R() * 140, 14 + R() * 16, zFrom - R() * (zFrom - zTo), .9 + R() * .9, R() < .5 ? 0xffe0f0 : 0xf5e8ff);
+  }
+
+  // ---------- boss arenas: a short run-up, a hint from a friend, then the fight ----------
+  function buildB1(B) {
+    B.start(0, 0, 3);
+    B.ground(-7, 7, -2, 17, 0);
+    B.npc('robot', 3.5, 0, 7, 'Промобот', [
+      'Впереди Король Каштан!',
+      'Когда он приземлится, по земле пойдёт волна: перепрыгни её.',
+      'Потом над ним закружатся звёздочки: прыгай ему на макушку. Три раза!',
+    ]);
+    B.coinRow(0, 1.2, 8, 14, 2);
+    B.block(0, 3.2, 11, 'qpower');
+    B.arena(-12, 12, 18, 46, 0, 1.4, 4);
+    B.boss('king', 0, 0, 38);
+    for (const [x, d] of [[-6, 4], [6, 12], [-6, 15]]) B.tree(x, 0, d, 1);
+    sceneryHills(B, 30, -120);
+  }
+  function buildB2(B) {
+    B.start(0, 0, 3);
+    B.ground(-6, 6, -2, 17, 0, 6);
+    B.npc('frog', 3.5, 0, 7, 'Квак', [
+      'Там Огненный Панцирь. Его колючки трогать нельзя!',
+      'Когда он разгоняется, отойди в сторону: пусть врежется в стену.',
+      'Пока он оглушён и над ним звёздочки, прыгай сверху!',
+    ]);
+    B.coinRow(0, 1.2, 8, 14, 2);
+    B.block(0, 3.2, 11, 'qpower');
+    B.arena(-10, 10, 18, 44, 0, 3, 4);
+    B.boss('shell', 0, 0, 36);
+    for (const [x, d] of [[-5, 4], [5, 12]]) B.tree(x, 0, d, 1);
+    sceneryLava(B, 30, -120);
+  }
+  function buildB3(B) {
+    B.start(0, 0, 3);
+    B.ground(-7, 7, -2, 17, 0);
+    B.npc('penguin', 3.5, 0, 7, 'Пинг', [
+      'Над ареной висит Хмурь. Она бьёт молниями!',
+      'Видишь светящийся круг на земле? Уходи из него.',
+      'Когда Хмурь устанет и опустится, прыгай на неё. Три раза!',
+    ]);
+    B.coinRow(0, 1.2, 8, 14, 2);
+    B.block(0, 3.2, 11, 'qpower');
+    B.arena(-11, 11, 18, 46, 0, 1.2, 4);
+    B.boss('cloud', 0, 0, 34);
+    for (const [x, d] of [[-6, 4], [6, 12], [-6, 15]]) B.tree(x, 0, d, 1);
+    sceneryCandy(B, 30, -120);
+  }
+
+  // ---------- World 3-1: Candy Valley ----------
+  function buildC1(B) {
+    B.start(0, 0, 3);
+    B.ground(-7, 7, -2, 40, 0);
+    B.npc('frog', 4, 0, 6, 'Квак', ['Добро пожаловать в Конфетную долину!', 'Мармеладные подушки подбрасывают: просто наступи. Держи прыжок, чтобы взлететь выше.']);
+    B.coinRow(0, 1.2, 9, 15, 1.5);
+    B.block(-1, 3.2, 19, 'q'); B.block(0, 3.2, 19, 'brick'); B.block(1, 3.2, 19, 'qpower');
+    B.enemy('hopper', 0, 0, 24, 'x', 4, 1.4);
+    B.jelly(-2, 2, 28, 31, .5, .5);
+    B.coinCol(0, 4, 8, 29.5, 1.3);
+    B.enemy('walker', 0, 0, 35, 'x', 4.5, 1.7, .3);
+    B.pipe(3.5, 38, 3); B.coin(3.5, 3.9, 38);
+    B.coinArc(0, 1.2, 39, 45, 5, 2.2);
+
+    B.ground(-7, 7, 44, 74, 0);
+    B.checkpoint(-4.5, 0, 47);
+    B.enemy('hopper', 0, 0, 52, 'x', 4, 1.5);
+    B.enemy('walker', 0, 0, 56, 'x', 4.5, 1.7, .5);
+    B.enemy('spiky', 0, 0, 60, 'x', 4, 2);
+    B.jelly(-2, 2, 64, 66, .5, .5);
+    B.island(-3, 3, 67, 73, 4.5, 1.8);
+    B.coinRow(0, 5.7, 68, 72, 2);
+    B.platform(0, 0, 76.5, 3, 3, { move: { axis: 'x', range: 3, period: 3.8 } });
+    B.coin(0, 1.6, 76.5);
+
+    B.ground(-7, 7, 79, 109, 0);
+    for (const x of [-2, -1, 1, 2]) B.block(x, 3.2, 84, 'brick');
+    B.block(0, 3.2, 84, 'qmulti');
+    B.enemy('hopper', 0, 0, 89, 'x', 4, 1.5);
+    B.enemy('walker', 0, 0, 93, 'x', 4.5, 1.7, .4);
+    B.jelly(-3, -1, 96, 99, .5, .5); B.jelly(1, 3, 96, 99, .5, .5);
+    B.coin(-2, 5, 97.5); B.coin(2, 5, 97.5);
+    B.stairs(-3, 3, 102, 6, 0, 1);
+    B.hardBox(-3, 3, 108, 109, 0, 6);
+    for (let i = 0; i < 6; i++) B.coin(0, i + 2, 102.5 + i);
+
+    B.ground(-7, 7, 112, 145, 0);
+    B.goal(0, 0, 116);
+    B.castle(0, 0, 130);
+
+    const pops = [[-6, 5], [6, 11], [-6, 22], [6, 27], [-6, 33], [-6, 50], [6, 55], [-6, 62], [6, 70], [-6, 82], [6, 88], [-6, 95], [6, 104], [-6, 114], [6, 120], [-6, 138], [6, 140]];
+    pops.forEach(([x, d], i) => B.tree(x, 0, d, .9 + ((i * 37) % 10) / 30));
+    sceneryCandy(B, 30, -200);
+  }
+
+  // ---------- World 3-2: Jelly Bridges ----------
+  function buildC2(B) {
+    B.start(0, 0, 3);
+    B.island(-6, 6, -2, 20, 0, 4);
+    B.npc('robot', 4, 0, 7, 'Промобот', ['Здесь мосты из мармелада. Подушки подбросят высоко!', 'Держи прыжок, когда отскакиваешь: улетишь ещё выше.']);
+    B.coinRow(0, 1.2, 8, 14, 2);
+    B.enemy('walker', 0, 0, 15.5, 'x', 4, 1.6);
+    B.jelly(-1.5, 1.5, 23, 26, 0, 1);
+    B.coinArc(0, 2, 23.5, 30, 4, 2.5);
+
+    B.island(-5, 5, 30, 44, 3, 4);
+    B.checkpoint(-3.5, 3, 32);
+    B.enemy('hopper', 0, 3, 37, 'x', 3.5, 1.5);
+    B.block(-1, 6.2, 40, 'brick'); B.block(0, 6.2, 40, 'qpower'); B.block(1, 6.2, 40, 'brick');
+
+    B.platform(0, 3, 47.5, 2.5, 2.5, { fall: true });
+    B.platform(2, 3.5, 52, 2.5, 2.5, { fall: true });
+    B.platform(-1, 4, 56.5, 2.5, 2.5, { fall: true });
+    B.coin(0, 4.3, 47.5); B.coin(2, 4.8, 52); B.coin(-1, 5.3, 56.5);
+
+    B.island(-6, 6, 60, 80, 4, 4);
+    B.enemy('walker', 0, 4, 65, 'x', 4.5, 1.7);
+    B.enemy('walker', 0, 4, 71, 'x', 4.5, 1.8, .5);
+    B.jelly(-2, 2, 77.5, 80.5, 4.5, .5);
+    B.island(-2.5, 2.5, 81.5, 88, 7.5, 2);
+    B.coinRow(0, 8.7, 83, 87, 2);
+
+    B.island(-6, 6, 92, 114, 4, 5);
+    B.enemy('spiky', 0, 4, 98, 'x', 4, 2);
+    B.enemy('hopper', 0, 4, 104, 'x', 4, 1.6, .5);
+    B.stairs(-3, 3, 108, 5, 4, 1);
+    B.hardBox(-3, 3, 113, 114, 4, 9);
+    for (let i = 0; i < 5; i++) B.coin(0, 4 + i + 2, 108.5 + i);
+
+    B.island(-6, 6, 117, 150, 4, 5);
+    B.goal(0, 4, 121);
+    B.castle(0, 4, 135);
+
+    const pops = [[-5, 4, 0], [5, 11, 0], [-5, 18, 0], [4.2, 34, 3], [-4.2, 42, 3], [5.5, 62, 4], [-5.5, 68, 4], [5.5, 77, 4],
+      [5.2, 95, 4], [-5.2, 101, 4], [5.2, 107, 4], [-5.5, 119, 4], [5.5, 125, 4], [-5.5, 145, 4], [5.5, 147, 4]];
+    pops.forEach(([x, d, top], i) => B.tree(x, top, d, .85 + ((i * 37) % 10) / 30));
+    sceneryCandy(B, 30, -200);
+  }
+
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
       sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc },
     { id: '1-2', name: 'Небесная тропа', time: 300, seed: 22, killY: -10, music: 'sky', theme: 'grass', build: buildL2,
       sky: [[0, '#5b5fd6'], [.45, '#e58bb8'], [.8, '#ffc79a'], [1, '#ffe6c4']], fog: [0xffe2cc, 55, 165], hemi: [0xfff0f4, 0x7a6aa0, .82], sun: 0xffe2c4 },
+    { id: '1-3', name: 'Король Каштан', boss: true, time: 300, seed: 13, killY: -12, music: 'hills', theme: 'grass', build: buildB1,
+      sky: [[0, '#ff9b54'], [.5, '#ffcf8f'], [1, '#fff0d6']], fog: [0xffe7c8, 60, 150], hemi: [0xfff1dc, 0x6b8f4a, .8], sun: 0xffe2b8 },
     { id: '2-1', name: 'Солнечные дюны', time: 300, seed: 33, killY: -12, music: 'desert', theme: 'sand', build: buildL3,
       sky: [[0, '#f08a3c'], [.5, '#ffc877'], [1, '#fff0c9']], fog: [0xfbe3b4, 60, 160], hemi: [0xfff3dd, 0xb9864f, .85], sun: 0xffe6b8 },
     { id: '2-2', name: 'Ледяные пики', time: 300, seed: 44, killY: -12, music: 'snow', theme: 'snow', build: buildL4,
       sky: [[0, '#4f7fd9'], [.55, '#a9c8f2'], [1, '#eef5ff']], fog: [0xe6effa, 50, 150], hemi: [0xf2f7ff, 0x8fa3c7, .86], sun: 0xf4f8ff },
     { id: '2-3', name: 'Лавовая крепость', time: 320, seed: 55, killY: -4, lava: -3, music: 'castle', theme: 'stone', build: buildL5,
       sky: [[0, '#1b1030'], [.55, '#4a1a3a'], [1, '#b8462a']], fog: [0x5a2230, 35, 125], hemi: [0xffc9a6, 0xff6a2a, .8], sun: 0xffb27a, sunI: .6 },
+    { id: '2-4', name: 'Огненный Панцирь', boss: true, time: 300, seed: 57, killY: -4, lava: -3, music: 'castle', theme: 'stone', build: buildB2,
+      sky: [[0, '#1b1030'], [.55, '#4a1a3a'], [1, '#b8462a']], fog: [0x5a2230, 35, 125], hemi: [0xffc9a6, 0xff6a2a, .8], sun: 0xffb27a, sunI: .6 },
+    { id: '3-1', name: 'Конфетная долина', time: 300, seed: 71, killY: -12, music: 'candy', theme: 'candy', build: buildC1,
+      sky: [[0, '#ff9ad1'], [.5, '#ffd6ec'], [1, '#fff4fb']], fog: [0xffe9f5, 60, 160], hemi: [0xfff3fa, 0xc98a58, .9], sun: 0xfff4ea },
+    { id: '3-2', name: 'Мармеладные мосты', time: 300, seed: 72, killY: -10, music: 'candy', theme: 'candy', build: buildC2,
+      sky: [[0, '#8fd6ff'], [.5, '#e2c9ff'], [1, '#fff0fb']], fog: [0xf6ecff, 55, 165], hemi: [0xf7f0ff, 0xb08ac8, .88], sun: 0xfff2fa },
+    { id: '3-3', name: 'Хмурь', boss: true, time: 300, seed: 73, killY: -12, music: 'candy', theme: 'candy', build: buildB3,
+      sky: [[0, '#5b4a8a'], [.5, '#b39ad6'], [1, '#f2dcff']], fog: [0xeadcf8, 50, 150], hemi: [0xf2e6ff, 0x8a6aa0, .85], sun: 0xf0e6ff },
   ];
 
+  function spawnEnemy(type, x, y, z, axis = 'x', range = 3, speed = 1.5, phase = 0) {
+    const mesh = new T.Mesh(GEO[type], MAT.char); mesh.castShadow = true; mesh.position.set(x, y, z); L.group.add(mesh);
+    const e = { type, hx: x, hy: y, hz: z, axis, range, speed, t: range + phase * range * 2, x, y, z, alive: true, dead: 0, flip: false, vy: 0, mesh,
+      hw: type === 'spiky' ? .45 : .42, h: type === 'spiky' ? .95 : .85, face: 0, hopOff: phase * 1.3 + Math.random() * .3 };
+    L.enemies.push(e);
+    return e;
+  }
+  const BOSS_DEFS = {
+    king: { name: 'Король Каштан', r: 1.5, h: 2.8 },
+    shell: { name: 'Огненный Панцирь', r: 1.4, h: 2.4 },
+    cloud: { name: 'Хмурь', r: 1.9, h: 1.9 },
+  };
   function disposeGroup(g) { g.traverse((o) => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); }); }
   function loadLevel(i) {
     if (L) { scene.remove(L.group); disposeGroup(L.group); }
     const def = LEVELS[i];
     bubblesEl.textContent = '';
-    fairy.active = false; fairy.g.visible = false;
+    fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
-      orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [], dinos: [],
+      orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [], dinos: [], jellies: [], rings: [], shots: [], boss: null, arena: null, gate: null,
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     const B = makeBuilder(def.seed);
@@ -1857,7 +2171,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const ACC_ICE = 18, DEC_ICE = 8;
   const G = {
     state: 'title', li: 0, lives: 3, score: 0, coins: 0, time: 300, cpIndex: -1, levelCoins: 0, timeBonus: 0,
-    stateT: 0, dieKind: null, dieJump: false, goalPhase: null, warned: false, fw: [], gifts: new Set(), emberT: 0, star: false, starCharge: false,
+    stateT: 0, dieKind: null, dieJump: false, goalPhase: null, warned: false, fw: [], gifts: new Set(), emberT: 0, star: false, starCharge: false, shake: 0,
     best: store.get('best', 0), unlocked: store.get('unlocked', 1),
   };
   const P = { pos: new T.Vector3(), vel: new T.Vector3(), prevY: 0, onGround: false, wasGround: false, ground: null, coyote: 0, jumpBuf: 0,
@@ -1948,6 +2262,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function jumpHeld() { return JUMP_KEYS.some((k) => keys.has(k)) || touchJump.held; }
 
   function onLand(s) {
+    if (s.kind === 'jelly') {
+      P.vel.y = jumpHeld() ? 20 : 17; P.noCut = true; P.onGround = false; P.combo = 0; P.squash = 1.3; s.wob = 1;
+      Snd.sfx.jelly(); emit(P.pos.x, P.pos.y + .1, P.pos.z, 0xffc2e0, 8, 2.5, 1, 4, .4);
+      return;
+    }
     if (s.kind === 'spring') {
       P.vel.y = jumpHeld() ? SPRING_V + 3 : SPRING_V; P.noCut = true; s.sq = 1; P.onGround = false; P.combo = 0; P.squash = 1.3;
       Snd.sfx.spring(); emit(P.pos.x, P.pos.y, P.pos.z, 0xffffff, 8, 3, 1, 4, .4);
@@ -2261,6 +2580,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
   }
   function checkTriggers() {
+    if (L.boss && !L.boss.active && !L.boss.dead && P.pos.z < L.arena.z1 - 1.5 && P.pos.y > L.arena.top - 1) activateBoss();
     for (let i = 0; i < L.checkpoints.length; i++) {
       const c = L.checkpoints[i];
       if (!c.reached && P.pos.z < c.z + .3 && P.pos.y > c.y - 2) reachCheckpoint(i);
@@ -2320,6 +2640,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     MAT.q.emissive.setRGB(.16 + .16 * k, .09 + .1 * k, 0);
   }
   function updateSprings(dt) {
+    for (const j of L.jellies) {
+      if (j.wob <= 0) continue;
+      j.wob = Math.max(0, j.wob - dt * 2.2);
+      const v = Math.sin((1 - j.wob) * Math.PI * 4) * j.wob;
+      j.mesh.scale.set(1 + v * .08, 1 - v * .25, 1 + v * .08);
+    }
     for (const s of L.springs) {
       if (s.sq <= 0) continue;
       s.sq = Math.max(0, s.sq - dt * 2.5);
@@ -2532,12 +2858,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function startFairy() {
     const g = L.goal, fin = G.li === LEVELS.length - 1;
     fairy.active = true; fairy.t = 0; fairy.gift = false; fairy.g.visible = true;
-    fairy.from = { x: g.door.x, y: g.groundY + .6, z: g.door.z - .6 };
-    fairy.to = { x: g.door.x - 1.2, y: g.groundY + 1.7, z: g.door.z + 1.8 };
+    if (g) {
+      fairy.from = { x: g.door.x, y: g.groundY + .6, z: g.door.z - .6 };
+      fairy.to = { x: g.door.x - 1.2, y: g.groundY + 1.7, z: g.door.z + 1.8 };
+    } else {
+      const A = L.arena;
+      fairy.from = { x: A.cx, y: A.top + 9, z: A.cz };
+      fairy.to = { x: P.pos.x - 1.1, y: P.pos.y + 1.9, z: P.pos.z - 2.2 };
+    }
     const b = makeBubble('Фея Лира'); fairy.el = b.el; fairy.span = b.span;
     fairy.lines = fin
-      ? ['Ты прошёл все миры и нашёл меня!', 'Спасибо, герой! Держи мой волшебный бонус.']
-      : ['Ура, ты добрался до замка!', 'Я фея Лира. Волшебный ветер уносит меня дальше: догоняй в следующем мире!'];
+      ? ['Ты одолел Хмурь и прошёл все миры!', 'Спасибо, герой! Держи мой волшебный бонус.']
+      : L.def.boss
+        ? ['Ты победил босса! Какой прыжок!', 'Путь в следующий мир открыт. Я буду ждать тебя там!']
+        : ['Ура, ты добрался до замка!', 'Я фея Лира. Волшебный ветер уносит меня дальше: догоняй в следующем мире!'];
     fairy.idx = 0; fairy.span.textContent = fairy.lines[0];
     Snd.sfx.fairy();
   }
@@ -2576,6 +2910,225 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (Math.random() < dt * 3) emit(t.x, t.y + .2, t.z, 0xffb03a, 1, .4, 1.2, -.5, .9);
     }
   }
+  // ================= bosses =================
+  // One rule for all of them: dodge the attack, then stomp the boss while it is dazed (stars circle its head). Three hits.
+  const ONE = new T.Vector3(1, 1, 1);
+  function renderBossBar(b) {
+    $('bossName').textContent = b.name;
+    const hp = $('bossHp'); hp.textContent = '';
+    for (let i = 0; i < 3; i++) { const seg = document.createElement('i'); if (i >= b.hp) seg.className = 'off'; hp.append(seg); }
+  }
+  function activateBoss() {
+    const b = L.boss; b.active = true; b.t = 0; b.state = 'idle';
+    if (L.gate) { L.gate.s.active = true; L.gate.m.visible = true; }
+    renderBossBar(b); $('bossBar').hidden = false;
+    toast('Босс', b.name); Snd.sfx.bossRoar(); Snd.startMusic('boss'); G.shake = .5;
+  }
+  function spawnRing(x, y, z) {
+    const m = new T.Mesh(RING_GEO, MAT.shock); m.rotation.x = Math.PI / 2; m.position.set(x, y + .15, z); L.group.add(m);
+    L.rings.push({ m, x, y, z, r: 1.2, hit: false });
+  }
+  function updateRings(dt) {
+    for (let i = L.rings.length - 1; i >= 0; i--) {
+      const r = L.rings[i]; r.r += 9 * dt;
+      r.m.scale.set(r.r, r.r, 1);
+      if (r.r > 15) { L.group.remove(r.m); L.rings.splice(i, 1); continue; }
+      if (G.state !== 'playing' || r.hit) continue;
+      const d = Math.hypot(P.pos.x - r.x, P.pos.z - r.z);
+      if (Math.abs(d - r.r) < .35 + HW + r.r * .03 && P.pos.y < r.y + .45) { r.hit = true; hurt({ x: r.x, z: r.z }); }
+    }
+  }
+  function spawnShot(x, y, z, vx, vz) {
+    const m = new T.Mesh(SPH, MAT.fire); m.scale.setScalar(.35); m.position.set(x, y, z); L.group.add(m);
+    L.shots.push({ m, x, y, z, vx, vz, life: 3 });
+  }
+  function updateShots(dt) {
+    const A = L.arena;
+    for (let i = L.shots.length - 1; i >= 0; i--) {
+      const sh = L.shots[i]; sh.life -= dt; sh.x += sh.vx * dt; sh.z += sh.vz * dt;
+      sh.m.position.set(sh.x, sh.y + Math.abs(Math.sin(sh.life * 9)) * .3, sh.z);
+      const out = !A || sh.x < A.x0 || sh.x > A.x1 || sh.z < A.z0 || sh.z > A.z1;
+      if (sh.life <= 0 || out) { L.group.remove(sh.m); L.shots.splice(i, 1); continue; }
+      if (Math.random() < dt * 20) emit(sh.x, sh.y, sh.z, 0xffa12e, 1, .6, .5, 1, .3);
+      if (G.state === 'playing' && Math.abs(P.pos.x - sh.x) < HW + .3 && Math.abs(P.pos.z - sh.z) < HW + .3 && P.pos.y < sh.y + .35 && P.pos.y + PH > sh.y - .35) {
+        hurt(sh); L.group.remove(sh.m); L.shots.splice(i, 1);
+      }
+    }
+  }
+  function bossContact(b) {
+    const p = P.pos, dx = p.x - b.x, dz = p.z - b.z, d = Math.hypot(dx, dz);
+    if (d > b.r + HW || p.y > b.y + b.h || p.y + PH < b.y) return;
+    const falling = P.vel.y <= .5 || P.prevY > p.y;
+    if (falling && P.prevY >= b.y + b.h * .55) {
+      if (b.state === 'dazed' && b.inv <= 0) bossHit(b);
+      else if (b.type === 'shell' && b.spikes.visible) hurt({ x: b.x, z: b.z }); // spikes hurt from any side
+      else { P.vel.y = 11; P.noCut = true; P.onGround = false; Snd.sfx.bump(); } // bounces off harmlessly when not dazed
+      return;
+    }
+    const k = (b.r + HW + .02) / (d || 1);
+    p.x = b.x + (d ? dx : .01) * k; p.z = b.z + dz * k;
+    if (b.state !== 'dazed') hurt({ x: b.x, z: b.z });
+  }
+  function bossHit(b) {
+    b.hp--; b.inv = 1.3;
+    P.vel.y = jumpHeld() ? 17 : 14; P.noCut = true; P.onGround = false; P.happyT = .8;
+    Snd.sfx.bossHit(); G.shake = .5; addScore(1000);
+    emit(b.x, b.y + b.h, b.z, 0xffffff, 24, 5, 2, 6, .6);
+    popup(b.hp > 0 ? 'УДАР!' : 'ПОБЕДА!', b.x, b.y + b.h + 1.6, b.z, 'gold');
+    renderBossBar(b);
+    if (b.hp <= 0) {
+      b.dead = true; b.deadT = 0; b.dizzy.visible = false;
+      Snd.stopMusic(); Snd.sfx.bossDown();
+      for (const e of L.enemies) if (e.alive) knockEnemy(e);
+      for (const sh of L.shots) L.group.remove(sh.m); L.shots.length = 0;
+      if (b.marker) { b.marker.visible = false; b.bolt.visible = false; }
+      return;
+    }
+    // back up angrier and faster; the king calls in help
+    b.state = b.type === 'cloud' ? 'rise' : b.type === 'shell' ? 'recover' : 'walk'; b.t = 0;
+    if (b.type === 'king') {
+      const A = L.arena;
+      for (let i = 0; i < 3 - b.hp; i++) spawnEnemy('walker', A.cx, A.top, i % 2 ? A.z0 + 3 : A.z1 - 4, 'x', (A.x1 - A.x0) / 2 - 2, 1.8 + i * .3, i * .5);
+    }
+  }
+  function updateKing(b, dt, tx, tz, dist, lost, A) {
+    if (b.state === 'idle') { b.state = 'walk'; b.t = 0; }
+    if (b.state === 'walk') {
+      const spd = 2.4 + lost;
+      b.face = Math.atan2(tx, tz);
+      b.x += tx / dist * spd * dt; b.z += tz / dist * spd * dt;
+      b.y = A.top + Math.abs(Math.sin(time * 7)) * .12; b.body.rotation.z = Math.sin(time * 7) * .08;
+      if (b.t > 3.2 - lost * .5) { b.state = 'crouch'; b.t = 0; }
+    } else if (b.state === 'crouch') {
+      b.y = A.top; b.g.scale.set(1.12, .82, 1.12);
+      if (b.t > .45) {
+        b.state = 'jump'; b.t = 0; b.vy = 15; b.g.scale.set(.92, 1.12, .92);
+        const reach = Math.min(dist, 10); b.vx = tx / dist * reach; b.vz = tz / dist * reach; // lands where the hero stood, about 1 s later
+      }
+    } else if (b.state === 'jump') {
+      b.vy -= 30 * dt; b.y += b.vy * dt; b.x += b.vx * dt; b.z += b.vz * dt;
+      if (b.y <= A.top && b.vy < 0) {
+        b.y = A.top; b.state = 'dazed'; b.t = 0; b.g.scale.set(1.25, .7, 1.25);
+        spawnRing(b.x, A.top, b.z); Snd.sfx.shock(); G.shake = .6;
+      }
+    } else if (b.state === 'dazed') {
+      b.body.rotation.z = Math.sin(time * 3) * .15;
+      if (b.t > 2.2 - lost * .3) { b.state = 'walk'; b.t = 0; }
+    }
+  }
+  function updateShell(b, dt, tx, tz, dist, lost, A) {
+    if (b.state === 'idle') { b.state = 'aim'; b.t = 0; }
+    if (b.state === 'aim') {
+      b.face = Math.atan2(tx, tz); b.spikes.visible = true;
+      b.body.position.x = b.spikes.position.x = Math.sin(time * 60) * .06;
+      if (lost >= 1 && !b.spat && b.t > .6) {
+        b.spat = true;
+        for (const off of [-.35, 0, .35]) { const a = b.face + off; spawnShot(b.x, A.top + .6, b.z, Math.sin(a) * 8, Math.cos(a) * 8); }
+        Snd.sfx.burn();
+      }
+      if (b.t > 1.2 - lost * .15) {
+        const spd = 12 + lost * 2;
+        b.state = 'charge'; b.t = 0; b.spat = false; b.vx = tx / dist * spd; b.vz = tz / dist * spd;
+        b.body.position.x = b.spikes.position.x = 0; Snd.sfx.bossRoar();
+      }
+    } else if (b.state === 'charge') {
+      b.x += b.vx * dt; b.z += b.vz * dt;
+      b.body.rotation.x += dt * 14; b.spikes.rotation.x = b.body.rotation.x;
+      if (Math.random() < dt * 30) emit(b.x, A.top + .2, b.z, 0xffa12e, 1, 1.5, 1, 3, .4);
+      if (b.x <= A.x0 + b.r || b.x >= A.x1 - b.r || b.z <= A.z0 + b.r || b.z >= A.z1 - b.r) {
+        b.state = 'dazed'; b.t = 0; b.spikes.visible = false; b.body.rotation.x = b.spikes.rotation.x = 0;
+        b.g.scale.set(1.2, .8, 1.2); G.shake = .7; Snd.sfx.shock();
+        emit(b.x, A.top + 1.5, b.z, 0xffe27a, 20, 5, 2, 6, .5);
+      }
+    } else if (b.state === 'dazed') {
+      if (b.t > 2.4 - lost * .3) { b.state = 'recover'; b.t = 0; }
+    } else if (b.state === 'recover') {
+      b.spikes.visible = true;
+      if (b.t > .5) { b.state = 'aim'; b.t = 0; }
+    }
+  }
+  function updateCloud(b, dt, tx, tz, dist, lost, A) {
+    const high = A.top + 6.5;
+    b.face = Math.atan2(camera.position.x - b.x, camera.position.z - b.z);
+    b.mat.emissive.setRGB(0, 0, 0);
+    if (b.state === 'idle') { b.state = 'hover'; b.t = 0; b.strikes = 0; }
+    if (b.state === 'hover' || b.state === 'mark') {
+      b.x = damp(b.x, b.state === 'mark' ? b.tx : P.pos.x, 2.2, dt);
+      b.z = damp(b.z, b.state === 'mark' ? b.tz : P.pos.z, 2.2, dt);
+      b.y = damp(b.y, high + Math.sin(time * 2) * .3, 3, dt);
+    }
+    if (b.state === 'hover') {
+      if (b.t > 1.1 - lost * .2) {
+        b.state = 'mark'; b.t = 0; b.tx = P.pos.x; b.tz = P.pos.z;
+        b.marker.position.set(b.tx, A.top + .06, b.tz); b.marker.visible = true;
+      }
+    } else if (b.state === 'mark') {
+      const k = .5 + .5 * Math.sin(b.t * 18);
+      b.marker.scale.setScalar(1.7 * (.85 + .15 * k)); b.mat.emissive.setRGB(.25 * k, .22 * k, .05 * k);
+      if (b.t > .95 - lost * .12) {
+        b.state = 'strike'; b.t = 0;
+        const top = b.y + .4, len = top - A.top;
+        b.bolt.scale.set(.28, len, .28); b.bolt.position.set(b.tx, A.top + len / 2, b.tz); b.bolt.visible = true;
+        Snd.sfx.thunder(); G.shake = .35;
+        emit(b.tx, A.top + .3, b.tz, 0xfff3a0, 20, 5, 2, 6, .5);
+      }
+    } else if (b.state === 'strike') {
+      b.bolt.rotation.y = Math.random() * 3;
+      if (G.state === 'playing' && Math.hypot(P.pos.x - b.tx, P.pos.z - b.tz) < 1.7 + HW * .5 && P.pos.y < A.top + 3) hurt({ x: b.tx, z: b.tz });
+      if (b.t > .3) {
+        b.bolt.visible = false; b.marker.visible = false; b.strikes++;
+        b.state = b.strikes >= 3 + lost ? 'descend' : 'hover'; b.t = 0;
+      }
+    } else if (b.state === 'descend') {
+      b.y = damp(b.y, A.top, 3, dt);
+      if (b.y - A.top < .08) { b.y = A.top; b.state = 'dazed'; b.t = 0; b.g.scale.set(1.15, .8, 1.15); Snd.sfx.shock(); }
+    } else if (b.state === 'dazed') {
+      if (b.t > 2.6 - lost * .3) { b.state = 'rise'; b.t = 0; }
+    } else if (b.state === 'rise') {
+      b.y = damp(b.y, high, 2.5, dt);
+      if (b.t > 1.2) { b.state = 'hover'; b.t = 0; b.strikes = 0; }
+    }
+  }
+  function updateBoss(dt) {
+    const b = L.boss; if (!b || b.gone) return;
+    b.t += dt; if (b.inv > 0) b.inv -= dt;
+    const A = L.arena;
+    if (b.dead) {
+      b.deadT += dt;
+      if (b.type === 'king') b.g.scale.set(1.3, Math.max(.15, 1 - b.deadT * 2), 1.3);
+      else if (b.type === 'shell') { b.body.rotation.z = Math.min(Math.PI, b.deadT * 5); b.y = A.top + Math.sin(Math.min(1, b.deadT) * Math.PI) * 1.5; }
+      else b.g.scale.setScalar(Math.max(.02, 1 - b.deadT * .8));
+      b.g.position.set(b.x, b.y, b.z);
+      if (Math.random() < .5) emit(b.x, b.y + b.h * .6, b.z, 0xffffff, 2, 3, 1, 2, .6);
+      if (b.deadT > 1.3) {
+        b.gone = true; b.g.visible = false;
+        emit(b.x, b.y + 1, b.z, 0xffd23f, 40, 6, 2, 5, 1);
+        bossWin();
+      }
+      return;
+    }
+    if (!b.active) {
+      b.g.position.set(b.x, b.y + Math.abs(Math.sin(time * 2)) * .1, b.z);
+      return;
+    }
+    const tx = P.pos.x - b.x, tz = P.pos.z - b.z, dist = Math.hypot(tx, tz) || 1, lost = 3 - b.hp;
+    if (b.type === 'king') updateKing(b, dt, tx, tz, dist, lost, A);
+    else if (b.type === 'shell') updateShell(b, dt, tx, tz, dist, lost, A);
+    else updateCloud(b, dt, tx, tz, dist, lost, A);
+    b.x = clamp(b.x, A.x0 + b.r, A.x1 - b.r); b.z = clamp(b.z, A.z0 + b.r, A.z1 - b.r);
+    b.g.position.set(b.x, b.y, b.z);
+    b.g.rotation.y = angleDamp(b.g.rotation.y, b.face, 8, dt);
+    b.g.scale.lerp(ONE, 1 - Math.exp(-dt * 8));
+    b.dizzy.visible = b.state === 'dazed'; b.dizzy.rotation.y += dt * 4;
+    if (b.type !== 'cloud') { const f = b.inv > 0 && Math.floor(time * 20) % 2 === 0 ? .7 : 0; b.mat.emissive.setRGB(f, f, f); }
+    if (G.state === 'playing') bossContact(b);
+  }
+  function bossWin() {
+    $('bossBar').hidden = true;
+    G.state = 'goal'; G.goalPhase = 'bossWin'; G.stateT = 0; G.fw = [.3, .8, 1.3];
+    addScore(5000); Snd.sfx.clear();
+  }
+
   const dummy = new T.Object3D();
   function animateCoins() {
     const m = L.coinMesh; if (!m) return;
@@ -2699,12 +3252,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else {
       cam.tx = damp(cam.tx, P.pos.x, 10, dt); cam.tz = damp(cam.tz, P.pos.z, 10, dt);
       cam.ty = damp(cam.ty, ty, P.onGround ? 5 : (ty < cam.ty - .5 ? 6 : 2.6), dt);
-      cam.dist = damp(cam.dist, cam.distGoal + (P.big ? .9 : 0) + (P.riding ? .9 : 0), 4, dt);
+      cam.dist = damp(cam.dist, cam.distGoal + (P.big ? .9 : 0) + (P.riding ? .9 : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0), 4, dt);
     }
     const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);
     const lx = cam.tx + fx * 1.6, lz = cam.tz + fz * 1.6, ly = cam.ty + 1.3;
     camera.position.set(lx - fx * cp * cam.dist, ly + sp * cam.dist, lz - fz * cp * cam.dist);
+    if (G.shake > 0) {
+      G.shake = Math.max(0, G.shake - dt * 1.6);
+      const a = G.shake * G.shake * .6;
+      camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a;
+    }
     camera.lookAt(lx, ly, lz);
     sun.target.position.set(cam.tx, cam.ty, cam.tz);
     sun.position.set(cam.tx + SUN_OFF.x, cam.ty + SUN_OFF.y, cam.tz + SUN_OFF.z);
@@ -2776,6 +3334,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         P.pos.x += P.vel.x * dt; P.pos.z += P.vel.z * dt;
         P.facing = angleDamp(P.facing, Math.atan2(dx, dz), 10, dt);
       }
+    } else if (G.goalPhase === 'bossWin') {
+      P.vel.x = P.vel.z = 0; P.onGround = false; P.vel.y = Math.max(P.vel.y - GRAV * dt, TERM); moveV(P.vel.y * dt); P.happyT = .5;
+      if (G.stateT > 2.6) { G.goalPhase = 'fairy'; G.stateT = 0; startFairy(); }
     } else if (G.goalPhase === 'enter') {
       if (G.stateT > 1.5) { G.goalPhase = 'fairy'; G.stateT = 0; startFairy(); }
     } else if (G.goalPhase === 'fairy') {
@@ -2788,10 +3349,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       } else if (G.stateT > .9) levelClear();
     }
     for (let i = G.fw.length - 1; i >= 0; i--) {
-      if (G.stateT < G.fw[i] || G.goalPhase !== 'enter') continue;
+      if (G.stateT < G.fw[i] || (G.goalPhase !== 'enter' && G.goalPhase !== 'bossWin')) continue;
       G.fw.splice(i, 1);
       const cols = [0xff5a3d, 0xffd23f, 0x8ff3ff, 0x9dff7a, 0xff8ad8];
-      emit(g.door.x + (Math.random() - .5) * 8, g.groundY + 11 + Math.random() * 4, g.door.z - 4, cols[(Math.random() * cols.length) | 0], 44, 7, 0, 3, 1.2);
+      const fx = g ? g.door.x : L.arena.cx, fz = g ? g.door.z - 4 : L.arena.cz, fy = (g ? g.groundY : L.arena.top) + 11;
+      emit(fx + (Math.random() - .5) * 8, fy + Math.random() * 4, fz, cols[(Math.random() * cols.length) | 0], 44, 7, 0, 3, 1.2);
       Snd.sfx.pop(); addScore(500);
     }
   }
@@ -2865,7 +3427,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     LEVELS.forEach((lv, i) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'lvl';
       const locked = i >= G.unlocked; b.disabled = locked;
-      const s = document.createElement('small'); s.textContent = locked ? 'закрыт' : lv.name;
+      const s = document.createElement('small'); s.textContent = locked ? 'закрыт' : (lv.boss ? 'Босс: ' : '') + lv.name;
       b.append(document.createTextNode(lv.id), s);
       b.setAttribute('aria-label', 'Мир ' + lv.id + ', ' + (locked ? 'закрыт' : lv.name));
       b.addEventListener('click', () => newGame(i));
@@ -3133,6 +3695,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateOrbs(dt);
     updateItems(dt);
     updateDinos(dt);
+    updateBoss(dt);
+    updateRings(dt);
+    updateShots(dt);
     magnetCoins(dt);
     updateSprings(dt);
     updateFx(dt);
