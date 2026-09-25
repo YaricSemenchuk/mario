@@ -98,6 +98,15 @@
     font: 900 11px/1 var(--ui); letter-spacing: .08em; pointer-events: auto; touch-action: none;
   }
   #btnJump.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); background: #ffd76e; }
+  #btnAct {
+    position: absolute; right: calc(env(safe-area-inset-right, 0px) + 132px); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    width: 76px; height: 76px; border-radius: 50%; padding: 0; cursor: pointer;
+    background: rgba(240, 80, 58, .92); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink);
+    display: grid; place-items: center; align-content: center; gap: 1px; color: var(--ink);
+    font: 900 10px/1 var(--ui); letter-spacing: .08em; pointer-events: auto; touch-action: none;
+  }
+  #btnAct.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); background: #ff7a5c; }
+  #btnAct.fire { background: rgba(255, 176, 58, .95); }
   #btnCam {
     position: absolute; right: calc(env(safe-area-inset-right, 0px) + 44px); bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
     width: 52px; height: 52px; border-radius: 50%; padding: 0; cursor: pointer;
@@ -105,6 +114,26 @@
     display: grid; place-items: center; color: var(--ink); pointer-events: auto; touch-action: none;
   }
   #btnCam:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+
+  /* ---------- screen overlays: vignette and hit flash ---------- */
+  #vignette, #flash { position: fixed; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }
+  #vignette { z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 46%, rgba(28, 20, 50, 0) 58%, rgba(28, 20, 50, .3) 100%); }
+  #flash { z-index: 2; opacity: 0; }
+
+  /* ---------- combo meter ---------- */
+  #combo {
+    position: fixed; left: calc(env(safe-area-inset-left, 0px) + 14px); top: calc(env(safe-area-inset-top, 0px) + 62px); z-index: 6;
+    display: grid; gap: 4px; justify-items: start; pointer-events: none; opacity: 0; transition: opacity .2s;
+  }
+  #combo.show { opacity: 1; }
+  #combo div { display: flex; align-items: baseline; gap: 6px; }
+  #combo b { font: 400 clamp(26px, 4.4vw, 36px)/1 var(--display); color: var(--gold); letter-spacing: .02em;
+    text-shadow: 0 3px 0 var(--ink), 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 -3px 0 var(--ink), 3px 3px 0 var(--ink), -3px 3px 0 var(--ink), 3px -3px 0 var(--ink), -3px -3px 0 var(--ink); }
+  #combo b.bump { animation: comboPop .28s ease-out; }
+  @keyframes comboPop { from { transform: scale(1.55); } }
+  #combo small { font: 800 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--white); text-shadow: var(--outline); }
+  #comboBar { display: block; width: 92px; height: 7px; border-radius: 4px; background: rgba(28, 30, 59, .5); border: 2px solid var(--ink); overflow: hidden; }
+  #comboBar i { display: block; height: 100%; background: var(--gold); transform-origin: left center; }
 
   /* ---------- floating text ---------- */
   #pops { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 4; pointer-events: none; overflow: hidden; }
@@ -224,11 +253,13 @@
   }
   @media (prefers-reduced-motion: reduce) {
     #toast, .btn { transition: none; }
-    #hTime.warn { animation: none; }
+    #hTime.warn, #combo b.bump { animation: none; }
   }
 </style>
 
 <canvas id="game" aria-label="Игровое поле"></canvas>
+<div id="vignette"></div>
+<div id="flash"></div>
 
 <header id="hud" hidden>
   <div class="hud-cell"><span class="hud-lbl">Очки</span><span class="hud-val" id="hScore">000000</span></div>
@@ -254,8 +285,13 @@
     <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M5 15l7-7 7 7" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span>ПРЫЖОК</span>
   </button>
+  <button id="btnAct" type="button" aria-label="Удар">
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6l-1.5 8 8.5-11h-6z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+    <span id="actLbl">УДАР</span>
+  </button>
 </div>
 
+<div id="combo" aria-hidden="true"><div><b id="comboN">×2</b><small>комбо</small></div><span id="comboBar"><i></i></span></div>
 <div id="pops"></div>
 <div id="bubbles"></div>
 <div id="toast" aria-live="polite"></div>
@@ -417,6 +453,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // PBR material with sensible defaults for everything that used Lambert/Phong before
   const std = (o) => new T.MeshStandardMaterial(Object.assign({ roughness: .86, metalness: 0 }, o));
   const glossToRough = (shininess) => clamp(1 - shininess / 150, .12, .9);
+  // soft fresnel rim on characters and pickups, tinted by each level's sky light so they stand out from the scenery
+  const RIM = { value: new T.Color(0xeaf7ff) };
+  function addRim(mat, k = .42) {
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.rimColor = RIM; sh.uniforms.rimK = { value: k };
+      sh.fragmentShader = 'uniform vec3 rimColor;\nuniform float rimK;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>',
+        '#include <emissivemap_fragment>\n  float rimF = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);\n' +
+        '  totalEmissiveRadiance += rimColor * (diffuseColor.rgb * .55 + .45) * (rimK * rimF * rimF * rimF);');
+    };
+    mat.customProgramCacheKey = () => 'rim';
+    return mat;
+  }
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); fail('Телефон сбросил графику, так бывает при нехватке памяти. Обнови страницу.'); });
 
   const scene = new T.Scene();
@@ -560,12 +608,37 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const dt = new T.CanvasTexture(c); dt.colorSpace = T.SRGBColorSpace; return dt;
   })();
   const skyCache = {};
-  function skyTex(key, stops) {
+  // Equirectangular sky: the level gradient, a soft glow on the horizon ahead (the way the level runs, -z)
+  // with an optional low sun, and stars in the dark skies. It also lights the scene as the environment map.
+  const SKY_W = 512, SKY_H = 256, AHEAD_U = .25;
+  function skyTex(def) {
+    const key = def.id;
     if (skyCache[key]) return skyCache[key];
-    const c = document.createElement('canvas'); c.width = 4; c.height = 256;
+    const c = document.createElement('canvas'); c.width = SKY_W; c.height = SKY_H;
     const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 96, 0, 132);
-    stops.forEach(([o, col]) => gr.addColorStop(o, col));
-    g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
+    def.sky.forEach(([o, col]) => gr.addColorStop(o, col));
+    g.fillStyle = gr; g.fillRect(0, 0, SKY_W, SKY_H);
+    if (def.stars) {
+      const r = rng(def.seed + 5);
+      for (let i = 0; i < 320; i++) {
+        const y = r() * 92, a = (1 - y / 92) * (.35 + r() * .65), s = r() < .1 ? 2 : 1;
+        g.fillStyle = `rgba(255, 246, 230, ${a.toFixed(2)})`; g.fillRect(r() * SKY_W, y, s, s);
+      }
+    }
+    const glowCol = new T.Color(def.glow ? def.glow[0] : def.sun), gs = def.glow ? def.glow[1] : .3;
+    const rgb = (a) => `rgba(${(glowCol.r * 255) | 0}, ${(glowCol.g * 255) | 0}, ${(glowCol.b * 255) | 0}, ${a})`;
+    for (const cx of [AHEAD_U * SKY_W, AHEAD_U * SKY_W + SKY_W, AHEAD_U * SKY_W - SKY_W]) {
+      g.save(); g.translate(cx, 124); g.scale(1, .3);
+      const hg = g.createRadialGradient(0, 0, 0, 0, 0, 170);
+      hg.addColorStop(0, rgb(gs)); hg.addColorStop(.5, rgb(gs * .35)); hg.addColorStop(1, rgb(0));
+      g.fillStyle = hg; g.fillRect(-170, -170, 340, 340); g.restore();
+    }
+    if (def.glow && def.glow[2]) { // low sun disc with a halo
+      const sx = AHEAD_U * SKY_W + 34, sy = 112;
+      const hg = g.createRadialGradient(sx, sy, 0, sx, sy, 40);
+      hg.addColorStop(0, 'rgba(255, 252, 235, 1)'); hg.addColorStop(.16, 'rgba(255, 246, 214, 1)'); hg.addColorStop(.24, rgb(.55)); hg.addColorStop(1, rgb(0));
+      g.fillStyle = hg; g.fillRect(sx - 40, sy - 40, 80, 80);
+    }
     const t = new T.CanvasTexture(c);
     t.colorSpace = T.SRGBColorSpace; t.mapping = T.EquirectangularReflectionMapping;
     return (skyCache[key] = { tex: t, env: pmrem.fromEquirectangular(t).texture });
@@ -589,14 +662,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   };
   MAT.groundLip = [MAT.grassSide, MAT.grassSide, MAT.grassTop, MAT.dirt, MAT.grassSide, MAT.grassSide];
   MAT.ice = lam({ map: TX.ice, emissive: 0x10324a });
-  MAT.char = std({ vertexColors: true, roughness: .42 });
-  MAT.dinoLid = std({ color: 0xff9a3c, roughness: .42 });
+  MAT.char = addRim(std({ vertexColors: true, roughness: .42 }));
+  MAT.dinoLid = addRim(std({ color: 0xff9a3c, roughness: .42 }));
+  MAT.fireball = std({ color: 0xffc04a, emissive: 0xff7a10, emissiveIntensity: 3.2, roughness: 1 });
+  MAT.bugWing = std({ color: 0xe8f6ff, transparent: true, opacity: .6, roughness: .15, side: T.DoubleSide, depthWrite: false });
   MAT.jelly = [std({ color: 0xff7ab6, emissive: 0x5a0f35, emissiveIntensity: .5, roughness: .12, transparent: true, opacity: .88 }),
     std({ color: 0x8bf06a, emissive: 0x1f5a10, emissiveIntensity: .5, roughness: .12, transparent: true, opacity: .88 })];
   MAT.shock = std({ color: 0xffffff, emissive: 0xffd98a, emissiveIntensity: 1.4, transparent: true, opacity: .85, roughness: .5 });
   MAT.marker = std({ color: 0xff5a2a, emissive: 0xff5a2a, emissiveIntensity: .9, transparent: true, opacity: .45, depthWrite: false, roughness: 1 });
   MAT.bolt = std({ color: 0xffffff, emissive: 0xfff3a0, emissiveIntensity: 4, roughness: 1 });
-  MAT.spikeGold = std({ vertexColors: true, roughness: .35 });
+  MAT.spikeGold = addRim(std({ vertexColors: true, roughness: .35 }));
   MAT.lava = std({ color: 0x000000, emissive: 0xffffff, emissiveMap: TX.lava, emissiveIntensity: 1.25, roughness: 1 });
   MAT.fire = std({ color: 0xff8a2a, emissive: 0xff4a00, emissiveIntensity: 1.3, roughness: 1 });
   TX.lava.repeat.set(150, 150);
@@ -654,7 +729,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     geo.computeBoundingSphere();
     return shared(geo);
   })();
-  MAT.coin = std({ color: 0x4262ff, emissive: 0x2a44ff, emissiveIntensity: .35, roughness: .28, metalness: .15 });
+  MAT.coin = addRim(std({ color: 0x4262ff, emissive: 0x2a44ff, emissiveIntensity: .35, roughness: .28, metalness: .15 }), .6);
   const FLAG_GEO = (() => { const s = new T.Shape(); s.moveTo(0, .62); s.lineTo(-1.75, 0); s.lineTo(0, -.62); s.lineTo(0, .62); return shared(new T.ShapeGeometry(s)); })();
   const EMBLEM_GEO = shared(new T.CircleGeometry(.2, 16));
 
@@ -784,6 +859,66 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     return mergedGeo(parts);
   })();
+  // fire pepper power-up: a chubby chili with a leafy cap and a cheeky face
+  GEO.pepper = mergedGeo([
+    [SPH_HI, 0xf0331f, M4(0, .5, 0, .24, .34, .22, 0, 0, .18)],
+    [SPH_HI, 0xf0331f, M4(-.07, .22, 0, .16, .2, .15, 0, 0, .45)],
+    [CONE, 0xf0331f, M4(-.16, .06, 0, .09, .2, .09, 0, 0, Math.PI - .7)],
+    [SPH_HI, 0xff7a5c, M4(.1, .62, .12, .07, .12, .05, 0, 0, .18)],
+    [SPH_HI, 0x43b33c, M4(.05, .84, 0, .17, .07, .16)],
+    [CYL, 0x2f8f2a, M4(.08, .95, 0, .035, .16, .035, 0, 0, -.35)],
+    [SPH_HI, 0xffffff, M4(-.07, .55, .19, .055, .075, .03)],
+    [SPH_HI, 0xffffff, M4(.08, .56, .18, .055, .075, .03)],
+    [SPH_HI, INK, M4(-.065, .54, .215, .03, .045, .015)],
+    [SPH_HI, INK, M4(.075, .55, .205, .03, .045, .015)],
+    [SPH_HI, 0xffffff, M4(-.075, .56, .226, .01, .012, .005)], [SPH_HI, 0xffffff, M4(.065, .57, .216, .01, .012, .005)],
+    [TORUS_ARC, INK, M4(0, .44, .2, .045, .045, .045, 0, 0, Math.PI)],
+  ]);
+  // Buzz, the diving bug: striped round body, stinger at the back; wings are separate meshes that flap
+  GEO.flyer = mergedGeo([
+    [SPH_HI, 0xffc53d, M4(0, .42, -.12, .34, .31, .4)],
+    [SPH_HI, 0x2b2f4a, M4(0, .42, -.18, .35, .32, .07)],
+    [SPH_HI, 0x2b2f4a, M4(0, .42, -.36, .29, .26, .06)],
+    [CONE, 0x2b2f4a, M4(0, .4, -.56, .07, .2, .07, -Math.PI / 2, 0, 0)],
+    [SPH_HI, 0xffd76e, M4(0, .47, .2, .27, .25, .23)],
+    [SPH_HI, 0xffffff, M4(-.1, .52, .38, .08, .1, .05)],
+    [SPH_HI, 0xffffff, M4(.1, .52, .38, .08, .1, .05)],
+    [SPH_HI, INK, M4(-.095, .51, .425, .04, .055, .02)],
+    [SPH_HI, INK, M4(.095, .51, .425, .04, .055, .02)],
+    [SPH_HI, 0xffffff, M4(-.105, .53, .44, .012, .015, .006)], [SPH_HI, 0xffffff, M4(.085, .53, .44, .012, .015, .006)],
+    [BOX, INK, M4(-.1, .63, .38, .12, .03, .03, 0, 0, -.4)],
+    [BOX, INK, M4(.1, .63, .38, .12, .03, .03, 0, 0, .4)],
+    [CYL, INK, M4(-.08, .76, .22, .015, .18, .015, -.4, 0, .3)],
+    [CYL, INK, M4(.08, .76, .22, .015, .18, .015, -.4, 0, -.3)],
+    [SPH_HI, 0xf0503a, M4(-.12, .84, .27, .04, .04, .04)],
+    [SPH_HI, 0xf0503a, M4(.12, .84, .27, .04, .04, .04)],
+    [SPH_HI, 0x2b2f4a, M4(-.1, .14, .05, .05, .09, .05)],
+    [SPH_HI, 0x2b2f4a, M4(.1, .14, .05, .05, .09, .05)],
+  ]);
+  // cannon turret: a squat navy block with a gold band; the barrel is a separate part that aims
+  GEO.cannonBase = mergedGeo([
+    [BOX, 0x3b3f63, M4(0, .45, 0, .96, .9, .96)],
+    [BOX, 0x2c3050, M4(0, .06, 0, 1.02, .12, 1.02)],
+    [BOX, 0xffc53d, M4(0, .82, 0, 1.0, .1, 1.0)],
+    [CYL, 0x2c3050, M4(0, .96, 0, .42, .16, .42)],
+  ]);
+  GEO.cannonBarrel = mergedGeo([
+    [SPH_HI, 0x2c3050, M4(0, 0, 0, .34, .34, .34)],
+    [CYL, 0x2c3050, M4(0, 0, .34, .26, .7, .26, Math.PI / 2)],
+    [CYL, 0xffc53d, M4(0, 0, .66, .31, .12, .31, Math.PI / 2)],
+    [CYL, 0x111326, M4(0, 0, .72, .19, .02, .19, Math.PI / 2)],
+  ]);
+  // cannonball with a grumpy face
+  GEO.ball = mergedGeo([
+    [SPH_HI, 0x2b2f4a, M4(0, 0, 0, .36, .36, .36)],
+    [SPH_HI, 0xffffff, M4(-.12, .07, .27, .09, .11, .07)],
+    [SPH_HI, 0xffffff, M4(.12, .07, .27, .09, .11, .07)],
+    [SPH_HI, INK, M4(-.11, .05, .33, .045, .06, .03)],
+    [SPH_HI, INK, M4(.11, .05, .33, .045, .06, .03)],
+    [BOX, 0xffc53d, M4(-.12, .2, .28, .14, .035, .04, 0, 0, -.35)],
+    [BOX, 0xffc53d, M4(.12, .2, .28, .14, .035, .04, 0, 0, .35)],
+    [SPH_HI, 0x5a5f86, M4(-.14, .2, .12, .09, .06, .05, .5, 0, .5)],
+  ]);
 
   // ================= NPC models =================
   const FACE = Math.PI / 2; // rotates a cylinder so its flat face looks along +z
@@ -947,7 +1082,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ================= hero =================
   // Our own hero, built in a glossy toy-like style: big head, big eyes, soft round shapes
   const hero = (() => {
-    const gloss = (color, shininess = 38) => std({ color, roughness: glossToRough(shininess) });
+    const gloss = (color, shininess = 38) => addRim(std({ color, roughness: glossToRough(shininess) }));
     const m = {
       cap: gloss(0x16a39c, 70, 0x3a3a3a), capDark: gloss(0x0f7f79, 60), shirt: gloss(0xff8a2a), over: gloss(0x2c3f93, 45),
       skin: gloss(0xffcaa0, 25, 0x1c1c1c), nose: gloss(0xffb08a, 45, 0x2a2a2a), blush: gloss(0xff9f9a, 20, 0x111111),
@@ -1020,20 +1155,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const shield = new T.Mesh(SPH, new T.MeshBasicMaterial({ color: 0x8ff3ff, transparent: true, opacity: .24, depthWrite: false }));
     shield.position.y = .85; shield.scale.setScalar(1.02); shield.visible = false; root.add(shield);
     scene.add(root);
-    return { root, body, head, legL, legR, armL, armR, shield, eyes, brows, happy, mouth, mouthO };
+    return { root, body, head, legL, legR, armL, armR, shield, eyes, brows, happy, mouth, mouthO, m };
   })();
   const blob = new T.Mesh(new T.CircleGeometry(.5, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
   blob.rotation.x = -Math.PI / 2;
   scene.add(blob);
 
-  const glossMat = (color, shininess = 40) => std({ color, roughness: glossToRough(shininess) });
+  const glossMat = (color, shininess = 40) => addRim(std({ color, roughness: glossToRough(shininess) }));
   function facePart(parent, geo, mat, x, y, z, sx, sy, sz, rz = 0) {
     const o = new T.Mesh(geo, mat); o.position.set(x, y, z); o.scale.set(sx, sy, sz); o.rotation.z = rz; parent.add(o); return o;
   }
   // Iskra, the helper star: waits near the start, then hovers over the hero's shoulder
   const spark = (() => {
     const g = new T.Group();
-    const mat = std({ color: 0xffd84a, emissive: 0xffb400, emissiveIntensity: 1.1, roughness: .3 });
+    const mat = addRim(std({ color: 0xffd84a, emissive: 0xffb400, emissiveIntensity: 1.1, roughness: .3 }));
     g.add(new T.Mesh(STAR_GEO, mat));
     const ink = glossMat(INK, 110, 0x777777), pink = glossMat(0xff9f9a, 20), shine = new T.MeshBasicMaterial({ color: 0xffffff });
     for (const side of [1, -1]) { // a face on both sides, the star spins
@@ -1095,168 +1230,487 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   })();
 
   // ================= particles =================
-  const PN = 360;
-  const pPos = new Float32Array(PN * 3).fill(-9999), pCol = new Float32Array(PN * 3);
-  const pGeo = new T.BufferGeometry();
-  pGeo.setAttribute('position', new T.BufferAttribute(pPos, 3));
-  pGeo.setAttribute('color', new T.BufferAttribute(pCol, 3));
-  const points = new T.Points(pGeo, new T.PointsMaterial({ size: .38, vertexColors: true, map: dotTex, transparent: true, alphaTest: .35, depthWrite: false }));
-  points.frustumCulled = false;
-  scene.add(points);
-  const parts = Array.from({ length: PN }, () => ({ life: 0, vx: 0, vy: 0, vz: 0, g: 0 }));
-  let pNext = 0;
+  // Soft round sprites in three pools: 'dot' (normal blending: dust, debris, confetti), 'glow' (additive: sparks,
+  // fire, magic) and 'puff' (grows while it fades: smoke and dust clouds). Sizes are world-space diameters.
+  const PSCALE = { value: 300 };
+  const PART_VS = `
+    attribute vec3 pcolor; attribute float psize; attribute float palpha;
+    uniform float uScale;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      vColor = pcolor; vAlpha = palpha;
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = palpha > 0.0 ? psize * uScale * projectionMatrix[1][1] / max(.2, -mv.z) : 0.0;
+      gl_Position = projectionMatrix * mv;
+    }`;
+  const PART_FS = `
+    uniform float uHard;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      vec2 d = gl_PointCoord - .5; float r = dot(d, d) * 4.0;
+      if (r > 1.0) discard;
+      gl_FragColor = vec4(vColor, vAlpha * mix(1.0 - r, smoothstep(1.0, .55, r), uHard));
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`;
+  function makePool(n, blending, hard, order) {
+    const pos = new Float32Array(n * 3).fill(-9999), col = new Float32Array(n * 3), size = new Float32Array(n), alpha = new Float32Array(n);
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage));
+    geo.setAttribute('pcolor', new T.BufferAttribute(col, 3));
+    geo.setAttribute('psize', new T.BufferAttribute(size, 1).setUsage(T.DynamicDrawUsage));
+    geo.setAttribute('palpha', new T.BufferAttribute(alpha, 1).setUsage(T.DynamicDrawUsage));
+    const mat = new T.ShaderMaterial({ uniforms: { uScale: PSCALE, uHard: { value: hard } }, vertexShader: PART_VS, fragmentShader: PART_FS,
+      transparent: true, depthWrite: false, blending });
+    const pts = new T.Points(geo, mat); pts.frustumCulled = false; pts.renderOrder = order; scene.add(pts);
+    const p = Array.from({ length: n }, () => ({ life: 0, max: 1, vx: 0, vy: 0, vz: 0, g: 0, drag: 0, s0: 0, s1: 0, a0: 1 }));
+    return { n, pos, col, size, alpha, geo, p, next: 0, busy: false };
+  }
+  const POOL = { puff: makePool(160, T.NormalBlending, .3, 1), dot: makePool(360, T.NormalBlending, 1, 2), glow: makePool(360, T.AdditiveBlending, 0, 3) };
   const _c = new T.Color();
-  function emit(x, y, z, color, n, spd, up, g, life) {
+  function spawnP(pool, x, y, z, color, n, spd, up, g, life, s0, s1, drag, a0) {
     _c.set(color);
     for (let k = 0; k < n; k++) {
-      const i = pNext; pNext = (pNext + 1) % PN; const p = parts[i];
+      const i = pool.next; pool.next = (pool.next + 1) % pool.n; const p = pool.p[i];
       const a = Math.random() * Math.PI * 2, e = Math.random() * 2 - 1, r = Math.sqrt(1 - e * e), s = spd * (.4 + Math.random() * .6);
-      p.vx = Math.cos(a) * r * s; p.vy = e * s + up; p.vz = Math.sin(a) * r * s; p.g = g; p.life = life * (.6 + Math.random() * .4);
-      pPos[i * 3] = x; pPos[i * 3 + 1] = y; pPos[i * 3 + 2] = z;
-      pCol[i * 3] = _c.r; pCol[i * 3 + 1] = _c.g; pCol[i * 3 + 2] = _c.b;
+      const sk = .75 + Math.random() * .5;
+      p.vx = Math.cos(a) * r * s; p.vy = e * s + up; p.vz = Math.sin(a) * r * s; p.g = g; p.drag = drag;
+      p.max = p.life = life * (.6 + Math.random() * .4); p.s0 = s0 * sk; p.s1 = s1 * sk; p.a0 = a0;
+      pool.pos[i * 3] = x; pool.pos[i * 3 + 1] = y; pool.pos[i * 3 + 2] = z;
+      pool.col[i * 3] = _c.r; pool.col[i * 3 + 1] = _c.g; pool.col[i * 3 + 2] = _c.b;
+      pool.size[i] = p.s0; pool.alpha[i] = a0;
     }
-    pGeo.attributes.color.needsUpdate = true;
+    pool.busy = true;
+    pool.geo.attributes.pcolor.needsUpdate = true;
   }
-  function updateParticles(dt) {
-    for (let i = 0; i < PN; i++) {
-      const p = parts[i]; if (p.life <= 0) continue;
-      p.life -= dt;
-      if (p.life <= 0) { pPos[i * 3 + 1] = -9999; continue; }
+  // crisp dots (confetti, debris), additive glow (sparks, fire, magic), smoke puffs
+  function emit(x, y, z, color, n, spd, up, g, life, size = .22) { spawnP(POOL.dot, x, y, z, color, n, spd, up, g, life, size, size * .35, 0, 1); }
+  function glow(x, y, z, color, n, spd, up, g, life, size = .3) { spawnP(POOL.glow, x, y, z, color, n, spd, up, g, life, size, size * .15, .8, 1); }
+  function puff(x, y, z, color, n, spd, up, life, size = .8) { spawnP(POOL.puff, x, y, z, color, n, spd, up, -.6, life, size * .45, size * 1.5, 3, .8); }
+  function updatePool(pool, dt) {
+    if (!pool.busy) return;
+    let any = false;
+    for (let i = 0; i < pool.n; i++) {
+      const p = pool.p[i]; if (p.life <= 0) continue;
+      p.life -= dt; any = true;
+      if (p.life <= 0) { pool.alpha[i] = 0; pool.pos[i * 3 + 1] = -9999; continue; }
       p.vy -= p.g * dt;
-      pPos[i * 3] += p.vx * dt; pPos[i * 3 + 1] += p.vy * dt; pPos[i * 3 + 2] += p.vz * dt;
+      if (p.drag) { const k = Math.exp(-p.drag * dt); p.vx *= k; p.vy *= k; p.vz *= k; }
+      pool.pos[i * 3] += p.vx * dt; pool.pos[i * 3 + 1] += p.vy * dt; pool.pos[i * 3 + 2] += p.vz * dt;
+      const t = p.life / p.max;
+      pool.size[i] = p.s1 + (p.s0 - p.s1) * t;
+      pool.alpha[i] = p.a0 * Math.min(1, t * 2.5);
     }
-    pGeo.attributes.position.needsUpdate = true;
+    pool.busy = any;
+    const at = pool.geo.attributes; at.position.needsUpdate = at.psize.needsUpdate = at.palpha.needsUpdate = true;
   }
-  function clearParticles() { for (let i = 0; i < PN; i++) { parts[i].life = 0; pPos[i * 3 + 1] = -9999; } }
+  function updateParticles(dt) { for (const k in POOL) updatePool(POOL[k], dt); }
+  function clearParticles() {
+    for (const k in POOL) {
+      const pool = POOL[k];
+      for (let i = 0; i < pool.n; i++) { pool.p[i].life = 0; pool.alpha[i] = 0; pool.pos[i * 3 + 1] = -9999; }
+      pool.busy = true;
+    }
+    for (const w of waves) w.m.visible = false;
+    for (const f of flashes) f.s.visible = false;
+  }
+
+  // shock rings on the ground and bright flashes at impact points, both pooled
+  const RING_TEX = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.55, 'rgba(255,255,255,0)'); gr.addColorStop(.8, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  })();
+  const FLAT_GEO = new T.PlaneGeometry(2, 2); FLAT_GEO.rotateX(-Math.PI / 2);
+  const waves = Array.from({ length: 12 }, () => {
+    const m = new T.Mesh(FLAT_GEO, new T.MeshBasicMaterial({ map: RING_TEX, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 }));
+    m.visible = false; m.renderOrder = 4; scene.add(m); return { m, t: 0, life: 1, r0: 0, r1: 1 };
+  });
+  let waveNext = 0;
+  function wave(x, y, z, color, r1, life = .45, add = true) {
+    const w = waves[waveNext]; waveNext = (waveNext + 1) % waves.length;
+    w.m.position.set(x, y + .07, z); w.m.material.color.set(color);
+    w.m.material.blending = add ? T.AdditiveBlending : T.NormalBlending;
+    w.t = 0; w.life = life; w.r0 = r1 * .2; w.r1 = r1; w.m.scale.setScalar(w.r0); w.m.material.opacity = 1; w.m.visible = true;
+  }
+  const flashes = Array.from({ length: 8 }, () => {
+    const s = new T.Sprite(new T.SpriteMaterial({ map: dotTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending }));
+    s.visible = false; s.renderOrder = 5; scene.add(s); return { s, t: 0, life: .18, size: 1 };
+  });
+  let flashNext = 0;
+  function flashAt(x, y, z, color, size = 1.6, life = .18) {
+    const f = flashes[flashNext]; flashNext = (flashNext + 1) % flashes.length;
+    f.s.position.set(x, y, z); f.s.material.color.set(color); f.t = 0; f.life = life; f.size = size; f.s.visible = true;
+  }
+  function updateWaves(dt) {
+    for (const w of waves) {
+      if (!w.m.visible) continue;
+      w.t += dt; const k = w.t / w.life;
+      if (k >= 1) { w.m.visible = false; continue; }
+      w.m.scale.setScalar(lerp(w.r0, w.r1, 1 - (1 - k) * (1 - k))); w.m.material.opacity = 1 - k * k;
+    }
+    for (const f of flashes) {
+      if (!f.s.visible) continue;
+      f.t += dt; const k = f.t / f.life;
+      if (k >= 1) { f.s.visible = false; continue; }
+      f.s.scale.setScalar(f.size * (.5 + k)); f.s.material.opacity = 1 - k;
+    }
+  }
+
+  // weather drifting through a box that follows the camera: pollen, petals, sand, snow, sprinkles, ash
+  const WEATHER = {
+    pollen: { cols: [0xfff3a6, 0xffffff], n: 110, size: .09, vy: [.05, .3], sway: .45, drift: .35, alpha: .9 },
+    petals: { cols: [0xffc4dc, 0xfff0f6, 0xffd7b0], n: 150, size: .12, vy: [-.5, -1], sway: .9, drift: .8, alpha: .95 },
+    sand: { cols: [0xf3dca6, 0xe6c486], n: 200, size: .075, vy: [-.15, .15], sway: .3, drift: 3.4, alpha: .7 },
+    snow: { cols: [0xffffff, 0xeef4ff], n: 340, size: .14, vy: [-.9, -1.7], sway: .6, drift: .4, alpha: .95 },
+    sprinkles: { cols: [0xff5a8a, 0xffe45c, 0x7de0ff, 0x9dff7a, 0xc49bff, 0xffffff], n: 170, size: .1, vy: [-1.1, -1.9], sway: .35, drift: .2, alpha: 1 },
+    ash: { cols: [0x9a8e96, 0xff8a3a, 0x6f6570], n: 180, size: .09, vy: [-.35, -.8], sway: .55, drift: .35, alpha: .8 },
+  };
+  const WX = makePool(340, T.NormalBlending, .7, 2);
+  const WX_BOX = { x: 36, y: 18, z: 36 };
+  let wxKind = null;
+  const wxSeed = new Float32Array(WX.n * 2);
+  function setWeather(kind) {
+    wxKind = WEATHER[kind] ? kind : null;
+    const w = WEATHER[wxKind], cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    for (let i = 0; i < WX.n; i++) {
+      const on = w && i < w.n;
+      WX.alpha[i] = 0; WX.p[i].a0 = on ? w.alpha : 0;
+      if (!on) { WX.pos[i * 3 + 1] = -9999; continue; }
+      WX.pos[i * 3] = cx + (Math.random() - .5) * WX_BOX.x; WX.pos[i * 3 + 1] = cy + (Math.random() - .5) * WX_BOX.y; WX.pos[i * 3 + 2] = cz + (Math.random() - .5) * WX_BOX.z;
+      WX.p[i].vy = lerp(w.vy[0], w.vy[1], Math.random()); WX.size[i] = w.size * (.7 + Math.random() * .6);
+      wxSeed[i * 2] = Math.random() * 6.3; wxSeed[i * 2 + 1] = .6 + Math.random() * .8;
+      _c.set(w.cols[(Math.random() * w.cols.length) | 0]);
+      WX.col[i * 3] = _c.r; WX.col[i * 3 + 1] = _c.g; WX.col[i * 3 + 2] = _c.b;
+    }
+    const at = WX.geo.attributes; at.position.needsUpdate = at.pcolor.needsUpdate = at.psize.needsUpdate = at.palpha.needsUpdate = true;
+  }
+  const wrapTo = (v, c, span) => c + ((((v - c + span / 2) % span) + span) % span) - span / 2;
+  function updateWeather(dt) {
+    if (!wxKind) return;
+    const w = WEATHER[wxKind];
+    // centre the box a little ahead of the camera, where the player looks
+    const cx = camera.position.x - Math.sin(cam.yaw) * 12, cy = cam.ty + 4, cz = camera.position.z - Math.cos(cam.yaw) * 12;
+    for (let i = 0; i < w.n; i++) {
+      const ph = wxSeed[i * 2], sp = wxSeed[i * 2 + 1], sw = Math.sin(time * sp * 1.6 + ph) * w.sway;
+      let x = WX.pos[i * 3] + (w.drift + sw) * dt, y = WX.pos[i * 3 + 1] + WX.p[i].vy * dt, z = WX.pos[i * 3 + 2] + Math.cos(time * sp + ph) * w.sway * .6 * dt;
+      x = wrapTo(x, cx, WX_BOX.x); y = wrapTo(y, cy, WX_BOX.y); z = wrapTo(z, cz, WX_BOX.z);
+      WX.pos[i * 3] = x; WX.pos[i * 3 + 1] = y; WX.pos[i * 3 + 2] = z;
+      // fade near the box faces so wrapping never pops
+      const ex = 1 - Math.abs(x - cx) / (WX_BOX.x / 2), ey = 1 - Math.abs(y - cy) / (WX_BOX.y / 2), ez = 1 - Math.abs(z - cz) / (WX_BOX.z / 2);
+      WX.alpha[i] = WX.p[i].a0 * clamp(Math.min(ex, ey, ez) * 5, 0, 1);
+    }
+    const at = WX.geo.attributes; at.position.needsUpdate = at.palpha.needsUpdate = true;
+  }
 
   // ================= audio (synthesised, original tunes) =================
+  // Everything is generated with WebAudio. The mix runs through a compressor and a generated reverb; sound effects
+  // can be placed in the world (panned, quieter with distance, slightly varied in pitch); music is a 25% pulse lead
+  // with an echo over a bass line, a quiet arpeggio and a drum kit; each world has a low ambience bed.
   const Snd = (() => {
-    let ctx = null, master, sfxBus, musBus, noiseBuf, muted = false;
-    let timer = null, song = null, step = 0, nextT = 0;
+    let ctx = null, master, sfxBus, musBus, leadBus, verbSfx, verbMus, echo, noiseBuf, pulse = null, muted = false;
+    let timer = null, song = null, step = 0, nextT = 0, tempo = 1, room = .12;
+    let D = null, PV = 1, spot = null, coinT = -9, coinN = 0;
+    let rush = null, rushF = null, amb = null, ambKind = null, ambNext = 0;
+    const _sv = new T.Vector3();
     const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    function impulse(sec, decay) {
+      const n = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(2, n, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, decay); }
+      return b;
+    }
     function init() {
       if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
       try { ctx = new AC(); } catch (e) { return; }
       master = ctx.createGain(); master.gain.value = muted ? 0 : .9; master.connect(ctx.destination);
-      sfxBus = ctx.createGain(); sfxBus.gain.value = .55; sfxBus.connect(master);
-      musBus = ctx.createGain(); musBus.gain.value = .2; musBus.connect(master);
-      noiseBuf = ctx.createBuffer(1, ctx.sampleRate * .5, ctx.sampleRate);
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = .004; comp.release.value = .2;
+      comp.connect(master);
+      sfxBus = ctx.createGain(); sfxBus.gain.value = .6; sfxBus.connect(comp);
+      musBus = ctx.createGain(); musBus.gain.value = .24; musBus.connect(comp);
+      const verb = ctx.createConvolver(); verb.buffer = impulse(1.9, 3); verb.connect(comp);
+      verbSfx = ctx.createGain(); verbSfx.gain.value = room; sfxBus.connect(verbSfx); verbSfx.connect(verb);
+      verbMus = ctx.createGain(); verbMus.gain.value = room * 1.3; musBus.connect(verbMus); verbMus.connect(verb);
+      // the lead gets its own echo
+      leadBus = ctx.createGain(); leadBus.connect(musBus);
+      echo = ctx.createDelay(1); echo.delayTime.value = .3;
+      const fb = ctx.createGain(); fb.gain.value = .3; const wet = ctx.createGain(); wet.gain.value = .32;
+      leadBus.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(musBus);
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      // 25% pulse wave, the classic handheld-console lead
+      const N = 40, re = new Float32Array(N), im = new Float32Array(N);
+      for (let k = 1; k < N; k++) re[k] = 2 / (k * Math.PI) * Math.sin(Math.PI * k * .25);
+      pulse = ctx.createPeriodicWave(re, im);
+      D = sfxBus;
+      // wind rush while falling fast or riding; its level follows the speed
+      const rs = ctx.createBufferSource(); rs.buffer = noiseBuf; rs.loop = true;
+      rushF = ctx.createBiquadFilter(); rushF.type = 'bandpass'; rushF.frequency.value = 800; rushF.Q.value = .8;
+      rush = ctx.createGain(); rush.gain.value = 0;
+      rs.connect(rushF); rushF.connect(rush); rush.connect(sfxBus); rs.start();
+      if (ambKind) setAmbient(ambKind);
     }
     function tone(type, f0, f1, dur, vol, delay = 0) {
-      if (!ctx) return; const t = ctx.currentTime + delay;
+      const t = ctx.currentTime + delay;
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type; o.frequency.setValueAtTime(f0, t);
-      if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      if (type === 'pulse') o.setPeriodicWave(pulse); else o.type = type;
+      o.frequency.setValueAtTime(f0 * PV, t);
+      if (f1) o.frequency.exponentialRampToValueAtTime(f1 * PV, t + dur);
       g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-      o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + dur + .03);
+      o.connect(g); g.connect(D); o.start(t); o.stop(t + dur + .03);
     }
-    function noise(dur, vol, delay = 0, freq = 1500) {
-      if (!ctx) return; const t = ctx.currentTime + delay;
-      const s = ctx.createBufferSource(); s.buffer = noiseBuf;
-      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
+    function noise(dur, vol, delay = 0, freq = 1500, type = 'lowpass', f1 = 0, q = 1) {
+      const t = ctx.currentTime + delay;
+      const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.playbackRate.value = PV;
+      const f = ctx.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q;
+      if (f1) f.frequency.exponentialRampToValueAtTime(f1, t + dur);
       const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-      s.connect(f); f.connect(g); g.connect(sfxBus); s.start(t); s.stop(t + dur + .02);
+      s.connect(f); f.connect(g); g.connect(D); s.start(t, Math.random() * Math.max(0, 1.9 - dur / PV)); s.stop(t + dur + .02);
+    }
+    // filtered-noise whoosh that swells and sweeps
+    function swoosh(dur, vol, f0, f1, delay = 0) {
+      const t = ctx.currentTime + delay;
+      const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.3;
+      f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      const g = ctx.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * .35); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(D); s.start(t, Math.random() * Math.max(0, 1.9 - dur)); s.stop(t + dur + .02);
     }
     const seq = (type, notes, len, vol, gap) => notes.forEach((m, i) => { if (m) tone(type, mtof(m), 0, len, vol, i * gap); });
-    const sfx = {
-      jump: () => tone('square', 290, 640, .17, .15),
-      coin: () => { tone('square', 1047, 0, .08, .12); tone('square', 1568, 0, .3, .12, .075); },
-      stomp: () => { tone('triangle', 560, 130, .15, .45); noise(.07, .18, 0, 2500); },
+    // footsteps per surface; heavy = riding the dino
+    const STEP = {
+      grass: (h) => noise(.05, .1 * h, 0, 900 / h),
+      sand: (h) => noise(.08, .09 * h, 0, 2400, 'bandpass', 1200, .6),
+      snow: (h) => { noise(.07, .14 * h, 0, 3000, 'bandpass', 1700, .9); noise(.04, .07 * h, .03, 5000, 'highpass'); },
+      stone: (h) => { tone('triangle', 260 / h, 150 / h, .045, .1 * h); noise(.03, .06 * h, 0, 5000, 'highpass'); },
+      ice: (h) => { tone('sine', 2100 / h, 1600 / h, .05, .04 * h); noise(.03, .05, 0, 6500, 'highpass'); },
+      candy: (h) => tone('sine', 560 / h, 300 / h, .07, .1 * h),
+      wood: (h) => { tone('triangle', 340 / h, 220 / h, .05, .13 * h); noise(.03, .05, 0, 2000); },
+    };
+    const defs = {
+      jump: () => { tone('pulse', 290, 640, .17, .12); tone('triangle', 145, 330, .14, .14); },
+      // consecutive coins climb in pitch
+      coin: () => {
+        const now = ctx.currentTime; coinN = now - coinT < .6 ? Math.min(coinN + 1, 12) : 0; coinT = now;
+        const k = Math.pow(2, coinN / 12);
+        tone('pulse', 1047 * k, 0, .08, .11); tone('pulse', 1568 * k, 0, .3, .11, .075); tone('sine', 3136 * k, 0, .2, .025, .075);
+      },
+      stomp: () => { tone('triangle', 560, 130, .15, .42); tone('sine', 190, 55, .13, .35); noise(.07, .18, 0, 2500); },
+      kick: () => { tone('square', 900, 180, .13, .09); tone('sine', 230, 60, .15, .4); noise(.1, .25, 0, 3000, 'bandpass', 800, .8); },
       bump: () => tone('triangle', 170, 110, .1, .4),
-      brick: () => { noise(.3, .45, 0, 900); tone('square', 180, 60, .18, .12); },
+      brick: () => { noise(.3, .45, 0, 900); tone('square', 180, 60, .18, .12); noise(.18, .18, .06, 3000, 'highpass'); },
       sprout: () => seq('triangle', [60, 64, 67, 72, 76], .08, .3, .05),
-      power: () => seq('square', [72, 76, 79, 84, 88, 91], .09, .12, .06),
-      spring: () => tone('sine', 160, 780, .32, .45),
+      power: () => seq('pulse', [72, 76, 79, 84, 88, 91], .09, .12, .06),
+      spring: () => { tone('sine', 160, 780, .32, .45); tone('triangle', 320, 1300, .22, .1, .04); },
       shieldPop: () => { tone('sine', 950, 180, .28, .35); noise(.12, .2, 0, 4000); },
       cp: () => seq('triangle', [79, 83, 86, 91], .12, .3, .08),
-      oneUp: () => seq('square', [76, 79, 88, 84, 86, 91], .1, .12, .09),
-      die: () => seq('square', [76, 75, 74, 73, 0, 67, 64, 60], .13, .13, .14),
-      flag: () => tone('square', 1500, 220, 1.0, .08),
-      clear: () => { seq('square', [67, 72, 76, 79, 84, 88, 91], .12, .11, .1); seq('triangle', [48, 55, 60, 64, 67, 72, 76], .14, .3, .1); },
+      oneUp: () => seq('pulse', [76, 79, 88, 84, 86, 91], .1, .12, .09),
+      die: () => seq('pulse', [76, 75, 74, 73, 0, 67, 64, 60], .13, .13, .14),
+      flag: () => { tone('pulse', 1500, 220, 1.0, .08); swoosh(1, .12, 3000, 400); },
+      clear: () => { seq('pulse', [67, 72, 76, 79, 84, 88, 91], .12, .11, .1); seq('triangle', [48, 55, 60, 64, 67, 72, 76], .14, .3, .1); },
       tick: () => tone('square', 1800, 0, .03, .05),
-      pop: () => { noise(.35, .3, 0, 3000); tone('sine', 300, 80, .3, .2); },
-      warn: () => seq('square', [84, 0, 84, 0, 84], .08, .1, .09),
+      pop: () => { noise(.35, .3, 0, 3000); tone('sine', 300, 80, .3, .2); noise(.6, .08, .1, 6000, 'highpass'); },
+      warn: () => seq('pulse', [84, 0, 84, 0, 84], .08, .1, .09),
       flutter: () => tone('sine', 520, 980, .16, .25),
       jelly: () => { tone('sine', 220, 660, .22, .35); tone('triangle', 440, 330, .15, .15, .05); },
-      bossRoar: () => { tone('sawtooth', 110, 55, .9, .22); noise(.8, .25, 0, 500); },
-      bossHit: () => { tone('square', 700, 160, .25, .2); noise(.2, .35, 0, 2500); },
-      bossDown: () => seq('square', [72, 67, 64, 60, 55, 48], .16, .14, .13),
+      bossRoar: () => { tone('sawtooth', 110, 55, .9, .22); tone('sawtooth', 116, 58, .9, .12); noise(.8, .25, 0, 500); },
+      bossHit: () => { tone('square', 700, 160, .25, .2); tone('sine', 160, 40, .35, .5); noise(.2, .35, 0, 2500); },
+      bossDown: () => seq('pulse', [72, 67, 64, 60, 55, 48], .16, .14, .13),
       shock: () => { noise(.5, .5, 0, 300); tone('sine', 90, 40, .45, .5); },
-      thunder: () => { noise(1.1, .55, 0, 900); tone('sawtooth', 70, 35, .6, .15); },
-      mount: () => seq('square', [67, 71, 74, 79], .07, .12, .06),
+      thunder: () => { noise(1.1, .55, 0, 900); tone('sawtooth', 70, 35, .6, .15); noise(.15, .35, 0, 6000, 'highpass'); },
+      mount: () => seq('pulse', [67, 71, 74, 79], .07, .12, .06),
       yelp: () => tone('square', 900, 280, .3, .12),
       star: () => seq('triangle', [84, 88, 91, 96], .09, .22, .06),
       fairy: () => seq('triangle', [76, 79, 83, 88, 91, 95], .12, .2, .09),
-      grow: () => seq('square', [60, 67, 72, 64, 71, 76, 67, 74, 79], .07, .12, .055),
-      shrink: () => seq('square', [79, 74, 67, 76, 71, 64, 72, 67, 60], .07, .1, .055),
+      grow: () => seq('pulse', [60, 67, 72, 64, 71, 76, 67, 74, 79], .07, .12, .055),
+      shrink: () => seq('pulse', [79, 74, 67, 76, 71, 64, 72, 67, 60], .07, .1, .055),
       over: () => seq('triangle', [67, 64, 60, 55, 52, 48], .25, .3, .22),
       ui: () => tone('square', 880, 0, .05, .08),
-      talk: () => seq('square', [84, 88, 86], .05, .07, .055),
+      talk: () => seq('pulse', [84, 88, 86], .05, .07, .055),
       burn: () => { noise(.5, .4, 0, 1200); tone('sawtooth', 300, 60, .45, .15); },
+      // action moves
+      spin: () => { swoosh(.34, .55, 450, 2600); tone('sine', 300, 700, .25, .06); },
+      poundUp: () => { tone('sine', 500, 1100, .16, .12); swoosh(.2, .3, 900, 3200); },
+      pound: () => { tone('sine', 150, 36, .45, .7); noise(.45, .5, 0, 700); noise(.25, .22, .03, 2500, 'bandpass', 500, .7); },
+      fire: () => { swoosh(.18, .4, 3200, 700); tone('square', 620, 260, .1, .07); },
+      fizz: () => noise(.16, .22, 0, 3500, 'highpass'),
+      clink: () => { tone('square', 1800, 0, .05, .07); tone('triangle', 2600, 0, .12, .14, .02); },
+      boom: () => { noise(.5, .55, 0, 450); tone('sine', 95, 35, .4, .6); },
+      charge: () => tone('sawtooth', 180, 620, .4, .05),
+      buzz: () => { tone('sawtooth', 190, 250, .45, .06); tone('sawtooth', 197, 262, .45, .05); },
+      notice: () => { tone('pulse', 1175, 0, .06, .08); tone('pulse', 1568, 0, .1, .08, .07); },
+      step: (surf, heavy) => (STEP[surf] || STEP.grass)(heavy ? 1.6 : 1),
+      land: (k) => { tone('sine', 140, 50, .14, .2 + .25 * k); noise(.1, .1 + .15 * k, 0, 900); },
+      chain: (n) => { const m = 72 + Math.min(n, 12) * 2; tone('pulse', mtof(m), 0, .07, .09); tone('pulse', mtof(m + 7), 0, .12, .09, .06); },
+      pepper: () => { seq('pulse', [67, 71, 74, 79, 83, 86, 91], .08, .12, .05); swoosh(.5, .3, 400, 3000, .1); },
+      poof: () => noise(.25, .3, 0, 1200, 'bandpass', 300, .7),
     };
+    // pitch-varied sounds, so frequent ones do not sound mechanical
+    const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz']);
+    function spotNode(p) {
+      _sv.set(p[0], p[1], p[2]);
+      const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
+      if (vol < .04) return null;
+      _sv.project(camera);
+      const g = ctx.createGain(); g.gain.value = vol; g.connect(sfxBus);
+      if (!ctx.createStereoPanner) return g;
+      const pn = ctx.createStereoPanner(); pn.pan.value = clamp(_sv.z > 1 ? -_sv.x : _sv.x, -1, 1) * .75; pn.connect(g);
+      return pn;
+    }
+    const sfx = {};
+    for (const k in defs) {
+      sfx[k] = (...a) => {
+        const p = spot; spot = null;
+        if (!ctx || muted) return;
+        D = p ? spotNode(p) : sfxBus; if (!D) { D = sfxBus; return; }
+        PV = VARY.has(k) ? 1 + (Math.random() - .5) * .09 : 1;
+        defs[k](...a);
+        D = sfxBus; PV = 1;
+      };
+    }
+    // Snd.at(x, y, z).stomp() plays a sound from a place in the world
+    function at(x, y, z) { spot = [x, y, z]; return sfx; }
+
     const BASS = [0, -1, 7, -1, 12, -1, 7, -1];
+    const ARP = [12, 19, 24, 19, 12, 19, 24, 31];
+    // one bar of eighths: k kick, s snare, h hat
+    const DRUMS = {
+      pop: { k: 'x...x...', s: '..x...x.', h: 'xxxxxxxx' },
+      soft: { k: 'x.......', s: '....x...', h: '.x.x.x.x' },
+      shuffle: { k: 'x..x..x.', s: '..x...x.', h: 'x.xx.xx.' },
+      march: { k: 'x.x.x.x.', s: '..x...xx', h: 'x.x.x.x.' },
+      boss: { k: 'x.xx..x.', s: '..x...x.', h: 'xxxxxxxx' },
+    };
     const SONGS = {
       hills: {
-        bpm: 150, chords: [48, 53, 48, 43, 48, 45, 41, 43],
+        bpm: 150, drums: 'pop', chords: [48, 53, 48, 43, 48, 45, 41, 43],
         lead: [76, 0, 79, 0, 84, 83, 81, 79, 77, 0, 81, 0, 84, 0, 81, 0, 76, 0, 79, 0, 81, 79, 77, 76, 74, 0, 71, 0, 74, 76, 79, 0,
           76, 79, 84, 79, 76, 79, 84, 86, 88, 0, 86, 84, 81, 0, 79, 0, 77, 81, 84, 81, 76, 79, 84, 79, 74, 77, 79, 83, 84, 0, 0, 0],
       },
       sky: {
-        bpm: 132, chords: [45, 41, 48, 43, 45, 41, 48, 43],
+        bpm: 132, drums: 'soft', chords: [45, 41, 48, 43, 45, 41, 48, 43],
         lead: [81, 0, 76, 0, 72, 76, 81, 83, 84, 0, 81, 0, 77, 81, 84, 0, 79, 0, 76, 0, 72, 76, 79, 81, 83, 81, 79, 0, 74, 0, 71, 0,
           81, 83, 84, 83, 81, 76, 72, 76, 77, 81, 84, 88, 86, 84, 81, 0, 79, 84, 88, 84, 79, 76, 72, 76, 74, 79, 83, 86, 83, 79, 74, 0],
       },
       desert: {
-        bpm: 140, chords: [50, 50, 48, 50, 50, 53, 48, 45],
+        bpm: 140, drums: 'shuffle', chords: [50, 50, 48, 50, 50, 53, 48, 45],
         lead: [74, 0, 77, 79, 81, 0, 79, 77, 74, 0, 72, 74, 77, 0, 0, 0, 74, 0, 77, 79, 81, 84, 83, 81, 79, 0, 77, 0, 76, 0, 0, 0,
           81, 0, 79, 77, 79, 0, 77, 74, 72, 74, 77, 0, 74, 0, 72, 0, 69, 72, 74, 77, 79, 77, 74, 72, 74, 0, 0, 0, 74, 0, 0, 0],
       },
       snow: {
-        bpm: 118, chords: [53, 48, 50, 46, 53, 48, 46, 48],
+        bpm: 118, drums: 'soft', chords: [53, 48, 50, 46, 53, 48, 46, 48],
         lead: [77, 0, 81, 0, 84, 0, 81, 0, 79, 0, 76, 0, 72, 0, 0, 0, 74, 0, 77, 0, 81, 0, 79, 77, 74, 0, 70, 0, 74, 0, 0, 0,
           77, 81, 84, 86, 84, 81, 77, 81, 79, 76, 72, 76, 79, 0, 0, 0, 74, 77, 81, 77, 74, 70, 74, 77, 76, 0, 79, 0, 77, 0, 0, 0],
       },
       castle: {
-        bpm: 164, chords: [45, 45, 41, 43, 45, 45, 40, 40],
+        bpm: 164, drums: 'march', chords: [45, 45, 41, 43, 45, 45, 40, 40],
         lead: [69, 72, 76, 72, 69, 72, 76, 79, 77, 76, 74, 72, 74, 0, 0, 0, 69, 72, 76, 72, 69, 72, 76, 81, 79, 77, 76, 74, 76, 0, 0, 0,
           81, 0, 79, 0, 77, 0, 76, 0, 74, 76, 77, 79, 77, 0, 0, 0, 76, 0, 74, 0, 72, 0, 71, 0, 69, 71, 72, 74, 76, 0, 0, 0],
       },
       candy: {
-        bpm: 156, chords: [48, 45, 53, 55, 48, 45, 50, 55],
+        bpm: 156, drums: 'pop', chords: [48, 45, 53, 55, 48, 45, 50, 55],
         lead: [79, 76, 79, 84, 0, 83, 81, 79, 76, 72, 76, 81, 0, 79, 77, 76, 77, 81, 84, 81, 77, 0, 76, 74, 79, 0, 83, 0, 86, 0, 0, 0,
           84, 0, 83, 81, 79, 81, 83, 84, 81, 0, 79, 77, 76, 77, 79, 81, 77, 76, 74, 72, 74, 76, 77, 79, 79, 83, 86, 83, 84, 0, 0, 0],
       },
       boss: {
-        bpm: 172, chords: [45, 45, 46, 46, 45, 45, 43, 44],
+        bpm: 172, drums: 'boss', chords: [45, 45, 46, 46, 45, 45, 43, 44],
         lead: [69, 0, 69, 72, 69, 0, 75, 74, 70, 0, 70, 74, 70, 0, 77, 76, 69, 0, 69, 72, 69, 0, 75, 74, 76, 75, 74, 73, 72, 71, 70, 68,
           81, 0, 80, 0, 81, 84, 81, 0, 82, 0, 81, 0, 82, 86, 82, 0, 81, 0, 79, 77, 76, 74, 72, 71, 69, 71, 72, 74, 76, 0, 68, 0],
       },
     };
-    function note(type, f, dur, vol, t) {
+    function voice(wave, f, dur, vol, t, dst, pan) {
       const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = type; o.frequency.setValueAtTime(f, t);
-      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-      o.connect(g); g.connect(musBus); o.start(t); o.stop(t + dur + .02);
+      if (wave === 'pulse') o.setPeriodicWave(pulse); else o.type = wave;
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .01);
+      g.gain.exponentialRampToValueAtTime(vol * .6, t + dur * .5); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      o.connect(g);
+      if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(dst); } else g.connect(dst);
+      o.start(t); o.stop(t + dur + .02);
+    }
+    function hit(t, dur, vol, type, freq) {
+      const s = ctx.createBufferSource(); s.buffer = noiseBuf;
+      const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+      const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(musBus); s.start(t, Math.random() * 1.5); s.stop(t + dur + .02);
+    }
+    function kick(t, v) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(155, t); o.frequency.exponentialRampToValueAtTime(40, t + .12);
+      g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + .18);
+      o.connect(g); g.connect(musBus); o.start(t); o.stop(t + .2);
     }
     function schedule() {
       if (!ctx || !song) return;
-      const spb = 60 / song.bpm / 2;
+      const spb = 60 / (song.bpm * tempo) / 2, n = song.lead.length, dr = DRUMS[song.drums];
       if (nextT < ctx.currentTime) nextT = ctx.currentTime + .05;
       while (nextT < ctx.currentTime + .2) {
-        const i = step % song.lead.length, m = song.lead[i];
-        if (m) note('square', mtof(m), spb * .85, .16, nextT);
-        const bo = BASS[i % 8]; if (bo >= 0) note('triangle', mtof(song.chords[Math.floor(i / 8) % song.chords.length] + bo), spb * .9, .4, nextT);
+        const i = step % n, m = song.lead[i], b8 = i % 8, root = song.chords[Math.floor(i / 8) % song.chords.length];
+        if (!muted) {
+          if (m) {
+            const len = song.lead[(i + 1) % n] ? .9 : 1.8; // notes before a rest ring on
+            voice('pulse', mtof(m), spb * len, .13, nextT, leadBus);
+            voice('pulse', mtof(m) * 1.006, spb * len, .045, nextT, leadBus, .4);
+          }
+          const bo = BASS[b8]; if (bo >= 0) voice('triangle', mtof(root + bo), spb * .9, .42, nextT, musBus);
+          voice('triangle', mtof(root + ARP[b8]), spb * .55, .06, nextT, musBus, b8 % 2 ? .45 : -.45);
+          if (dr.k[b8] === 'x') kick(nextT, .4);
+          if (dr.s[b8] === 'x') hit(nextT, .13, .24, 'bandpass', 1900);
+          if (dr.h[b8] === 'x') hit(nextT, .035, b8 % 2 ? .05 : .085, 'highpass', 7200);
+        }
         nextT += spb; step++;
       }
     }
-    function startMusic(name) { stopMusic(); song = SONGS[name]; step = 0; if (!ctx) return; nextT = ctx.currentTime + .15; timer = setInterval(schedule, 50); schedule(); }
-    function stopMusic() { if (timer) { clearInterval(timer); timer = null; } }
-    function pauseMusic() { if (timer) { clearInterval(timer); timer = null; } }
-    function resumeMusic() { if (!ctx || !song || timer) return; nextT = ctx.currentTime + .1; timer = setInterval(schedule, 50); }
+    function setEcho() { if (echo && song) echo.delayTime.setTargetAtTime(60 / (song.bpm * tempo) / 2 * 1.5, ctx.currentTime, .05); }
+    function startMusic(name) { stopMusic(); song = SONGS[name]; step = 0; tempo = 1; if (!ctx) return; setEcho(); nextT = ctx.currentTime + .15; timer = setInterval(schedule, 50); schedule(); ambGain(true); }
+    function stopMusic() { if (timer) { clearInterval(timer); timer = null; } if (rush) rush.gain.setTargetAtTime(0, ctx.currentTime, .05); }
+    function pauseMusic() { stopMusic(); ambGain(false); }
+    function resumeMusic() { if (!ctx || !song || timer) return; nextT = ctx.currentTime + .1; timer = setInterval(schedule, 50); ambGain(true); }
+    function setTempo(m) { if (tempo === m) return; tempo = m; setEcho(); }
     function setMuted(v) { muted = v; if (ctx) master.gain.setTargetAtTime(v ? 0 : .9, ctx.currentTime, .02); }
-    return { init, sfx, startMusic, stopMusic, pauseMusic, resumeMusic, setMuted, get muted() { return muted; } };
+    function setRoom(v) { room = v; if (ctx) { verbSfx.gain.setTargetAtTime(v, ctx.currentTime, .1); verbMus.gain.setTargetAtTime(v * 1.3, ctx.currentTime, .1); } }
+
+    // ambience: a filtered noise bed plus occasional events (birdsong, lava bubbles, candy chimes)
+    const AMB = {
+      birds: { f: 1600, q: .35, vol: .02, ev: 'chirp', rate: .45 },
+      wind: { f: 480, q: .6, vol: .05, ev: null, rate: 0 },
+      desert: { f: 650, q: .5, vol: .035, ev: null, rate: 0 },
+      lava: { f: 170, q: .8, vol: .1, ev: 'bubble', rate: 1.1 },
+      candy: { f: 2400, q: .3, vol: .012, ev: 'chime', rate: .35 },
+    };
+    function ambGain(on) { if (amb) amb.g.gain.setTargetAtTime(on ? amb.a.vol : 0, ctx.currentTime, on ? .6 : .1); }
+    function setAmbient(kind) {
+      ambKind = kind; if (!ctx) return;
+      if (amb) { const old = amb; old.g.gain.setTargetAtTime(0, ctx.currentTime, .3); setTimeout(() => { try { old.s.stop(); } catch (e) { /* already stopped */ } }, 1500); amb = null; }
+      const a = AMB[kind]; if (!a) return;
+      const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.playbackRate.value = .5;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = a.f; f.Q.value = a.q;
+      const g = ctx.createGain(); g.gain.value = 0;
+      s.connect(f); f.connect(g); g.connect(sfxBus); s.start();
+      amb = { s, f, g, a }; ambNext = ctx.currentTime + 1.5;
+      if (timer) ambGain(true);
+    }
+    function ambientEvent(ev) {
+      const g = ctx.createGain(); g.connect(sfxBus); D = g;
+      if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = (Math.random() - .5) * 1.4; p.connect(g); D = p; }
+      if (ev === 'chirp') { const f = 2400 + Math.random() * 1400, n = 2 + ((Math.random() * 3) | 0); for (let i = 0; i < n; i++) tone('sine', f, f * 1.3, .07, .03, i * .1); }
+      else if (ev === 'bubble') { const f = 80 + Math.random() * 80; tone('sine', f, f * 2.6, .16, .1); }
+      else if (ev === 'chime') { const m = [84, 86, 88, 91, 93, 96][(Math.random() * 6) | 0]; tone('sine', mtof(m), 0, .7, .03); tone('sine', mtof(m + 12), 0, .35, .012, .02); }
+      D = sfxBus;
+    }
+    // per frame: wind rush level (0..1), ambient events, a slow wander of the wind bed
+    function update(rk) {
+      if (!ctx || !rush) return;
+      const t = ctx.currentTime;
+      rush.gain.setTargetAtTime(muted ? 0 : rk * .24, t, .08); rushF.frequency.setTargetAtTime(600 + rk * 1500, t, .1);
+      if (!amb || !timer) return;
+      amb.f.frequency.setTargetAtTime(amb.a.f * (1 + Math.sin(t * .23) * .25), t, .5);
+      if (amb.a.ev && t > ambNext) { ambNext = t + (1 + Math.random() * 3) / amb.a.rate; if (!muted) ambientEvent(amb.a.ev); }
+    }
+    return { init, sfx, at, startMusic, stopMusic, pauseMusic, resumeMusic, setMuted, setTempo, setRoom, setAmbient, update, get muted() { return muted; } };
   })();
 
   // ================= level building =================
@@ -1343,6 +1797,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       coinArc(x, y, d0, d1, n, h = 1.5) { for (let i = 0; i < n; i++) { const t = i / (n - 1); this.coin(x, y + Math.sin(t * Math.PI) * h, d0 + (d1 - d0) * t); } },
       coinCol(x, y0, y1, d, step = 1.5) { for (let y = y0; y <= y1 + 1e-6; y += step) this.coin(x, y, d); },
       enemy(type, x, y, d, axis = 'x', range = 3, speed = 1.5, phase = 0) { spawnEnemy(type, x, y, -d, axis, range, speed, phase); },
+      // cannon turret: turns to face the hero and fires cannonballs along the ground
+      cannon(x, top, d, period = 3, phase = 0) {
+        const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
+        const base = new T.Mesh(GEO.cannonBase, MAT.char); base.castShadow = base.receiveShadow = true; g.add(base);
+        const pivot = new T.Group(); pivot.position.y = 1.2; g.add(pivot);
+        const barrel = new T.Mesh(GEO.cannonBarrel, MAT.char); barrel.castShadow = true; pivot.add(barrel);
+        const s = addSolid(x - .5, top, z - .5, x + .5, top + 1.5, z + .5, 'hard');
+        L.cannons.push({ x, y: top, z, s, pivot, barrel, period, t: phase * period, yaw: 0, recoil: 0, charging: false });
+      },
       // bouncy jelly block: landing on it throws the hero up
       jelly(x0, x1, d0, d1, top, th = 1) {
         const w = x1 - x0, dd = d1 - d0;
@@ -1364,7 +1827,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       },
       boss(type, x, top, d) {
         const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
-        const mat = std({ vertexColors: true, roughness: .4 }), refs = {};
+        const mat = addRim(std({ vertexColors: true, roughness: .4 })), refs = {};
         if (type === 'king') {
           refs.body = new T.Mesh(GEO.walker, mat); refs.body.scale.setScalar(3.2); refs.body.castShadow = true; g.add(refs.body);
           const crown = new T.Group(); crown.position.y = 3.05; g.add(crown);
@@ -1623,18 +2086,23 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('robot', 3.5, 0, 6, 'Промобот', [
       'Привет! Я Промобот. Собирай значки Promobile: за каждые 100 дают жизнь.',
       'Держи прыжок дольше, чтобы прыгнуть выше. С разбега можно запрыгнуть даже на блоки!',
+      'Кнопка удара: на земле закрутишься вихрем, а в прыжке обрушишься вниз и раскидаешь всех вокруг.',
     ]);
     B.npc('frog', -2.5, 0, 94, 'Квак', [
       'Флажок сохранил прогресс. Упадёшь, начнёшь отсюда.',
       'Впереди движущиеся платформы. Прыгай, когда подъедут.',
     ]);
-    B.npc('robot', 4.5, 0, 150, 'Промобот', ['Видишь лестницу? Разбегись и прыгай на флагшток повыше: чем выше, тем больше очков.']);
+    B.npc('robot', 4.5, 0, 150, 'Промобот', [
+      'Если ты уже большой, из блока с сюрпризом выпадет огненный перец. С ним удар бросает огонь, даже колючки не устоят.',
+      'Видишь лестницу? Разбегись и прыгай на флагшток повыше: чем выше, тем больше очков.',
+    ]);
     B.coinRow(0, 1.2, 8, 14, 1.5);
     B.block(-2, 3.2, 18, 'brick'); B.block(-1, 3.2, 18, 'q'); B.block(0, 3.2, 18, 'brick'); B.block(1, 3.2, 18, 'qpower'); B.block(2, 3.2, 18, 'brick');
     B.enemy('walker', 0, 0, 25, 'x', 4.5, 1.6);
     B.pipe(-2.5, 31, 2); B.coin(-2.5, 2.9, 31);
     B.enemy('walker', 0, 0, 35, 'x', 4, 1.4, .5);
     B.pipe(2.5, 38, 3); B.coin(2.5, 3.9, 38);
+    B.enemy('flyer', 0, 0, 28, 'x', 2.5, 1);
     B.coinArc(0, 1.2, 42, 53, 6, 2.4);
     B.dino(-4, 0, 41);
 
@@ -1646,6 +2114,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.block(-1, 3.2, 71, 'brick'); B.block(0, 3.2, 71, 'qmulti'); B.block(1, 3.2, 71, 'brick');
     B.enemy('walker', -2, 0, 74, 'x', 3, 1.5);
     B.enemy('walker', 2, 0, 76.5, 'x', 3, 1.5, .5);
+    B.cannon(5, 0, 68, 3.4);
 
     B.island(-1.8, 1.8, 81.5, 84.5, .5, 3);
     B.coin(0, 2.2, 80); B.coin(0, 1.8, 83); B.coin(0, 2.2, 86);
@@ -1673,7 +2142,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
     B.ground(-7, 7, 146, 181, 0);
     B.coinArc(0, 1.2, 149, 155, 5, 1.6);
-    B.block(-2, 3.2, 158, 'q'); B.block(0, 3.2, 158, 'brick'); B.block(2, 3.2, 158, 'q');
+    B.block(-2, 3.2, 158, 'q'); B.block(0, 3.2, 158, 'brick'); B.block(2, 3.2, 158, 'qpower');
+    B.enemy('walker', -3, 0, 153, 'z', 1.5, 1.4, .3);
     B.enemy('walker', 0, 0, 160.5, 'x', 4, 1.6);
     B.enemy('walker', 0, 0, 163.5, 'x', 4, 1.8, .5);
     B.enemy('spiky', 0, 0, 167, 'x', 4, 2.2, .25);
@@ -1695,7 +2165,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function buildL2(B) {
     B.start(0, 0, 3);
     B.island(-6, 6, -2, 22, 0, 4);
-    B.npc('frog', 4, 0, 7, 'Квак', ['Красные доски падают, если на них постоять. Не зевай!']);
+    B.npc('frog', 4, 0, 7, 'Квак', [
+      'Красные доски падают, если на них постоять. Не зевай!',
+      'Тут летают жужи. Зажужжали, значит сейчас спикируют: отбегай в сторону или прыгай на них сверху.',
+    ]);
     B.coinRow(0, 1.2, 6, 10.5, 1.5);
     B.block(-1, 3.2, 13, 'q'); B.block(0, 3.2, 13, 'brick'); B.block(1, 3.2, 13, 'q');
     B.enemy('walker', 0, 0, 17.5, 'x', 4, 1.6);
@@ -1708,6 +2181,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.checkpoint(-3.5, 1, 42);
     B.block(-1, 4.2, 45, 'brick'); B.block(0, 4.2, 45, 'qpower'); B.block(1, 4.2, 45, 'brick');
     B.enemy('spiky', 0, 1, 49.5, 'x', 3.5, 2.2);
+    B.cannon(-4.2, 1, 47.5, 3.2);
     B.npc('robot', 3.8, 1, 52.5, 'Промобот', ['Прыгни на пружину и держи прыжок: улетишь на остров сверху.']);
     B.spring(0, 1, 54);
     B.coin(0, 4.5, 55); B.coin(0, 6.2, 56.2); B.coin(0, 7.2, 57.6);
@@ -1716,6 +2190,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.coinRow(0, 6.7, 60, 68, 2);
     B.enemy('walker', 0, 5.5, 63, 'x', 2.8, 1.7);
     B.enemy('walker', 0, 5.5, 66.5, 'x', 2.8, 1.7, .5);
+    B.enemy('flyer', 0, 5.5, 60.5, 'x', 2.5, 1.1);
 
     B.platform(0, 5, 74.5, 3, 3, { move: { axis: 'x', range: 3, period: 3.6 } });
     B.platform(0, 4, 80.5, 3, 3, { move: { axis: 'y', range: 2, period: 4 } });
@@ -1725,6 +2200,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.island(-6, 6, 92, 112, 3, 4);
     B.checkpoint(-4.5, 3, 94);
     B.enemy('walker', 0, 3, 97, 'x', 4.5, 1.6);
+    B.enemy('flyer', 0, 3, 95.5, 'x', 3.5, 1.2, .5);
     for (const x of [-2, -1, 1, 2]) B.block(x, 6.2, 100, 'brick');
     B.block(0, 6.2, 100, 'qmulti');
     B.enemy('spiky', 0, 3, 102, 'x', 4, 2.1, .4);
@@ -1780,6 +2256,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('frog', 4, 0, 6, 'Квак', [
       'Жарко тут! Смотри в оба: попрыгуны скачут высоко.',
       'Прыгай на них сверху, когда они приземлятся.',
+      'Пушки стреляют ядрами. Перепрыгни ядро, топни по нему или отбей ударом!',
     ]);
     B.coinRow(0, 1.2, 9, 15, 1.5);
     B.dino(-4, 0, 12);
@@ -1787,6 +2264,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (const x of [-1, 0, 1]) B.coin(x, 4.9, 19);
     B.enemy('hopper', 0, 0, 24, 'x', 4, 1.4);
     B.pipe(-3, 30, 3); B.coin(-3, 3.9, 30);
+    B.enemy('flyer', 1, 0, 26, 'x', 2.5, 1.1);
     B.enemy('walker', 0, 0, 34, 'x', 4.5, 1.7, .4);
     B.stairs(-2.5, 2.5, 36, 3, 0, 1);
     B.coinArc(0, 3.6, 39, 46, 5, 2);
@@ -1795,6 +2273,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.checkpoint(-4.5, 0, 48);
     B.enemy('hopper', 0, 0, 55, 'x', 4, 1.5);
     B.enemy('hopper', 0, 0, 60, 'x', 4, 1.5, .5);
+    B.cannon(4.8, 0, 50.5, 3);
     B.pipe(-2.5, 64.5, 3.5); B.coin(-2.5, 4.4, 64.5);
     B.pipe(2.5, 64.5, 2.5); B.coin(2.5, 3.4, 64.5);
     for (const x of [-2, -1, 1, 2]) B.block(x, 3.2, 69, 'brick');
@@ -1821,6 +2300,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.enemy('hopper', 0, 0, 146, 'x', 4, 1.6, .5);
     B.block(-1, 3.2, 151, 'brick'); B.block(0, 3.2, 151, 'qmulti'); B.block(1, 3.2, 151, 'brick');
     B.enemy('walker', 0, 0, 156, 'x', 4.5, 1.8);
+    B.cannon(-4.8, 0, 148, 2.8, .5);
     B.stairs(-3, 3, 160, 7, 0, 1);
     B.hardBox(-3, 3, 167, 168, 0, 7);
     for (let i = 0; i < 7; i++) B.coin(0, i + 2, 160.5 + i);
@@ -1859,6 +2339,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.pipe(-3, 74, 3, 1); B.coin(-3, 4.9, 74);
     B.pipe(3, 77.5, 4, 1); B.coin(3, 5.9, 77.5);
     B.enemy('hopper', 0, 1, 82, 'x', 4, 1.5);
+    B.enemy('flyer', 0, 1, 71, 'x', 3, 1.1);
     B.npc('penguin', -4.2, 1, 86, 'Пинга', [
       'Дальше мост из хрупких льдин.',
       'Не стой на них долго: трескаются и падают!',
@@ -1874,6 +2355,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
     B.ground(-7, 7, 113, 144, 2.5);
     B.iceSlab(-6, 6, 117, 131, 2.8, .3);
+    B.cannon(-5, 2.5, 115, 3.2);
     B.enemy('walker', 0, 2.8, 121, 'x', 4.5, 1.6);
     B.enemy('walker', 0, 2.8, 127, 'x', 4.5, 1.8, .5);
     B.coinRow(0, 4, 118, 130, 2);
@@ -1922,7 +2404,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.firebar(-2.5, 1, 64, 6, -1.3, 'y');
     B.firebar(2.5, 1, 70, 6, 1.3, 'y', { phase: 1.5 });
     B.enemy('spiky', 0, 1, 76, 'x', 4, 2.1);
-    B.block(-1, 4.2, 80, 'brick'); B.block(0, 4.2, 80, 'qmulti'); B.block(1, 4.2, 80, 'brick');
+    B.cannon(-4.5, 1, 74, 3.2);
+    B.block(-1, 4.2, 80, 'brick'); B.block(0, 4.2, 80, 'qpower'); B.block(1, 4.2, 80, 'brick');
     for (const x of [-1, 0, 1]) B.coin(x, 5.9, 80);
 
     B.platform(0, 1, 89, 2.5, 2.5, { fall: true });
@@ -1936,6 +2419,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.coinArc(0, 3.2, 113, 117, 3, 1);
     B.enemy('hopper', 0, 2, 118, 'x', 4, 1.5);
     B.enemy('hopper', 0, 2, 123, 'x', 4, 1.7, .5);
+    B.cannon(4.5, 2, 120.5, 2.8, .5);
     B.firebar(0, 2, 129, 6, 1.6, 'z', { h: 3.3, double: true });
     B.stairs(-3, 3, 135, 7, 2, 1);
     B.hardBox(-3, 3, 142, 143, 2, 9);
@@ -2016,6 +2500,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.jelly(-2, 2, 28, 31, .5, .5);
     B.coinCol(0, 4, 8, 29.5, 1.3);
     B.enemy('walker', 0, 0, 35, 'x', 4.5, 1.7, .3);
+    B.enemy('flyer', -1, 0, 33, 'x', 2.5, 1.1, .3);
     B.pipe(3.5, 38, 3); B.coin(3.5, 3.9, 38);
     B.coinArc(0, 1.2, 39, 45, 5, 2.2);
 
@@ -2024,6 +2509,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.enemy('hopper', 0, 0, 52, 'x', 4, 1.5);
     B.enemy('walker', 0, 0, 56, 'x', 4.5, 1.7, .5);
     B.enemy('spiky', 0, 0, 60, 'x', 4, 2);
+    B.cannon(5, 0, 61.5, 3);
     B.jelly(-2, 2, 64, 66, .5, .5);
     B.island(-3, 3, 67, 73, 4.5, 1.8);
     B.coinRow(0, 5.7, 68, 72, 2);
@@ -2035,6 +2521,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.block(0, 3.2, 84, 'qmulti');
     B.enemy('hopper', 0, 0, 89, 'x', 4, 1.5);
     B.enemy('walker', 0, 0, 93, 'x', 4.5, 1.7, .4);
+    B.enemy('flyer', 0, 0, 91, 'x', 3, 1.2, .5);
     B.jelly(-3, -1, 96, 99, .5, .5); B.jelly(1, 3, 96, 99, .5, .5);
     B.coin(-2, 5, 97.5); B.coin(2, 5, 97.5);
     B.stairs(-3, 3, 102, 6, 0, 1);
@@ -2063,6 +2550,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.island(-5, 5, 30, 44, 3, 4);
     B.checkpoint(-3.5, 3, 32);
     B.enemy('hopper', 0, 3, 37, 'x', 3.5, 1.5);
+    B.enemy('flyer', 0, 3, 34.5, 'x', 2.5, 1.1);
     B.block(-1, 6.2, 40, 'brick'); B.block(0, 6.2, 40, 'qpower'); B.block(1, 6.2, 40, 'brick');
 
     B.platform(0, 3, 47.5, 2.5, 2.5, { fall: true });
@@ -2073,6 +2561,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.island(-6, 6, 60, 80, 4, 4);
     B.enemy('walker', 0, 4, 65, 'x', 4.5, 1.7);
     B.enemy('walker', 0, 4, 71, 'x', 4.5, 1.8, .5);
+    B.enemy('flyer', 0, 4, 68, 'x', 3.5, 1.2, .4);
     B.jelly(-2, 2, 77.5, 80.5, 4.5, .5);
     B.island(-2.5, 2.5, 81.5, 88, 7.5, 2);
     B.coinRow(0, 8.7, 83, 87, 2);
@@ -2080,6 +2569,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.island(-6, 6, 92, 114, 4, 5);
     B.enemy('spiky', 0, 4, 98, 'x', 4, 2);
     B.enemy('hopper', 0, 4, 104, 'x', 4, 1.6, .5);
+    B.cannon(-5, 4, 96, 3);
     B.stairs(-3, 3, 108, 5, 4, 1);
     B.hardBox(-3, 3, 113, 114, 4, 9);
     for (let i = 0; i < 5; i++) B.coin(0, 4 + i + 2, 108.5 + i);
@@ -2096,31 +2586,46 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
-      sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc },
+      sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc, glow: [0xfff6d8, .45] },
     { id: '1-2', name: 'Небесная тропа', time: 300, seed: 22, killY: -10, music: 'sky', theme: 'grass', build: buildL2,
-      sky: [[0, '#5b5fd6'], [.45, '#e58bb8'], [.8, '#ffc79a'], [1, '#ffe6c4']], fog: [0xffe2cc, 55, 165], hemi: [0xfff0f4, 0x7a6aa0, .82], sun: 0xffe2c4 },
+      sky: [[0, '#5b5fd6'], [.45, '#e58bb8'], [.8, '#ffc79a'], [1, '#ffe6c4']], fog: [0xffe2cc, 55, 165], hemi: [0xfff0f4, 0x7a6aa0, .82], sun: 0xffe2c4,
+      glow: [0xffb27a, .7, true], weather: 'petals', amb: 'wind' },
     { id: '1-3', name: 'Король Каштан', boss: true, time: 300, seed: 13, killY: -12, music: 'hills', theme: 'grass', build: buildB1,
-      sky: [[0, '#ff9b54'], [.5, '#ffcf8f'], [1, '#fff0d6']], fog: [0xffe7c8, 60, 150], hemi: [0xfff1dc, 0x6b8f4a, .8], sun: 0xffe2b8 },
+      sky: [[0, '#ff9b54'], [.5, '#ffcf8f'], [1, '#fff0d6']], fog: [0xffe7c8, 60, 150], hemi: [0xfff1dc, 0x6b8f4a, .8], sun: 0xffe2b8, glow: [0xffc07a, .7, true] },
     { id: '2-1', name: 'Солнечные дюны', time: 300, seed: 33, killY: -12, music: 'desert', theme: 'sand', build: buildL3,
-      sky: [[0, '#f08a3c'], [.5, '#ffc877'], [1, '#fff0c9']], fog: [0xfbe3b4, 60, 160], hemi: [0xfff3dd, 0xb9864f, .85], sun: 0xffe6b8 },
+      sky: [[0, '#f08a3c'], [.5, '#ffc877'], [1, '#fff0c9']], fog: [0xfbe3b4, 60, 160], hemi: [0xfff3dd, 0xb9864f, .85], sun: 0xffe6b8, glow: [0xffd08a, .65, true] },
     { id: '2-2', name: 'Ледяные пики', time: 300, seed: 44, killY: -12, music: 'snow', theme: 'snow', build: buildL4,
-      sky: [[0, '#4f7fd9'], [.55, '#a9c8f2'], [1, '#eef5ff']], fog: [0xe6effa, 50, 150], hemi: [0xf2f7ff, 0x8fa3c7, .86], sun: 0xf4f8ff },
+      sky: [[0, '#4f7fd9'], [.55, '#a9c8f2'], [1, '#eef5ff']], fog: [0xe6effa, 50, 150], hemi: [0xf2f7ff, 0x8fa3c7, .86], sun: 0xf4f8ff, glow: [0xffffff, .4] },
     { id: '2-3', name: 'Лавовая крепость', time: 320, seed: 55, killY: -4, lava: -3, music: 'castle', theme: 'stone', build: buildL5,
-      sky: [[0, '#1b1030'], [.55, '#4a1a3a'], [1, '#b8462a']], fog: [0x5a2230, 35, 125], hemi: [0xffc9a6, 0xff6a2a, .8], sun: 0xffb27a, sunI: .6 },
+      sky: [[0, '#1b1030'], [.55, '#4a1a3a'], [1, '#b8462a']], fog: [0x5a2230, 35, 125], hemi: [0xffc9a6, 0xff6a2a, .8], sun: 0xffb27a, sunI: .6,
+      glow: [0xff6a2a, .6], stars: true },
     { id: '2-4', name: 'Огненный Панцирь', boss: true, time: 300, seed: 57, killY: -4, lava: -3, music: 'castle', theme: 'stone', build: buildB2,
-      sky: [[0, '#1b1030'], [.55, '#4a1a3a'], [1, '#b8462a']], fog: [0x5a2230, 35, 125], hemi: [0xffc9a6, 0xff6a2a, .8], sun: 0xffb27a, sunI: .6 },
+      sky: [[0, '#1b1030'], [.55, '#4a1a3a'], [1, '#b8462a']], fog: [0x5a2230, 35, 125], hemi: [0xffc9a6, 0xff6a2a, .8], sun: 0xffb27a, sunI: .6,
+      glow: [0xff6a2a, .6], stars: true },
     { id: '3-1', name: 'Конфетная долина', time: 300, seed: 71, killY: -12, music: 'candy', theme: 'candy', build: buildC1,
-      sky: [[0, '#ff9ad1'], [.5, '#ffd6ec'], [1, '#fff4fb']], fog: [0xffe9f5, 60, 160], hemi: [0xfff3fa, 0xc98a58, .9], sun: 0xfff4ea },
+      sky: [[0, '#ff9ad1'], [.5, '#ffd6ec'], [1, '#fff4fb']], fog: [0xffe9f5, 60, 160], hemi: [0xfff3fa, 0xc98a58, .9], sun: 0xfff4ea, glow: [0xffffff, .5] },
     { id: '3-2', name: 'Мармеладные мосты', time: 300, seed: 72, killY: -10, music: 'candy', theme: 'candy', build: buildC2,
-      sky: [[0, '#8fd6ff'], [.5, '#e2c9ff'], [1, '#fff0fb']], fog: [0xf6ecff, 55, 165], hemi: [0xf7f0ff, 0xb08ac8, .88], sun: 0xfff2fa },
+      sky: [[0, '#8fd6ff'], [.5, '#e2c9ff'], [1, '#fff0fb']], fog: [0xf6ecff, 55, 165], hemi: [0xf7f0ff, 0xb08ac8, .88], sun: 0xfff2fa, glow: [0xfff0fb, .5] },
     { id: '3-3', name: 'Хмурь', boss: true, time: 300, seed: 73, killY: -12, music: 'candy', theme: 'candy', build: buildB3,
-      sky: [[0, '#5b4a8a'], [.5, '#b39ad6'], [1, '#f2dcff']], fog: [0xeadcf8, 50, 150], hemi: [0xf2e6ff, 0x8a6aa0, .85], sun: 0xf0e6ff },
+      sky: [[0, '#5b4a8a'], [.5, '#b39ad6'], [1, '#f2dcff']], fog: [0xeadcf8, 50, 150], hemi: [0xf2e6ff, 0x8a6aa0, .85], sun: 0xf0e6ff, glow: [0xffd6f0, .45], stars: true },
   ];
 
   function spawnEnemy(type, x, y, z, axis = 'x', range = 3, speed = 1.5, phase = 0) {
-    const mesh = new T.Mesh(GEO[type], MAT.char); mesh.castShadow = true; mesh.position.set(x, y, z); L.group.add(mesh);
-    const e = { type, hx: x, hy: y, hz: z, axis, range, speed, t: range + phase * range * 2, x, y, z, alive: true, dead: 0, flip: false, vy: 0, mesh,
-      hw: type === 'spiky' ? .45 : .42, h: type === 'spiky' ? .95 : .85, face: 0, hopOff: phase * 1.3 + Math.random() * .3 };
+    let mesh, wings = null;
+    if (type === 'flyer') {
+      mesh = new T.Group();
+      const body = new T.Mesh(GEO.flyer, MAT.char); body.castShadow = true; mesh.add(body);
+      wings = [-1, 1].map((sd) => {
+        const pv = new T.Group(); pv.position.set(sd * .12, .72, -.1); mesh.add(pv);
+        const w = new T.Mesh(SPH_HI, MAT.bugWing); w.scale.set(.26, .025, .15); w.position.x = sd * .24; pv.add(w);
+        return pv;
+      });
+    } else { mesh = new T.Mesh(GEO[type], MAT.char); mesh.castShadow = true; }
+    const fly = type === 'flyer', hy = fly ? y + 2.7 : y;
+    mesh.position.set(x, hy, z); L.group.add(mesh);
+    const e = { type, hx: x, hy, hz: z, axis, range, speed, t: range + phase * range * 2, x, y: hy, z, alive: true, dead: 0, flip: false, vy: 0, mesh, wings,
+      hw: type === 'spiky' ? .45 : .42, h: type === 'spiky' ? .95 : fly ? .8 : .85, face: 0, hopOff: phase * 1.3 + Math.random() * .3,
+      rage: 1, noticed: false, kick: false, kvx: 0, kvz: 0, state: 'hover', st: 0, cool: 1 + phase * 2, dvx: 0, dvy: 0, dvz: 0, dl: 0 };
     L.enemies.push(e);
     return e;
   }
@@ -2137,6 +2642,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
       orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [], dinos: [], jellies: [], rings: [], shots: [], boss: null, arena: null, gate: null,
+      cannons: [], balls: [], fireballs: [],
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     const B = makeBuilder(def.seed);
@@ -2153,14 +2659,24 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cm.frustumCulled = false; cm.castShadow = true;
       L.group.add(cm); L.coinMesh = cm;
     }
-    const sky = skyTex(def.id, def.sky);
+    const sky = skyTex(def);
     scene.background = sky.tex; scene.environment = sky.env; scene.environmentIntensity = def.lava !== undefined ? .35 : .55;
     scene.fog = new T.Fog(def.fog[0], def.fog[1], def.fog[2]);
     hemi.color.setHex(def.hemi[0]); hemi.groundColor.setHex(def.hemi[1]); hemi.intensity = def.hemi[2] * 1.15;
+    RIM.value.setHex(def.hemi[0]);
     sun.color.setHex(def.sun); sun.intensity = (def.sunI || .8) * 3.6;
     applyBloom();
     clearParticles(); clearPops();
+    setWeather(def.weather || THEME_FX[def.theme].weather);
   }
+  // weather, ambience and footstep dust for each theme (a level can override weather and ambience)
+  const THEME_FX = {
+    grass: { weather: 'pollen', amb: 'birds', dust: 0xe9dfc4 },
+    sand: { weather: 'sand', amb: 'desert', dust: 0xf3d99a },
+    snow: { weather: 'snow', amb: 'wind', dust: 0xffffff },
+    stone: { weather: 'ash', amb: 'lava', dust: 0xb9b4c8 },
+    candy: { weather: 'sprinkles', amb: 'candy', dust: 0xffd6e8 },
+  };
 
   // ================= game state =================
   const HW_SMALL = .36, PH_SMALL = 1.62, HW_BIG = .44, PH_BIG = 2.2, BIG_SCALE = 1.36;
@@ -2169,13 +2685,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // standing jump ~3.8 m, running jump ~4.5 m: enough to land on top of the "?" blocks (4.2 m) with a run-up
   const GRAV = 36, JUMP_V = 16.5, RUN_JUMP = .22, SPRING_V = 24, MAX_SPD = 8.2, ACC_G = 55, ACC_A = 26, DEC_G = 50, DEC_A = 6, TERM = -30;
   const ACC_ICE = 18, DEC_ICE = 8;
+  // action moves: spin on the ground, ground pound in the air, fireballs with the pepper
+  const SPIN_T = .36, POUND_WIND = .2, POUND_V = -34, FIRE_V = 14, FIRE_MAX = 2, CHAIN_T = 2.4;
   const G = {
     state: 'title', li: 0, lives: 3, score: 0, coins: 0, time: 300, cpIndex: -1, levelCoins: 0, timeBonus: 0,
     stateT: 0, dieKind: null, dieJump: false, goalPhase: null, warned: false, fw: [], gifts: new Set(), emberT: 0, star: false, starCharge: false, shake: 0,
+    hitStop: 0, chain: 0, chainT: 0, flash: 0, flashCol: '#fff', kick: 0,
     best: store.get('best', 0), unlocked: store.get('unlocked', 1),
   };
   const P = { pos: new T.Vector3(), vel: new T.Vector3(), prevY: 0, onGround: false, wasGround: false, ground: null, coyote: 0, jumpBuf: 0,
-    facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1, riding: null, airJumps: 0, lastSafe: null, happyT: 0, hurtT: 0, jumpFaceT: 0, landT: 0, landK: 0 };
+    facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1, riding: null, airJumps: 0, lastSafe: null, happyT: 0, hurtT: 0, jumpFaceT: 0, landT: 0, landK: 0,
+    fire: false, spinT: 0, spinCd: 0, spinAir: false, spinHit: new Set(), pound: null, poundT: 0, poundJT: 0, flipT: 0, fireCd: 0, throwT: 0, stepT: 0 };
   const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null };
   let time = 0;
 
@@ -2223,8 +2743,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       let land = null;
       for (const s of L.solids) {
         if (!s.active || !overlapP(s, p.x, p.y, p.z)) continue;
-        if (prev >= s.max.y - .3) { p.y = s.max.y; land = s; }
-        else if (prev + PH <= s.min.y + .3) p.y = s.min.y - PH;
+        if (prev >= s.max.y - .3) {
+          // the big hero's ground pound goes straight through bricks
+          if (P.pound === 'drop' && P.big && s.kind === 'block' && s.type === 'brick') { smashBrick(s); G.shake = Math.max(G.shake, .25); continue; }
+          p.y = s.max.y; land = s;
+        } else if (prev + PH <= s.min.y + .3) p.y = s.min.y - PH;
       }
       if (land) onLand(land);
       return;
@@ -2260,68 +2783,98 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function oneUp() { P.happyT = .9; G.lives++; Snd.sfx.oneUp(); popup('+1 ЖИЗНЬ', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); }
   function jumpHeld() { return JUMP_KEYS.some((k) => keys.has(k)) || touchJump.held; }
+  const dustColor = () => THEME_FX[L.theme.ground].dust;
 
   function onLand(s) {
+    const pounded = P.pound === 'drop';
+    P.spinAir = false;
     if (s.kind === 'jelly') {
-      P.vel.y = jumpHeld() ? 20 : 17; P.noCut = true; P.onGround = false; P.combo = 0; P.squash = 1.3; s.wob = 1;
-      Snd.sfx.jelly(); emit(P.pos.x, P.pos.y + .1, P.pos.z, 0xffc2e0, 8, 2.5, 1, 4, .4);
+      P.pound = null;
+      P.vel.y = (jumpHeld() ? 20 : 17) + (pounded ? 5 : 0); P.noCut = true; P.onGround = false; P.combo = 0; P.squash = 1.3; s.wob = 1;
+      Snd.sfx.jelly(); emit(P.pos.x, P.pos.y + .1, P.pos.z, 0xffc2e0, 10, 2.5, 1, 4, .4);
+      wave(P.pos.x, P.pos.y, P.pos.z, 0xff9ad1, 2.2, .4); G.kick = pounded ? 1 : .5;
       return;
     }
     if (s.kind === 'spring') {
-      P.vel.y = jumpHeld() ? SPRING_V + 3 : SPRING_V; P.noCut = true; s.sq = 1; P.onGround = false; P.combo = 0; P.squash = 1.3;
-      Snd.sfx.spring(); emit(P.pos.x, P.pos.y, P.pos.z, 0xffffff, 8, 3, 1, 4, .4);
+      P.pound = null;
+      P.vel.y = (jumpHeld() ? SPRING_V + 3 : SPRING_V) + (pounded ? 5 : 0); P.noCut = true; s.sq = 1; P.onGround = false; P.combo = 0; P.squash = 1.3;
+      Snd.sfx.spring(); emit(P.pos.x, P.pos.y, P.pos.z, 0xffffff, 10, 3, 1, 4, .4);
+      wave(P.pos.x, P.pos.y, P.pos.z, 0xffffff, 2, .35); G.kick = 1;
       return;
     }
     if (!P.wasGround) {
       if (P.vel.y < -6) { P.landK = clamp(-P.vel.y / 24, .25, 1); P.landT = .22; }
       P.squash = P.vel.y < -14 ? .76 : .88;
-      if (P.vel.y < -12) emit(P.pos.x, P.pos.y + .1, P.pos.z, 0xf4ecdc, 7, 2.4, .6, 3, .35);
+      if (P.vel.y < -8 && !pounded) Snd.sfx.land(clamp((-P.vel.y - 8) / 16, 0, 1));
+      if (P.vel.y < -12) {
+        puff(P.pos.x, P.pos.y + .15, P.pos.z, dustColor(), 6, 2.6, .3, .5, .7);
+        if (P.vel.y < -17) wave(P.pos.x, P.pos.y, P.pos.z, dustColor(), 1.8, .45, false);
+      }
     }
     P.vel.y = 0; P.onGround = true; P.ground = s; P.combo = 0; P.noCut = false;
+    if (pounded) poundImpact(s);
     if (s.kind !== 'platform' && s.kind !== 'spring') P.lastSafe = { x: P.pos.x, y: P.pos.y, z: P.pos.z };
-    if (s.fall && !s.falling && s.respawn <= 0 && s.standT === 0) s.standT = 1e-4;
+    if (s.fall && !s.falling && s.respawn <= 0 && s.standT === 0) s.standT = pounded ? .45 : 1e-4;
   }
   function onHead(s) { if (s.kind === 'block') hitBlock(s); else Snd.sfx.bump(); }
+  function smashBrick(s) {
+    const bx = (s.min.x + s.max.x) / 2, bz = (s.min.z + s.max.z) / 2;
+    s.active = false; s.mesh.visible = false; fxDebris(bx, s.by, bz); addScore(50); Snd.sfx.brick();
+    puff(bx, s.by, bz, 0xd98a5c, 5, 2, .5, .5, .8);
+  }
   function hitBlock(s) {
     const bx = (s.min.x + s.max.x) / 2, bz = (s.min.z + s.max.z) / 2;
     for (const e of L.enemies) {
       if (!e.alive || Math.abs(e.x - bx) > .9 || Math.abs(e.z - bz) > .9 || Math.abs(e.y - s.max.y) > .3) continue;
-      knockEnemy(e);
+      knockEnemy(e, 0, 0, 100, true);
     }
     if (s.type === 'brick') {
       // only the big hero is strong enough to smash bricks; the small one just bumps them
-      if (P.big) { s.active = false; s.mesh.visible = false; fxDebris(bx, s.by, bz); addScore(50); Snd.sfx.brick(); }
+      if (P.big) smashBrick(s);
       else { s.bump = .22; Snd.sfx.bump(); }
       return;
     }
     if (s.used) { Snd.sfx.bump(); return; }
     s.bump = .22;
     if (s.type === 'qpower') {
-      if (P.big) spawnOrb(bx, s.by, bz); else spawnMushroom(bx, s.max.y, bz);
+      // mushroom for the small hero, fire pepper for the big one, a shield once already on fire
+      if (!P.big) spawnItem('shroom', bx, s.max.y, bz); else if (!P.fire) spawnItem('pepper', bx, s.max.y, bz); else spawnOrb(bx, s.by, bz);
       Snd.sfx.sprout(); s.left = 0;
     } else { fxCoin(bx, s.max.y + .3, bz); addCoin(); s.left--; }
     if (s.left <= 0) { s.used = true; s.mesh.material = MAT.used; }
   }
-  function knockEnemy(e) {
-    e.alive = false; e.flip = true; e.vy = 8; e.dead = 1.6; addScore(100);
-    popup('100', e.x, e.y + 1.4, e.z); Snd.sfx.stomp();
+  // knocked enemies flip and fly off; when kicked sideways they bowl over whoever they hit
+  function knockEnemy(e, dx = 0, dz = 0, pts = 100, byHero = false) {
+    e.alive = false; e.flip = true; e.vy = 9; e.dead = 1.6; addScore(pts);
+    const l = Math.hypot(dx, dz); e.kick = l > .01; e.kvx = e.kick ? dx / l * 8 : 0; e.kvz = e.kick ? dz / l * 8 : 0;
+    popup(String(pts), e.x, e.y + 1.4, e.z);
+    Snd.at(e.x, e.y, e.z).kick();
+    glow(e.x, e.y + .5, e.z, 0xfff3a0, 10, 5, 1, 6, .3, .25); flashAt(e.x, e.y + .5, e.z, 0xffffff, 1.8);
+    if (byHero) { chainAdd(); G.hitStop = Math.max(G.hitStop, .035); }
   }
   const COMBO = [100, 200, 400, 800, 1000, 2000, 4000, 8000];
   function stomp(e) {
-    e.alive = false; e.dead = .6; e.mesh.scale.set(1.25, .25, 1.25); e.mesh.position.y = e.y; e.mesh.rotation.z = 0;
+    e.alive = false; P.pound = null;
+    if (e.type === 'flyer') { e.flip = true; e.vy = -2; e.dead = 1.2; e.kick = false; }
+    else { e.dead = .6; e.mesh.scale.set(1.25, .25, 1.25); e.mesh.position.y = e.y; e.mesh.rotation.z = 0; }
     P.vel.y = jumpHeld() ? 16.5 : 12; P.onGround = false; P.noCut = true; P.happyT = Math.max(P.happyT, .35);
     if (P.combo >= COMBO.length) oneUp();
     else { const pts = COMBO[P.combo]; addScore(pts); popup(String(pts), e.x, e.y + 1.4, e.z); }
     P.combo++;
     Snd.sfx.stomp(); emit(e.x, e.y + .3, e.z, 0xffffff, 10, 3, 1, 5, .4);
+    puff(e.x, e.y + .2, e.z, 0xf4ecdc, 4, 1.8, .2, .45, .7); wave(e.x, e.y, e.z, 0xffffff, 1.6, .3);
+    chainAdd(); G.hitStop = Math.max(G.hitStop, .05);
   }
   function hurt(e) {
     if (P.inv > 0) return;
+    P.pound = null; P.spinT = 0;
+    G.flash = .55; G.flashCol = '#ff3b2f'; G.hitStop = Math.max(G.hitStop, .07); G.shake = Math.max(G.shake, .35);
+    const dx = P.pos.x - e.x, dz = P.pos.z - e.z, l = Math.hypot(dx, dz) || 1;
     if (P.shield) {
       P.shield = false; P.inv = 1.8; P.vel.y = 8; P.noCut = true; P.hurtT = .7;
-      const dx = P.pos.x - e.x, dz = P.pos.z - e.z, l = Math.hypot(dx, dz) || 1;
       P.vel.x = dx / l * 6; P.vel.z = dz / l * 6;
-      Snd.sfx.shieldPop(); emit(P.pos.x, P.pos.y + .8, P.pos.z, 0x8ff3ff, 18, 5, 1, 4, .5);
+      G.flashCol = '#8ff3ff';
+      Snd.sfx.shieldPop(); glow(P.pos.x, P.pos.y + .8, P.pos.z, 0x8ff3ff, 18, 5, 1, 4, .5);
       return;
     }
     if (P.riding) {
@@ -2329,9 +2882,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       Snd.sfx.yelp();
       return;
     }
+    if (P.fire) { // the pepper burns off first, the hero stays big
+      setFire(false); P.inv = 2.2; P.hurtT = .8; P.growT = .5;
+      P.vel.x = dx / l * 4; P.vel.z = dz / l * 4;
+      Snd.sfx.shrink(); puff(P.pos.x, P.pos.y + 1, P.pos.z, 0x8a8a9a, 6, 2, .5, .6, .9);
+      return;
+    }
     if (P.big) {
       setBig(false, true); P.inv = 2.2; P.hurtT = .8;
-      const dx = P.pos.x - e.x, dz = P.pos.z - e.z, l = Math.hypot(dx, dz) || 1;
       P.vel.x = dx / l * 4; P.vel.z = dz / l * 4;
       Snd.sfx.shrink();
       return;
@@ -2345,17 +2903,26 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function setBig(on, animate) {
     P.big = on;
+    if (!on) setFire(false);
     applySize();
     P.growT = animate ? .8 : 0;
     if (animate) P.inv = Math.max(P.inv, .8);
     if (on && animate) P.happyT = 1;
   }
-  function spawnMushroom(x, top, z) {
-    const m = new T.Mesh(GEO.shroom, MAT.char); m.castShadow = true; m.position.set(x, top - .75, z); L.group.add(m);
-    // heads towards the camera side, where the hero comes from, so it is easy to catch in 3D
+  // Fire pepper: red cap and cream overalls; the action button throws fireballs
+  function setFire(on) {
+    P.fire = on;
+    hero.m.cap.color.setHex(on ? 0xf0503a : 0x16a39c); hero.m.capDark.color.setHex(on ? 0xc0341f : 0x0f7f79);
+    hero.m.over.color.setHex(on ? 0xfff1dc : 0x2c3f93);
+    btnAct.classList.toggle('fire', on); actLbl.textContent = on ? 'ОГОНЬ' : 'УДАР';
+    btnAct.setAttribute('aria-label', on ? 'Огонь' : 'Удар');
+  }
+  function spawnItem(kind, x, top, z) {
+    const m = new T.Mesh(kind === 'pepper' ? GEO.pepper : GEO.shroom, MAT.char); m.castShadow = true; m.position.set(x, top - .75, z); L.group.add(m);
+    // the mushroom heads towards the camera side, where the hero comes from, so it is easy to catch in 3D
     let dx = camera.position.x - x, dz = camera.position.z - z, l = Math.hypot(dx, dz);
     if (l < .01) { dx = 0; dz = 1; l = 1; }
-    L.items.push({ m, x, y: top - .75, z, top, vx: dx / l * 2.6, vz: dz / l * 2.6, vy: 0, state: 'rise', t: 0 });
+    L.items.push({ kind, m, x, y: top - .75, z, top, vx: dx / l * 2.6, vz: dz / l * 2.6, vy: 0, state: 'rise', t: 0 });
   }
   function itemBlocked(x, y, z) {
     for (const s of L.solids) {
@@ -2369,8 +2936,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const it = L.items[i]; it.t += dt;
       if (it.state === 'rise') {
         it.y = Math.min(it.top, it.y + dt * 1.3);
-        if (it.y >= it.top) it.state = 'walk';
-      } else {
+        if (it.y >= it.top) it.state = it.kind === 'pepper' ? 'idle' : 'walk';
+      } else if (it.state === 'walk') {
         const nx = it.x + it.vx * dt; if (itemBlocked(nx, it.y, it.z)) it.vx = -it.vx; else it.x = nx;
         const nz = it.z + it.vz * dt; if (itemBlocked(it.x, it.y, nz)) it.vz = -it.vz; else it.z = nz;
         it.vy -= 30 * dt;
@@ -2378,18 +2945,289 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (ny <= gy) { it.y = gy; it.vy = 0; } else it.y = ny;
         if (it.y < L.killY || (L.lavaY !== null && it.y < L.lavaY)) { L.group.remove(it.m); L.items.splice(i, 1); continue; }
       }
-      it.m.position.set(it.x, it.y, it.z);
-      it.m.rotation.y = Math.atan2(it.vx, it.vz);
+      if (it.kind === 'pepper') {
+        // the pepper stays on its block, bobbing, spinning and giving off sparks
+        it.m.position.set(it.x, it.y + (it.state === 'idle' ? .06 + Math.sin(it.t * 3) * .08 : 0), it.z);
+        it.m.rotation.y += dt * 1.8;
+        if (Math.random() < dt * 7) glow(it.x + (Math.random() - .5) * .3, it.y + .9, it.z, 0xff8a2a, 1, .4, 1.4, -.4, .6, .2);
+      } else {
+        it.m.position.set(it.x, it.y, it.z);
+        it.m.rotation.y = Math.atan2(it.vx, it.vz);
+      }
       if (G.state !== 'playing' || it.t < .3) continue;
       const p = P.pos;
       if (Math.abs(p.x - it.x) < HW + .3 && Math.abs(p.z - it.z) < HW + .3 && p.y < it.y + .75 && p.y + PH > it.y) {
         L.group.remove(it.m); L.items.splice(i, 1);
         addScore(1000);
+        if (it.kind === 'pepper') {
+          if (!P.big) setBig(true, true); else P.growT = .5;
+          setFire(true); P.happyT = 1; Snd.sfx.pepper(); popup('ОГНЕННЫЙ ПЕРЕЦ!', p.x, p.y + 2.8, p.z, 'gold');
+          glow(it.x, it.y + .5, it.z, 0xff8a2a, 24, 5, 1, 3, .6, .35); wave(p.x, p.y, p.z, 0xff8a2a, 2.4, .45);
+          continue;
+        }
         if (!P.big) { setBig(true, true); Snd.sfx.grow(); popup('СУПЕР-ГРИБ!', p.x, p.y + 2.8, p.z, 'gold'); }
         else { Snd.sfx.power(); popup('1000', p.x, p.y + 2.8, p.z); }
-        emit(it.x, it.y + .4, it.z, 0x7d93ff, 16, 4, 1, 4, .5);
+        glow(it.x, it.y + .4, it.z, 0x7d93ff, 16, 4, 1, 4, .5);
       }
     }
+  }
+
+  // ---------- chain combo: every defeat within CHAIN_T seconds of the last one raises the chain ----------
+  const comboEl = $('combo'), comboN = $('comboN'), comboBar = document.querySelector('#comboBar i');
+  function chainAdd() {
+    G.chain++; G.chainT = CHAIN_T;
+    if (G.chain < 2) return;
+    comboN.textContent = '×' + G.chain; comboEl.classList.add('show');
+    comboN.classList.remove('bump'); void comboN.offsetWidth; comboN.classList.add('bump');
+    Snd.sfx.chain(G.chain);
+  }
+  function endChain() {
+    if (G.chain >= 3 && G.state === 'playing') {
+      const bonus = G.chain * G.chain * 50;
+      addScore(bonus); Snd.sfx.power();
+      popup('КОМБО ×' + G.chain + ' · +' + bonus, P.pos.x, P.pos.y + PH + 1.2, P.pos.z, 'gold');
+    }
+    G.chain = 0; G.chainT = 0; comboEl.classList.remove('show');
+  }
+  function updateChain(dt) {
+    if (G.chainT <= 0) return;
+    G.chainT -= dt;
+    if (G.chainT <= 0) endChain();
+  }
+
+  // ---------- action button: spin on the ground, ground pound in the air, fireballs with the pepper ----------
+  function action() {
+    if (P.pound || G.state !== 'playing') return;
+    if (P.fire) { throwFire(); return; }
+    if (P.onGround || P.coyote > 0) { spin(); return; }
+    const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, HW * .8);
+    if (P.pos.y - gy > 1.2) startPound(); else spin();
+  }
+  function spin() {
+    if (P.spinT > 0 || P.spinCd > 0) return;
+    P.spinT = SPIN_T; P.spinHit.clear();
+    if (!P.onGround && !P.spinAir) { P.spinAir = true; P.vel.y = Math.max(P.vel.y, 6); P.noCut = true; } // a little hop in the air, once per jump
+    Snd.sfx.spin();
+    const R = spinReach();
+    wave(P.pos.x, P.pos.y, P.pos.z, 0xbff6ff, R + .3, .3);
+  }
+  const spinReach = () => (P.riding ? 2.1 : P.big ? 1.9 : 1.65);
+  function spinHits() {
+    const R = spinReach(), x = P.pos.x, z = P.pos.z, y0 = P.pos.y - .4, y1 = P.pos.y + PH + .3;
+    for (const e of L.enemies) {
+      if (!e.alive || P.spinHit.has(e)) continue;
+      const dx = e.x - x, dz = e.z - z;
+      if (dx * dx + dz * dz > R * R || e.y > y1 || e.y + e.h < y0) continue;
+      P.spinHit.add(e);
+      if (e.type === 'spiky' && !P.riding) { // the spikes shrug the spin off; it takes a stomp from above, fire or the dino
+        Snd.at(e.x, e.y, e.z).clink(); glow(e.x, e.y + .6, e.z, 0xfff3a0, 8, 4, 1, 6, .25, .2);
+        e.t += e.range; // turns it around
+        continue;
+      }
+      knockEnemy(e, dx, dz, 200, true);
+    }
+    for (const b of L.balls) {
+      const dx = b.x - x, dz = b.z - z;
+      if (dx * dx + dz * dz < (R + .3) * (R + .3) && b.y > y0 && b.y < y1) popBall(b, 200);
+    }
+  }
+  function startPound() {
+    P.pound = 'wind'; P.poundT = POUND_WIND; P.vel.set(0, 0, 0); P.spinT = 0; P.airJumps = 0;
+    Snd.sfx.poundUp();
+    glow(P.pos.x, P.pos.y + PH * .5, P.pos.z, 0xffffff, 10, 3, 0, 0, .3, .25);
+  }
+  function poundImpact(s) {
+    P.pound = null; P.poundJT = .3;
+    const x = P.pos.x, y = P.pos.y, z = P.pos.z, R = P.riding ? 3.4 : 2.8, dust = dustColor();
+    G.shake = Math.max(G.shake, .55); G.hitStop = Math.max(G.hitStop, .06);
+    Snd.sfx.pound();
+    wave(x, y, z, 0xffffff, R + .5, .35); wave(x, y, z, dust, R, .6, false);
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; puff(x + Math.cos(a) * .9, y + .2, z + Math.sin(a) * .9, dust, 1, 1.5, .4, .7, .9); }
+    emit(x, y + .2, z, dust, 14, 5, 3, 16, .5, .2);
+    // the shockwave flattens everything nearby, spiky shells included
+    for (const e of L.enemies) {
+      if (!e.alive || Math.abs(e.y - y) > 1.4) continue;
+      const dx = e.x - x, dz = e.z - z;
+      if (dx * dx + dz * dz < R * R) knockEnemy(e, dx, dz, 200, true);
+    }
+    for (const b of L.balls) if (Math.hypot(b.x - x, b.z - z) < R && Math.abs(b.y - y) < 1.8) popBall(b, 200);
+    // pounding a "?" block from above knocks its prize out
+    if (s.kind === 'block' && s.type !== 'brick' && !s.used) hitBlock(s);
+  }
+
+  // ---------- fireballs: bounce along the ground, auto-aim at the nearest enemy ahead ----------
+  function pointHits(x, y, z, r, skip) {
+    for (const s of L.solids) {
+      if (!s.active || s === skip) continue;
+      if (x + r > s.min.x && x - r < s.max.x && y + r > s.min.y && y - r < s.max.y && z + r > s.min.z && z - r < s.max.z) return s;
+    }
+    return null;
+  }
+  function throwFire() {
+    if (P.fireCd > 0 || L.fireballs.length >= FIRE_MAX) return;
+    P.fireCd = .2; P.throwT = .22;
+    let dx = Math.sin(P.facing), dz = Math.cos(P.facing), best = 14;
+    for (const e of L.enemies) {
+      if (!e.alive || Math.abs(e.y + e.h * .5 - (P.pos.y + 1)) > 3.5) continue;
+      const ex = e.x - P.pos.x, ez = e.z - P.pos.z, d = Math.hypot(ex, ez);
+      if (d < best && d > .3 && (ex * Math.sin(P.facing) + ez * Math.cos(P.facing)) / d > .78) { best = d; dx = ex / d; dz = ez / d; }
+    }
+    const x = P.pos.x + dx * .55, y = P.pos.y + PH * .55, z = P.pos.z + dz * .55;
+    const m = new T.Mesh(SPH, MAT.fireball); m.scale.setScalar(.22); m.position.set(x, y, z); L.group.add(m);
+    L.fireballs.push({ m, x, y, z, vx: dx * FIRE_V, vy: -1, vz: dz * FIRE_V, life: 1.7, bounces: 0 });
+    Snd.sfx.fire(); glow(x, y, z, 0xffa13a, 6, 2.5, .5, 0, .25, .3);
+  }
+  function killFireball(i, fizz) {
+    const f = L.fireballs[i];
+    L.group.remove(f.m); L.fireballs.splice(i, 1);
+    puff(f.x, f.y, f.z, 0x6d6874, 3, 1.2, .8, .5, .6); glow(f.x, f.y, f.z, 0xffb03a, 8, 3, .5, 2, .25, .25);
+    if (fizz) Snd.at(f.x, f.y, f.z).fizz();
+  }
+  function updateFireballs(dt) {
+    for (let i = L.fireballs.length - 1; i >= 0; i--) {
+      const f = L.fireballs[i]; f.life -= dt;
+      if (f.life <= 0) { killFireball(i, false); continue; }
+      f.vy -= 30 * dt;
+      const nx = f.x + f.vx * dt, nz = f.z + f.vz * dt;
+      if (pointHits(nx, f.y, nz, .18)) { killFireball(i, true); continue; }
+      f.x = nx; f.z = nz;
+      const ny = f.y + f.vy * dt, gy = groundAt(f.x, f.z, f.y - .15, .15);
+      if (f.vy < 0 && ny - .2 <= gy) { f.y = gy + .21; f.vy = 7.5; f.bounces++; }
+      else f.y = ny;
+      if (f.y < L.killY || (L.lavaY !== null && f.y < L.lavaY + .1)) { killFireball(i, true); continue; }
+      f.m.position.set(f.x, f.y, f.z);
+      f.m.scale.setScalar(.22 + Math.sin(time * 40) * .03);
+      glow(f.x, f.y, f.z, Math.random() < .5 ? 0xff8a2a : 0xffd35a, 1, .6, .6, 0, .28, .3);
+      let hit = false;
+      for (const e of L.enemies) {
+        if (!e.alive || Math.abs(e.x - f.x) > e.hw + .25 || Math.abs(e.z - f.z) > e.hw + .25 || f.y < e.y - .2 || f.y > e.y + e.h + .2) continue;
+        knockEnemy(e, f.vx, f.vz, 200, true); hit = true; break;
+      }
+      if (!hit) for (const b of L.balls) if (Math.hypot(b.x - f.x, b.z - f.z) < .6 && Math.abs(b.y - f.y) < .6) { popBall(b, 200); hit = true; break; }
+      const bs = L.boss;
+      if (!hit && bs && bs.active && !bs.dead && Math.hypot(bs.x - f.x, bs.z - f.z) < bs.r + .2 && f.y < bs.y + bs.h && f.y > bs.y - .3) {
+        Snd.at(f.x, f.y, f.z).clink(); hit = true; // bosses shrug fire off: it takes a stomp
+      }
+      if (hit) killFireball(i, false);
+    }
+  }
+
+  // ---------- cannons and their cannonballs ----------
+  function updateCannons(dt) {
+    for (const c of L.cannons) {
+      const dx = P.pos.x - c.x, dz = P.pos.z - c.z, d = Math.hypot(dx, dz);
+      const awake = G.state === 'playing' && d < 24 && d > 3 && Math.abs(P.pos.y - c.y) < 4;
+      if (awake) c.yaw = angleDamp(c.yaw, Math.atan2(dx, dz), 3.5, dt);
+      c.pivot.rotation.y = c.yaw;
+      c.recoil = Math.max(0, c.recoil - dt * 3);
+      c.barrel.position.z = -c.recoil * .28;
+      if (!awake) { c.charging = false; c.barrel.scale.setScalar(1); continue; }
+      c.t += dt;
+      const left = c.period - c.t;
+      if (left < .5 && !c.charging) { c.charging = true; Snd.at(c.x, c.y + 1.2, c.z).charge(); }
+      if (c.charging) {
+        c.barrel.scale.setScalar(1 + Math.sin(time * 40) * .05);
+        if (Math.random() < dt * 20) glow(c.x + Math.sin(c.yaw) * .8, c.y + 1.2, c.z + Math.cos(c.yaw) * .8, 0xffc04a, 1, 1, 0, 0, .25, .2);
+      }
+      if (c.t >= c.period) {
+        c.t = 0; c.charging = false; c.recoil = 1; c.barrel.scale.setScalar(1);
+        const sx = Math.sin(c.yaw), sz = Math.cos(c.yaw), bx = c.x + sx * 1.05, by = c.y + 1.2, bz = c.z + sz * 1.05;
+        const m = new T.Mesh(GEO.ball, MAT.char); m.castShadow = true; m.position.set(bx, by, bz); m.rotation.y = c.yaw; L.group.add(m);
+        L.balls.push({ m, x: bx, y: by, z: bz, vx: sx * 7.5, vz: sz * 7.5, life: 6, own: c.s });
+        Snd.at(c.x, c.y + 1.2, c.z).boom(); G.shake = Math.max(G.shake, d < 10 ? .2 : 0);
+        puff(bx, by, bz, 0xcfcfdc, 6, 2.2, .6, .6, .9); glow(bx, by, bz, 0xffd35a, 8, 3, .5, 0, .2, .35);
+      }
+    }
+  }
+  function popBall(b, pts) {
+    b.dead = true; addScore(pts); popup(String(pts), b.x, b.y + 1, b.z); chainAdd();
+    Snd.at(b.x, b.y, b.z).kick(); puff(b.x, b.y, b.z, 0x6d6874, 5, 2, .5, .5, .8); flashAt(b.x, b.y, b.z, 0xffffff, 1.6);
+  }
+  function updateBalls(dt) {
+    for (let i = L.balls.length - 1; i >= 0; i--) {
+      const b = L.balls[i]; b.life -= dt;
+      if (!b.dead) {
+        b.x += b.vx * dt; b.z += b.vz * dt;
+        b.m.position.set(b.x, b.y, b.z);
+        if (Math.random() < dt * 14) puff(b.x - b.vx * .06, b.y, b.z - b.vz * .06, 0xd8d8e4, 1, .3, .3, .5, .45);
+        if (b.life <= 0 || pointHits(b.x, b.y, b.z, .3, b.own)) { popBallQuiet(b); }
+        else if (G.state === 'playing') {
+          const p = P.pos;
+          if (Math.abs(p.x - b.x) < HW + .34 && Math.abs(p.z - b.z) < HW + .34 && p.y < b.y + .36 && p.y + PH > b.y - .36) {
+            const falling = P.vel.y <= .5 || P.prevY > p.y;
+            if (falling && P.prevY >= b.y + .05) { // stomped: bounce off it like an enemy
+              P.vel.y = jumpHeld() ? 16.5 : 12; P.onGround = false; P.noCut = true; P.pound = null;
+              popBall(b, 200); Snd.sfx.stomp();
+            } else if (P.spinT > 0) popBall(b, 200);
+            else { hurt(b); popBallQuiet(b); }
+          }
+        }
+      }
+      if (b.dead) { L.group.remove(b.m); L.balls.splice(i, 1); }
+    }
+  }
+  function popBallQuiet(b) { b.dead = true; puff(b.x, b.y, b.z, 0x6d6874, 5, 2, .5, .5, .8); Snd.at(b.x, b.y, b.z).poof(); }
+
+  // ---------- Buzz the flyer: hovers, buzzes as a warning, then dives at where the hero stood ----------
+  function flyerHome(e) {
+    const o = pingpong(e.t, 2 * e.range) - e.range;
+    return e.axis === 'x' ? [e.hx + o, e.hz] : [e.hx, e.hz + o];
+  }
+  function updateFlyer(e, dt) {
+    e.st += dt; if (e.cool > 0) e.cool -= dt;
+    const p = P.pos;
+    let flap = 38, shake = 0;
+    if (e.state === 'hover') {
+      e.t += e.speed * dt;
+      const [hx, hz] = flyerHome(e);
+      e.x = damp(e.x, hx, 4, dt); e.z = damp(e.z, hz, 4, dt); e.y = damp(e.y, e.hy + Math.sin(time * 2.6 + e.hopOff * 3) * .25, 4, dt);
+      e.face = angleDamp(e.face, Math.atan2(p.x - e.x, p.z - e.z), 3, dt);
+      const dh = Math.hypot(p.x - e.x, p.z - e.z);
+      if (G.state === 'playing' && e.cool <= 0 && dh < 7.5 && p.y < e.y + 1 && p.y > e.y - 7) {
+        e.state = 'aim'; e.st = 0; popup('!', e.x, e.y + 1.5, e.z, 'gold'); Snd.at(e.x, e.y, e.z).buzz();
+      }
+    } else if (e.state === 'aim') {
+      flap = 64; shake = (Math.random() - .5) * .1;
+      e.face = angleDamp(e.face, Math.atan2(p.x - e.x, p.z - e.z), 10, dt);
+      e.y = damp(e.y, e.hy + .5, 6, dt);
+      if (e.st > .55) {
+        const gy = groundAt(p.x, p.z, p.y + .1, .2), ty = Math.max(p.y + .2, gy + .1);
+        const dx = p.x - e.x, dy = ty - e.y, dz = p.z - e.z, l = Math.hypot(dx, dy, dz) || 1, v = 11;
+        e.dvx = dx / l * v; e.dvy = dy / l * v; e.dvz = dz / l * v; e.dl = l / v + .3;
+        e.state = 'dive'; e.st = 0;
+      }
+    } else if (e.state === 'dive') {
+      flap = 24;
+      e.x += e.dvx * dt; e.y += e.dvy * dt; e.z += e.dvz * dt;
+      const gy = groundAt(e.x, e.z, e.y + .5, .2); if (e.y < gy + .05) { e.y = gy + .05; e.dvy = Math.max(0, e.dvy); }
+      e.face = Math.atan2(e.dvx, e.dvz);
+      if (Math.random() < dt * 25) glow(e.x, e.y + .4, e.z, 0xfff3a0, 1, .3, 0, 0, .3, .2);
+      if (e.st > e.dl) { e.state = 'back'; e.st = 0; e.cool = 2.2; }
+    } else { // fly back up to the patrol line
+      e.t += e.speed * dt;
+      const [hx, hz] = flyerHome(e), dx = hx - e.x, dy = e.hy - e.y, dz = hz - e.z, l = Math.hypot(dx, dy, dz);
+      if (l < .3) e.state = 'hover';
+      else { const k = Math.min(l, 4.5 * dt) / l; e.x += dx * k; e.y += dy * k; e.z += dz * k; e.face = angleDamp(e.face, Math.atan2(dx, dz), 6, dt); }
+    }
+    e.mesh.position.set(e.x + shake, e.y, e.z);
+    e.mesh.rotation.y = e.face;
+    e.mesh.rotation.x = e.state === 'dive' ? .35 : 0;
+    e.wings[0].rotation.z = Math.sin(time * flap) * .7; e.wings[1].rotation.z = -Math.sin(time * flap) * .7;
+  }
+
+  // ---------- footsteps: a sound per surface and a little dust ----------
+  function surfaceOf(s) {
+    if (!s) return 'grass';
+    if (s.ice) return 'ice';
+    if (s.kind === 'platform') return 'wood';
+    if (s.kind === 'jelly') return 'candy';
+    if (s.kind === 'ground') return L.theme.ground;
+    return 'stone';
+  }
+  function footstep() {
+    const surf = surfaceOf(P.ground);
+    Snd.sfx.step(surf, !!P.riding);
+    if (surf !== 'ice' && surf !== 'wood') puff(P.pos.x, P.pos.y + .1, P.pos.z, dustColor(), P.riding ? 2 : 1, .8, .5, .4, P.riding ? .7 : .5);
   }
   function reachCheckpoint(i) {
     for (let j = 0; j <= i; j++) markCheckpoint(L.checkpoints[j]);
@@ -2397,7 +3235,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.star) G.starCharge = true;
     const c = L.checkpoints[i];
     Snd.sfx.cp(); popup('ЧЕКПОИНТ', c.x, c.y + 3.2, c.z, 'gold'); P.happyT = .7;
-    emit(c.x + .5, c.y + 2.3, c.z, 0x6ff28a, 16, 4, 1, 5, .6);
+    emit(c.x + .5, c.y + 2.3, c.z, 0x6ff28a, 16, 4, 1, 5, .6); glow(c.x + .5, c.y + 2.3, c.z, 0xb8ffc8, 14, 3, 1, 1, .7, .3); wave(c.x, c.y, c.z, 0x6ff28a, 2.2, .45);
   }
   function markCheckpoint(c) { if (!c) return; c.reached = true; c.flag.material.color.setHex(0x3fcf5a); c.flag.position.y = c.y + 2.35; }
   function cpSpawn(c) { return { x: c.x + 1.3, y: c.y, z: c.z }; }
@@ -2419,7 +3257,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const f = L.fx[i]; f.life -= dt;
       if (f.life <= 0) {
         L.group.remove(f.m); L.fx.splice(i, 1);
-        if (f.kind === 'coin') { emit(f.m.position.x, f.m.position.y, f.m.position.z, 0x7d93ff, 8, 3, 1, 4, .4); popup('100', f.m.position.x, f.m.position.y + .4, f.m.position.z); }
+        if (f.kind === 'coin') { glow(f.m.position.x, f.m.position.y, f.m.position.z, 0x7d93ff, 10, 3, 1, 4, .4, .26); popup('100', f.m.position.x, f.m.position.y + .4, f.m.position.z); }
         continue;
       }
       f.vy -= f.g * dt;
@@ -2453,7 +3291,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (dx * dx + dy * dy + dz * dz < 1.2) {
           L.group.remove(o.m); L.orbs.splice(i, 1);
           P.shield = true; addScore(1000); Snd.sfx.power(); P.happyT = .8;
-          popup('ЩИТ!', o.x, o.y + 1.2, o.z, 'aqua'); emit(o.x, o.y, o.z, 0x8ff3ff, 20, 4, 1, 3, .6);
+          popup('ЩИТ!', o.x, o.y + 1.2, o.z, 'aqua'); glow(o.x, o.y, o.z, 0x8ff3ff, 22, 4, 1, 3, .6);
         }
       }
     }
@@ -2529,44 +3367,69 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (g.dz) moveH('z', g.dz, false);
       if (g.dy) P.pos.y += g.dy;
     }
+    if (input.actQueued) { input.actQueued = false; action(); }
     const inp = readInput();
     const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
     const wx = cy * inp.x - sy * inp.y, wz = -sy * inp.x - cy * inp.y;
     const mag = Math.min(1, Math.hypot(inp.x, inp.y));
-    const icy = P.onGround && P.ground && P.ground.ice;
-    const acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
-    const spdMax = P.riding ? RIDE_SPD : MAX_SPD;
-    let dvx = wx * spdMax - P.vel.x, dvz = wz * spdMax - P.vel.z;
-    const dl = Math.hypot(dvx, dvz), md = acc * dt;
-    if (dl > md) { dvx *= md / dl; dvz *= md / dl; }
-    P.vel.x += dvx; P.vel.z += dvz;
-    if (mag > .08) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), 16, dt);
+    if (P.pound) { P.vel.x = P.vel.z = 0; } // no steering during a ground pound
+    else {
+      const icy = P.onGround && P.ground && P.ground.ice;
+      const acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
+      const spdMax = P.riding ? RIDE_SPD : MAX_SPD;
+      let dvx = wx * spdMax - P.vel.x, dvz = wz * spdMax - P.vel.z;
+      const dl = Math.hypot(dvx, dvz), md = acc * dt;
+      if (dl > md) { dvx *= md / dl; dvz *= md / dl; }
+      P.vel.x += dvx; P.vel.z += dvz;
+      if (mag > .08) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), 16, dt);
+    }
 
     if (input.jumpQueued) { P.jumpBuf = .14; input.jumpQueued = false; }
     if (P.jumpBuf > 0) P.jumpBuf -= dt;
     P.coyote = P.onGround ? .11 : P.coyote - dt;
+    if (P.pound) P.jumpBuf = 0;
     if (P.jumpBuf > 0 && P.coyote > 0) {
-      P.vel.y = JUMP_V + (P.riding ? RIDE_JUMP : 0) + Math.hypot(P.vel.x, P.vel.z) * RUN_JUMP;
-      P.onGround = false; P.coyote = 0; P.jumpBuf = 0; P.ground = null; P.squash = 1.22; P.noCut = false;
-      P.airJumps = P.riding ? 1 : 0; P.jumpFaceT = .35;
+      // right after a ground pound the jump springs much higher, with a flip
+      const high = P.poundJT > 0;
+      P.vel.y = (high ? JUMP_V * 1.28 : JUMP_V) + (P.riding ? RIDE_JUMP : 0) + Math.hypot(P.vel.x, P.vel.z) * RUN_JUMP;
+      P.onGround = false; P.coyote = 0; P.jumpBuf = 0; P.ground = null; P.squash = 1.22; P.noCut = high;
+      P.airJumps = P.riding ? 1 : 0; P.jumpFaceT = .35; P.poundJT = 0;
       Snd.sfx.jump();
+      puff(P.pos.x, P.pos.y + .1, P.pos.z, dustColor(), 3, 1.2, .3, .4, .55);
+      if (high) { P.flipT = .5; G.kick = .8; Snd.sfx.flutter(); glow(P.pos.x, P.pos.y + .3, P.pos.z, 0xbff6ff, 16, 4, 1, 3, .45, .28); wave(P.pos.x, P.pos.y, P.pos.z, 0xbff6ff, 2, .35); }
     } else if (P.jumpBuf > 0 && P.airJumps > 0 && !P.onGround) {
       P.airJumps--; P.jumpFaceT = .25; P.vel.y = JUMP_V * .92; P.jumpBuf = 0; P.noCut = false; P.squash = 1.15;
       Snd.sfx.flutter(); emit(P.pos.x, P.pos.y + .2, P.pos.z, 0xffffff, 10, 2.5, -1, 2, .4);
     }
-    let grav = GRAV;
-    if (P.vel.y > 0 && !jumpHeld() && !P.noCut) grav *= 2.3;
-    P.vel.y = Math.max(P.vel.y - grav * dt, TERM);
+    if (P.pound === 'wind') {
+      P.vel.set(0, 0, 0); P.poundT -= dt;
+      if (P.poundT <= 0) { P.pound = 'drop'; P.vel.y = POUND_V; }
+    } else if (P.pound === 'drop') {
+      P.vel.y = POUND_V;
+      if (Math.random() < dt * 40) glow(P.pos.x + (Math.random() - .5) * .5, P.pos.y + PH, P.pos.z + (Math.random() - .5) * .5, 0xffffff, 1, .5, 3, 0, .25, .3);
+    } else {
+      let grav = GRAV;
+      if (P.vel.y > 0 && !jumpHeld() && !P.noCut) grav *= 2.3;
+      P.vel.y = Math.max(P.vel.y - grav * dt, TERM);
+    }
 
     P.onGround = false; P.ground = null;
     moveH('x', P.vel.x * dt, true);
     moveH('z', P.vel.z * dt, true);
     moveV(P.vel.y * dt);
+    if (P.spinT > 0) spinHits();
+    // footsteps
+    const spdH = Math.hypot(P.vel.x, P.vel.z);
+    if (P.onGround && spdH > 1.5) {
+      P.stepT += dt * spdH * (P.riding ? .3 : .44);
+      if (P.stepT >= 1) { P.stepT -= 1; footstep(); }
+    } else P.stepT = .7;
+    if (P.fire && Math.random() < dt * 5) glow(P.pos.x + Math.sin(P.facing) * .3, P.pos.y + PH * .45, P.pos.z + Math.cos(P.facing) * .3, 0xff8a2a, 1, .3, 1.2, -.3, .5, .15);
     const inLava = L.lavaY !== null && P.pos.y < L.lavaY + .05;
     const lost = inLava || P.pos.y < L.killY || (P.lastSafe && P.pos.y < P.lastSafe.y - 9.5);
-    if (lost && G.star && G.starCharge && P.lastSafe) starRescue();
+    if (lost && G.star && G.starCharge && P.lastSafe) { P.pound = null; starRescue(); }
     else if (inLava) {
-      emit(P.pos.x, L.lavaY + .3, P.pos.z, 0xffa12e, 24, 5, 3, 6, .7);
+      glow(P.pos.x, L.lavaY + .3, P.pos.z, 0xffa12e, 24, 5, 3, 6, .7, .35); puff(P.pos.x, L.lavaY + .5, P.pos.z, 0x5a4a50, 8, 2, 1.5, 1, 1.2);
       Snd.sfx.burn(); die('burn');
     } else if (P.pos.y < L.killY) die('fall');
   }
@@ -2576,7 +3439,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (const c of L.coins) {
       if (c.taken) continue;
       const dx = c.x - cx, dz = c.z - cz;
-      if (dx * dx + dz * dz < .5 && Math.abs(c.y - cy) < 1.05) { c.taken = true; addCoin(); emit(c.x, c.y, c.z, 0x7d93ff, 8, 3, 1, 5, .4); }
+      if (dx * dx + dz * dz < .5 && Math.abs(c.y - cy) < 1.05) { c.taken = true; addCoin(); glow(c.x, c.y, c.z, 0x7d93ff, 9, 3, 1, 5, .4, .26); flashAt(c.x, c.y, c.z, 0x9fb0ff, 1.1, .15); }
     }
   }
   function checkTriggers() {
@@ -2596,38 +3459,65 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!e.alive) {
         if (e.dead > 0) {
           e.dead -= dt;
-          if (e.flip) { e.vy -= 30 * dt; e.y += e.vy * dt; e.mesh.position.y = e.y; e.mesh.rotation.z += dt * 7; }
+          if (e.flip) {
+            e.vy -= 30 * dt; e.y += e.vy * dt; e.mesh.rotation.z += dt * 7;
+            if (e.kick) { e.x += e.kvx * dt; e.z += e.kvz * dt; if (e.dead > .9) bowl(e); }
+            e.mesh.position.set(e.x, e.y, e.z);
+          }
           if (e.dead <= 0) e.mesh.visible = false;
         }
         continue;
       }
       if (Math.abs(e.z - P.pos.z) > 75) continue;
-      const prev = pingpong(e.t, 2 * e.range) - e.range;
-      e.t += e.speed * dt;
-      const o = pingpong(e.t, 2 * e.range) - e.range, dir = Math.sign(o - prev) || 1;
-      if (e.axis === 'x') { e.x = e.hx + o; e.face = dir > 0 ? Math.PI / 2 : -Math.PI / 2; }
-      else { e.z = e.hz + o; e.face = dir > 0 ? 0 : Math.PI; }
-      e.mesh.rotation.y = angleDamp(e.mesh.rotation.y, e.face, 10, dt);
-      const w = time * (e.type === 'spiky' ? 12 : 9) + e.hz;
-      if (e.type === 'hopper') {
-        // leaps 1.5 m every 1.3 s, squashes on landing
-        const ph = ((time + e.hopOff) % 1.3) / 1.3;
-        let off = 0;
-        if (ph < .6) { off = Math.sin(ph / .6 * Math.PI) * 1.5; e.mesh.scale.set(.94, 1.1, .94); }
-        else { const s = Math.sin((ph - .6) / .4 * Math.PI) * .14; e.mesh.scale.set(1 + s, 1 - s, 1 + s); }
-        e.y = e.hy + off;
-        e.mesh.position.set(e.x, e.y, e.z);
-      } else {
-        e.mesh.position.set(e.x, e.y + Math.abs(Math.sin(w)) * .06, e.z);
-        e.mesh.rotation.z = Math.sin(w) * .12;
+      if (e.type === 'flyer') updateFlyer(e, dt);
+      else {
+        const prev = pingpong(e.t, 2 * e.range) - e.range;
+        let spd = e.speed;
+        if (e.type === 'walker' && G.state === 'playing') {
+          // chestnuts spot the hero and hurry along their path
+          const dx = P.pos.x - e.x, dz = P.pos.z - e.z, d = Math.hypot(dx, dz), near = d < 6 && Math.abs(P.pos.y - e.y) < 2.5;
+          if (near && !e.noticed) { e.noticed = true; popup('!', e.x, e.y + 1.5, e.z, 'gold'); Snd.at(e.x, e.y, e.z).notice(); }
+          else if (d > 12) e.noticed = false;
+          e.rage = damp(e.rage, near ? 1.7 : 1, 3, dt);
+          spd *= e.rage;
+        }
+        e.t += spd * dt;
+        const o = pingpong(e.t, 2 * e.range) - e.range, dir = Math.sign(o - prev) || 1;
+        if (e.axis === 'x') { e.x = e.hx + o; e.face = dir > 0 ? Math.PI / 2 : -Math.PI / 2; }
+        else { e.z = e.hz + o; e.face = dir > 0 ? 0 : Math.PI; }
+        e.mesh.rotation.y = angleDamp(e.mesh.rotation.y, e.face, 10, dt);
+        const w = time * (e.type === 'spiky' ? 12 : 9) * (e.rage > 1.2 ? 1.5 : 1) + e.hz;
+        if (e.type === 'hopper') {
+          // leaps 1.5 m every 1.3 s, squashes on landing
+          const ph = ((time + e.hopOff) % 1.3) / 1.3;
+          let off = 0;
+          if (ph < .6) { off = Math.sin(ph / .6 * Math.PI) * 1.5; e.mesh.scale.set(.94, 1.1, .94); }
+          else { const sq = Math.sin((ph - .6) / .4 * Math.PI) * .14; e.mesh.scale.set(1 + sq, 1 - sq, 1 + sq); }
+          if (e.lastPh > .9 && ph < .1 && Math.abs(e.z - P.pos.z) < 20) puff(e.x, e.y + .1, e.z, dustColor(), 2, 1, .3, .4, .5);
+          e.lastPh = ph;
+          e.y = e.hy + off;
+          e.mesh.position.set(e.x, e.y, e.z);
+        } else {
+          e.mesh.position.set(e.x, e.y + Math.abs(Math.sin(w)) * .06, e.z);
+          e.mesh.rotation.z = Math.sin(w) * .12;
+        }
       }
       if (G.state === 'playing') {
         const p = P.pos;
         if (Math.abs(p.x - e.x) < HW + e.hw && Math.abs(p.z - e.z) < HW + e.hw && p.y < e.y + e.h && p.y + PH > e.y) {
           const falling = P.vel.y <= .5 || P.prevY > p.y;
-          if ((e.type !== 'spiky' || P.riding) && falling && P.prevY >= e.y + e.h * .4) stomp(e); else hurt(e);
+          const stompable = e.type !== 'spiky' || P.riding || P.pound === 'drop';
+          if (stompable && falling && P.prevY >= e.y + e.h * .4) stomp(e); else hurt(e);
         }
       }
+    }
+  }
+  // a kicked enemy knocks down every enemy it flies into
+  function bowl(k) {
+    for (const o of L.enemies) {
+      if (!o.alive || Math.abs(o.x - k.x) > .9 || Math.abs(o.z - k.z) > .9 || Math.abs(o.y - k.y) > 1.3) continue;
+      knockEnemy(o, k.kvx, k.kvz, 400, true);
+      popup('СТРАЙК!', o.x, o.y + 2.1, o.z, 'gold');
     }
   }
   function updateBlocks(dt) {
@@ -2673,7 +3563,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function giveGift(n) {
     if (n.gift === 'shield') {
       P.shield = true; Snd.sfx.power(); popup('ЩИТ!', P.pos.x, P.pos.y + 2.2, P.pos.z, 'aqua');
-      emit(P.pos.x, P.pos.y + .8, P.pos.z, 0x8ff3ff, 20, 4, 1, 3, .6);
+      glow(P.pos.x, P.pos.y + .8, P.pos.z, 0x8ff3ff, 20, 4, 1, 3, .6);
     } else if (n.gift === 'life') oneUp();
   }
   function updateNpcs(dt) {
@@ -2785,7 +3675,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function animateRide(dt) {
     const d = P.riding; if (!d) return;
     d.x = P.pos.x; d.y = P.pos.y; d.z = P.pos.z;
-    d.g.position.set(P.pos.x, P.pos.y, P.pos.z); d.g.rotation.y = P.facing;
+    d.g.position.set(P.pos.x, P.pos.y, P.pos.z); d.g.rotation.y = P.facing + spinAngle();
     const spd = Math.hypot(P.vel.x, P.vel.z);
     if (P.onGround && spd > .4) {
       d.walk += dt * (5 + spd * 1.3);
@@ -2809,7 +3699,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     G.star = true; G.starCharge = true; spark.state = 'follow'; P.happyT = .8;
     sparkSay('Ура! Буду притягивать значки, а если упадёшь, один раз подхвачу.', 5);
     Snd.sfx.star(); popup('ИСКРА С ТОБОЙ!', spark.x, spark.y + 1, spark.z, 'gold');
-    emit(spark.x, spark.y, spark.z, 0xfff0a0, 20, 3, 1, 1, .8);
+    glow(spark.x, spark.y, spark.z, 0xfff0a0, 22, 3, 1, 1, .8);
   }
   function updateSpark(dt) {
     const s = spark;
@@ -2832,7 +3722,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const lit = G.starCharge;
     s.mat.emissiveIntensity = lit ? 1.1 : .12; s.g.scale.setScalar(lit ? 1 : .8);
     s.g.visible = hero.root.visible || G.state !== 'goal';
-    if (Math.random() < dt * 5) emit(s.x, s.y, s.z, lit ? 0xfff0a0 : 0xc9c2a0, 1, .6, -.3, .5, .6);
+    if (Math.random() < dt * 5) (lit ? glow : emit)(s.x, s.y, s.z, lit ? 0xfff0a0 : 0xc9c2a0, 1, .6, -.3, .5, .6, .2);
     if (s.talking) { s.lt += dt; if (s.lt > 0) { s.talking = false; s.el.classList.remove('show'); } }
   }
   function magnetCoins(dt) {
@@ -2847,11 +3737,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function starRescue() {
     G.starCharge = false;
     const s = P.lastSafe;
-    emit(P.pos.x, P.pos.y + 1, P.pos.z, 0xfff0a0, 20, 4, 2, 2, .7);
+    glow(P.pos.x, P.pos.y + 1, P.pos.z, 0xfff0a0, 20, 4, 2, 2, .7);
     P.pos.set(s.x, s.y + .05, s.z); P.vel.set(0, 0, 0); P.inv = Math.max(P.inv, 1.5); P.onGround = false;
     spark.x = s.x; spark.y = s.y + 2.2; spark.z = s.z; cam.ty = s.y;
     Snd.sfx.star(); popup('ИСКРА СПАСЛА!', s.x, s.y + 2.8, s.z, 'gold');
-    emit(s.x, s.y + 1, s.z, 0xfff0a0, 24, 4, 2, 2, .8);
+    glow(s.x, s.y + 1, s.z, 0xfff0a0, 24, 4, 2, 2, .8); wave(s.x, s.y, s.z, 0xfff0a0, 2.4, .5);
   }
 
   // ---------- Lira: flies out of the castle at the end of each world ----------
@@ -2885,14 +3775,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     fairy.g.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
     fairy.wings.forEach((w, i) => { w.rotation.y = (i ? 1 : -1) * (.35 + Math.sin(fairy.t * 18) * .35); });
     fairy.tip.rotation.z += dt * 3;
-    if (Math.random() < dt * 8) emit(x + (Math.random() - .5) * .8, y + .5, z, [0xffb3e6, 0xfff0a0, 0xbfe8ff][(Math.random() * 3) | 0], 1, .5, .3, .2, .9);
+    if (Math.random() < dt * 8) glow(x + (Math.random() - .5) * .8, y + .5, z, [0xffb3e6, 0xfff0a0, 0xbfe8ff][(Math.random() * 3) | 0], 1, .5, .3, .2, .9, .22);
     if (fairy.t > 1.1) {
       fairy.el.classList.add('show');
       const li = Math.min(fairy.lines.length - 1, Math.floor((fairy.t - 1.1) / 3.2));
       if (li !== fairy.idx) { fairy.idx = li; fairy.span.textContent = fairy.lines[li]; }
       if (li === 1 && !fairy.gift && G.li === LEVELS.length - 1) {
         fairy.gift = true; addScore(5000); Snd.sfx.oneUp();
-        popup('+5000', x, y + 2.2, z, 'gold'); emit(x, y + .8, z, 0xff7aa8, 40, 4, 1, 1, 1.2);
+        popup('+5000', x, y + 2.2, z, 'gold'); glow(x, y + .8, z, 0xff7aa8, 40, 4, 1, 1, 1.2);
       }
     }
   }
@@ -2902,12 +3792,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       G.emberT -= dt;
       if (G.emberT <= 0) {
         G.emberT = .07;
-        emit(P.pos.x + (Math.random() - .5) * 26, L.lavaY + .3, P.pos.z - 4 + (Math.random() - .5) * 26, Math.random() < .5 ? 0xff7a1a : 0xffc04a, 1, .3, 1.4, -.3, 2.4);
+        glow(P.pos.x + (Math.random() - .5) * 26, L.lavaY + .3, P.pos.z - 4 + (Math.random() - .5) * 26, Math.random() < .5 ? 0xff7a1a : 0xffc04a, 1, .3, 1.4, -.3, 2.4, .26);
       }
     }
     for (const t of L.torches) {
       t.mesh.scale.set(.22, .3 + Math.sin(time * 14 + t.x) * .05, .22);
-      if (Math.random() < dt * 3) emit(t.x, t.y + .2, t.z, 0xffb03a, 1, .4, 1.2, -.5, .9);
+      if (Math.random() < dt * 5) glow(t.x, t.y + .2, t.z, Math.random() < .5 ? 0xffb03a : 0xff6a1a, 1, .4, 1.2, -.5, .9, .28);
     }
   }
   // ================= bosses =================
@@ -2949,7 +3839,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       sh.m.position.set(sh.x, sh.y + Math.abs(Math.sin(sh.life * 9)) * .3, sh.z);
       const out = !A || sh.x < A.x0 || sh.x > A.x1 || sh.z < A.z0 || sh.z > A.z1;
       if (sh.life <= 0 || out) { L.group.remove(sh.m); L.shots.splice(i, 1); continue; }
-      if (Math.random() < dt * 20) emit(sh.x, sh.y, sh.z, 0xffa12e, 1, .6, .5, 1, .3);
+      if (Math.random() < dt * 24) glow(sh.x, sh.y, sh.z, 0xffa12e, 1, .6, .5, 1, .3, .32);
       if (G.state === 'playing' && Math.abs(P.pos.x - sh.x) < HW + .3 && Math.abs(P.pos.z - sh.z) < HW + .3 && P.pos.y < sh.y + .35 && P.pos.y + PH > sh.y - .35) {
         hurt(sh); L.group.remove(sh.m); L.shots.splice(i, 1);
       }
@@ -2962,7 +3852,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (falling && P.prevY >= b.y + b.h * .55) {
       if (b.state === 'dazed' && b.inv <= 0) bossHit(b);
       else if (b.type === 'shell' && b.spikes.visible) hurt({ x: b.x, z: b.z }); // spikes hurt from any side
-      else { P.vel.y = 11; P.noCut = true; P.onGround = false; Snd.sfx.bump(); } // bounces off harmlessly when not dazed
+      else { P.pound = null; P.vel.y = 11; P.noCut = true; P.onGround = false; Snd.sfx.bump(); } // bounces off harmlessly when not dazed
       return;
     }
     const k = (b.r + HW + .02) / (d || 1);
@@ -2970,10 +3860,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (b.state !== 'dazed') hurt({ x: b.x, z: b.z });
   }
   function bossHit(b) {
-    b.hp--; b.inv = 1.3;
+    // a ground pound lands a heavier blow: more points and a bigger shake, same single hit
+    const pounded = P.pound === 'drop';
+    b.hp--; b.inv = 1.3; P.pound = null;
     P.vel.y = jumpHeld() ? 17 : 14; P.noCut = true; P.onGround = false; P.happyT = .8;
-    Snd.sfx.bossHit(); G.shake = .5; addScore(1000);
+    Snd.sfx.bossHit(); G.shake = pounded ? .8 : .5; addScore(pounded ? 2000 : 1000);
+    G.hitStop = Math.max(G.hitStop, .14); G.flash = .45; G.flashCol = '#ffffff'; chainAdd();
     emit(b.x, b.y + b.h, b.z, 0xffffff, 24, 5, 2, 6, .6);
+    glow(b.x, b.y + b.h, b.z, 0xfff3a0, 20, 6, 1, 4, .5, .4); flashAt(b.x, b.y + b.h * .7, b.z, 0xffffff, 4, .25);
+    wave(b.x, L.arena.top, b.z, 0xffffff, 5, .5);
+    if (b.hp > 0) Snd.setTempo(1 + (3 - b.hp) * .07);
     popup(b.hp > 0 ? 'УДАР!' : 'ПОБЕДА!', b.x, b.y + b.h + 1.6, b.z, 'gold');
     renderBossBar(b);
     if (b.hp <= 0) {
@@ -2981,14 +3877,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       Snd.stopMusic(); Snd.sfx.bossDown();
       for (const e of L.enemies) if (e.alive) knockEnemy(e);
       for (const sh of L.shots) L.group.remove(sh.m); L.shots.length = 0;
+      for (const bl of L.balls) bl.dead = true;
       if (b.marker) { b.marker.visible = false; b.bolt.visible = false; }
       return;
     }
-    // back up angrier and faster; the king calls in help
+    // back up angrier and faster, and call in help: chestnuts for the king, hoppers for the shell, bugs for the cloud
     b.state = b.type === 'cloud' ? 'rise' : b.type === 'shell' ? 'recover' : 'walk'; b.t = 0;
-    if (b.type === 'king') {
-      const A = L.arena;
-      for (let i = 0; i < 3 - b.hp; i++) spawnEnemy('walker', A.cx, A.top, i % 2 ? A.z0 + 3 : A.z1 - 4, 'x', (A.x1 - A.x0) / 2 - 2, 1.8 + i * .3, i * .5);
+    const A = L.arena, n = 3 - b.hp;
+    for (let i = 0; i < n; i++) {
+      const z = i % 2 ? A.z0 + 3 : A.z1 - 4;
+      if (b.type === 'king') spawnEnemy('walker', A.cx, A.top, z, 'x', (A.x1 - A.x0) / 2 - 2, 1.8 + i * .3, i * .5);
+      else if (b.type === 'shell') spawnEnemy('hopper', A.cx, A.top, z, 'x', (A.x1 - A.x0) / 2 - 3, 1.5 + i * .2, i * .5);
+      else spawnEnemy('flyer', A.cx + (i % 2 ? -5 : 5), A.top, A.cz + (i - 1) * 3, 'x', 3, 1.2, i * .4);
     }
   }
   function updateKing(b, dt, tx, tz, dist, lost, A) {
@@ -3010,6 +3910,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (b.y <= A.top && b.vy < 0) {
         b.y = A.top; b.state = 'dazed'; b.t = 0; b.g.scale.set(1.25, .7, 1.25);
         spawnRing(b.x, A.top, b.z); Snd.sfx.shock(); G.shake = .6;
+        for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; puff(b.x + Math.cos(a) * 2, A.top + .3, b.z + Math.sin(a) * 2, dustColor(), 1, 2, .4, .8, 1.3); }
       }
     } else if (b.state === 'dazed') {
       b.body.rotation.z = Math.sin(time * 3) * .15;
@@ -3034,11 +3935,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else if (b.state === 'charge') {
       b.x += b.vx * dt; b.z += b.vz * dt;
       b.body.rotation.x += dt * 14; b.spikes.rotation.x = b.body.rotation.x;
-      if (Math.random() < dt * 30) emit(b.x, A.top + .2, b.z, 0xffa12e, 1, 1.5, 1, 3, .4);
+      if (Math.random() < dt * 30) glow(b.x, A.top + .2, b.z, 0xffa12e, 1, 1.5, 1, 3, .4, .35);
       if (b.x <= A.x0 + b.r || b.x >= A.x1 - b.r || b.z <= A.z0 + b.r || b.z >= A.z1 - b.r) {
         b.state = 'dazed'; b.t = 0; b.spikes.visible = false; b.body.rotation.x = b.spikes.rotation.x = 0;
         b.g.scale.set(1.2, .8, 1.2); G.shake = .7; Snd.sfx.shock();
-        emit(b.x, A.top + 1.5, b.z, 0xffe27a, 20, 5, 2, 6, .5);
+        emit(b.x, A.top + 1.5, b.z, 0xffe27a, 20, 5, 2, 6, .5); wave(b.x, A.top, b.z, 0xffe27a, 4, .5);
       }
     } else if (b.state === 'dazed') {
       if (b.t > 2.4 - lost * .3) { b.state = 'recover'; b.t = 0; }
@@ -3070,7 +3971,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const top = b.y + .4, len = top - A.top;
         b.bolt.scale.set(.28, len, .28); b.bolt.position.set(b.tx, A.top + len / 2, b.tz); b.bolt.visible = true;
         Snd.sfx.thunder(); G.shake = .35;
-        emit(b.tx, A.top + .3, b.tz, 0xfff3a0, 20, 5, 2, 6, .5);
+        glow(b.tx, A.top + .3, b.tz, 0xfff3a0, 24, 5, 2, 6, .5); wave(b.tx, A.top, b.tz, 0xfff3a0, 3, .4); flashAt(b.tx, A.top + 1, b.tz, 0xfff8d0, 4, .25);
       }
     } else if (b.state === 'strike') {
       b.bolt.rotation.y = Math.random() * 3;
@@ -3102,7 +4003,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (Math.random() < .5) emit(b.x, b.y + b.h * .6, b.z, 0xffffff, 2, 3, 1, 2, .6);
       if (b.deadT > 1.3) {
         b.gone = true; b.g.visible = false;
-        emit(b.x, b.y + 1, b.z, 0xffd23f, 40, 6, 2, 5, 1);
+        glow(b.x, b.y + 1, b.z, 0xffd23f, 40, 6, 2, 5, 1, .4); puff(b.x, b.y + 1, b.z, 0xffffff, 12, 4, .5, .9, 1.4);
         bossWin();
       }
       return;
@@ -3124,7 +4025,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.state === 'playing') bossContact(b);
   }
   function bossWin() {
-    $('bossBar').hidden = true;
+    $('bossBar').hidden = true; endChain();
     G.state = 'goal'; G.goalPhase = 'bossWin'; G.stateT = 0; G.fw = [.3, .8, 1.3];
     addScore(5000); Snd.sfx.clear();
   }
@@ -3132,6 +4033,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const dummy = new T.Object3D();
   function animateCoins() {
     const m = L.coinMesh; if (!m) return;
+    if (Math.random() < .25) {
+      const c = L.coins[(Math.random() * L.coins.length) | 0];
+      if (!c.taken && Math.abs(c.z - P.pos.z) < 22 && Math.abs(c.x - P.pos.x) < 12) glow(c.x + (Math.random() - .5) * .5, c.y + (Math.random() - .5) * .6, c.z, 0xffffff, 1, .1, 0, 0, .35, .32);
+    }
     for (let i = 0; i < L.coins.length; i++) {
       const c = L.coins[i];
       dummy.position.set(c.x, c.y + Math.sin(time * 2.2 + i * .7) * .08, c.z);
@@ -3143,6 +4048,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ---------- hero animation ----------
+  const spinAngle = () => (P.spinT > 0 ? (1 - P.spinT / SPIN_T) * Math.PI * 4 : 0);
   const LIMB = { legL: 0, legR: 0, armLx: 0, armRx: 0, armLz: .12, armRz: -.12, lean: 0, bob: 0, twist: 0, headYaw: 0, bank: 0, spread: 0 };
   let prevFacing = Math.PI, idleT = 0;
   function animateHero(dt) {
@@ -3151,7 +4057,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const f = P.facing, bob = P.onGround ? Math.abs(Math.sin(P.riding.walk)) * .05 : 0;
       r.position.set(P.pos.x - Math.sin(f) * .06, P.pos.y + .95 + bob, P.pos.z - Math.cos(f) * .06);
     } else r.position.copy(P.pos);
-    r.rotation.y = P.facing;
+    const spinA = spinAngle();
+    r.rotation.y = P.facing + (P.riding ? spinA : 0);
     if (P.growT > 0) {
       const seq = P.big ? [1.18, 1, 1.18, BIG_SCALE, 1.18, BIG_SCALE, 1.18, BIG_SCALE] : [1.18, BIG_SCALE, 1.18, 1, 1.18, 1, 1.18, 1];
       P.scaleCur = seq[clamp(Math.floor((.8 - P.growT) / .1), 0, 7)];
@@ -3173,6 +4080,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       t.armLx = -2.9; t.armRx = -2.9; t.armLz = .5; t.armRz = -.5; t.legL = .5; t.legR = -.5;
     } else if (G.state === 'goal' && G.goalPhase === 'slide') {
       t.armLx = -2.6; t.armRx = -2.6; t.armLz = -.2; t.armRz = .2; t.legL = -.4; t.legR = .2;
+    } else if (P.pound === 'wind') { // tucked for the flip
+      t.legL = -1.5; t.legR = -1.5; t.armLx = -1.1; t.armRx = -1.1; t.armLz = .4; t.armRz = -.4; t.spread = .15;
+    } else if (P.pound === 'drop') { // straight down, fists up
+      t.armLx = -2.95; t.armRx = -2.95; t.armLz = .3; t.armRz = -.3; t.legL = .1; t.legR = .1;
+    } else if (P.spinT > 0) { // arms out like a top
+      t.armLz = 1.45; t.armRz = -1.45; t.legL = .2; t.legR = -.2; t.spread = .12; t.lean = -.05;
     } else if (P.onGround || G.state === 'title') {
       if (spd > .4) {
         idleT = 0;
@@ -3199,12 +4112,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const f = Math.sin(time * 18) * .25;
       t.armLx = -1.5 + f; t.armRx = -1.5 - f; t.armLz = 1.0; t.armRz = -1.0; t.legL = .35; t.legR = -.25; t.spread = .15;
     }
-    const k = 1 - Math.exp(-dt * 20);
+    if (P.throwT > 0 && !P.riding) { t.armRx = -1.75; t.armRz = -.15; }
+    const k = 1 - Math.exp(-dt * (P.spinT > 0 || P.pound ? 40 : 20));
     for (const key in t) LIMB[key] += (t[key] - LIMB[key]) * k;
     hero.legL.rotation.x = LIMB.legL; hero.legR.rotation.x = LIMB.legR;
     hero.legL.rotation.z = -LIMB.spread; hero.legR.rotation.z = LIMB.spread;
     hero.armL.rotation.set(LIMB.armLx, 0, LIMB.armLz); hero.armR.rotation.set(LIMB.armRx, 0, LIMB.armRz);
-    hero.body.position.y = LIMB.bob; hero.body.rotation.set(LIMB.lean, LIMB.twist, LIMB.bank);
+    // flips turn around the waist: a front flip winding up a ground pound, a backflip on the high jump after it
+    let flipA = 0;
+    if (P.riding) flipA = 0;
+    else if (P.pound === 'wind') flipA = (1 - P.poundT / POUND_WIND) * Math.PI * 2;
+    else if (P.flipT > 0) flipA = -(1 - P.flipT / .5) * Math.PI * 2;
+    hero.body.position.set(0, LIMB.bob + .8 * (1 - Math.cos(flipA)), -.8 * Math.sin(flipA));
+    hero.body.rotation.set(LIMB.lean + flipA, LIMB.twist + (P.riding ? 0 : spinA), LIMB.bank);
     hero.head.rotation.y = LIMB.headYaw;
     hero.shield.visible = P.shield;
     if (P.shield) hero.shield.scale.setScalar(.98 * (1 + Math.sin(time * 5) * .03));
@@ -3215,7 +4135,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.state === 'dying') face = 'hurt';
     else if (G.state === 'goal' || P.happyT > 0) face = 'happy';
     else if (P.hurtT > 0) face = 'hurt';
-    else if (P.jumpFaceT > 0 || (!P.onGround && !P.riding && P.vel.y < -13)) face = 'surprise';
+    else if (P.pound || P.jumpFaceT > 0 || (!P.onGround && !P.riding && P.vel.y < -13)) face = 'surprise';
     const blink = face === 'normal' && (time % 3.4) < .12 ? .12 : 1;
     const eyeY = face === 'surprise' ? 1.25 : face === 'hurt' ? .4 : 1, eyeX = face === 'surprise' ? 1.12 : 1;
     const browY = face === 'surprise' ? .215 : face === 'hurt' ? .15 : .17, browK = face === 'hurt' ? .32 : face === 'surprise' ? .04 : .12;
@@ -3254,6 +4174,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cam.ty = damp(cam.ty, ty, P.onGround ? 5 : (ty < cam.ty - .5 ? 6 : 2.6), dt);
       cam.dist = damp(cam.dist, cam.distGoal + (P.big ? .9 : 0) + (P.riding ? .9 : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0), 4, dt);
     }
+    // field of view widens for a moment on big launches and while the dino runs flat out
+    G.kick = Math.max(0, G.kick - dt * 2.2);
+    const fov = baseFov + G.kick * 7 + (P.riding && P.onGround ? clamp(Math.hypot(P.vel.x, P.vel.z) / RIDE_SPD, 0, 1) * 4 : 0);
+    if (Math.abs(camera.fov - fov) > .01) { camera.fov = damp(camera.fov, fov, 9, dt); camera.updateProjectionMatrix(); }
     const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);
     const lx = cam.tx + fx * 1.6, lz = cam.tz + fz * 1.6, ly = cam.ty + 1.3;
@@ -3267,7 +4191,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sun.target.position.set(cam.tx, cam.ty, cam.tz);
     sun.position.set(cam.tx + SUN_OFF.x, cam.ty + SUN_OFF.y, cam.tz + SUN_OFF.z);
   }
-  let titleYaw = .6;
+  let titleYaw = .6, baseFov = 55;
   function titleCam(dt) {
     titleYaw += dt * .12;
     const s = L.start;
@@ -3281,6 +4205,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function die(kind) {
     if (G.state !== 'playing') return;
     G.state = 'dying'; G.dieKind = kind; G.stateT = 0; G.dieJump = false;
+    P.pound = null; P.spinT = 0; endChain(); G.flash = .6; G.flashCol = '#ff3b2f';
     if (P.riding) { const d = P.riding; P.riding = null; applySize(); d.state = 'flee'; d.t = 0; d.vx = d.vz = d.vy = 0; d.x = P.pos.x; d.y = P.pos.y; d.z = P.pos.z; }
     Snd.stopMusic(); Snd.sfx.die();
     P.vel.set(0, kind === 'fall' ? P.vel.y : 0, 0);
@@ -3298,6 +4223,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function startGoal(onPole) {
     const g = L.goal;
+    P.pound = null; P.spinT = 0; endChain();
     G.state = 'goal'; G.stateT = 0; G.fw = [];
     const span = g.topY - 1.2 - g.baseY;
     const rel = onPole ? clamp((P.pos.y - g.baseY) / span, 0, 1) : 0;
@@ -3353,7 +4279,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       G.fw.splice(i, 1);
       const cols = [0xff5a3d, 0xffd23f, 0x8ff3ff, 0x9dff7a, 0xff8ad8];
       const fx = g ? g.door.x : L.arena.cx, fz = g ? g.door.z - 4 : L.arena.cz, fy = (g ? g.groundY : L.arena.top) + 11;
-      emit(fx + (Math.random() - .5) * 8, fy + Math.random() * 4, fz, cols[(Math.random() * cols.length) | 0], 44, 7, 0, 3, 1.2);
+      const fwx = fx + (Math.random() - .5) * 8, fwy = fy + Math.random() * 4, col = cols[(Math.random() * cols.length) | 0];
+      glow(fwx, fwy, fz, col, 50, 7, 0, 3, 1.3, .38); emit(fwx, fwy, fz, 0xffffff, 16, 5, 0, 4, 1, .16); flashAt(fwx, fwy, fz, col, 5, .3);
       Snd.sfx.pop(); addScore(500);
     }
   }
@@ -3366,6 +4293,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.pos.set(pt.x, pt.y, pt.z); P.vel.set(0, 0, 0);
     P.onGround = false; P.ground = null; P.facing = Math.PI; P.inv = 0; P.combo = 0; P.squash = 1; P.jumpBuf = 0; P.coyote = 0; P.noCut = false;
     P.riding = null; P.airJumps = 0; applySize(); P.lastSafe = { x: pt.x, y: pt.y, z: pt.z };
+    P.pound = null; P.spinT = 0; P.spinCd = 0; P.spinAir = false; P.poundJT = 0; P.flipT = 0; P.throwT = 0; P.fireCd = 0;
+    G.chain = 0; G.chainT = 0; G.hitStop = 0; G.kick = 0; comboEl.classList.remove('show');
     hero.root.visible = true; hero.root.rotation.set(0, Math.PI, 0);
     cam.yaw = 0; cam.yawGoal = null; cam.pitch = .38;
   }
@@ -3380,10 +4309,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     placePlayer(G.cpIndex >= 0 ? cpSpawn(L.checkpoints[G.cpIndex]) : L.start);
     G.time = L.def.time; G.warned = false; G.state = 'playing'; G.goalPhase = null; G.fw = [];
     setupSpark();
-    input.jumpQueued = false; resetTouch();
+    input.jumpQueued = false; input.actQueued = false; resetTouch();
     showScreen(null); hudEl.hidden = false; showTouch(isTouch);
     updateCam(0, true);
     toast('Мир ' + L.def.id, L.def.name);
+    Snd.setRoom(L.def.theme === 'stone' ? .32 : .12);
+    Snd.setAmbient(L.def.amb || THEME_FX[L.def.theme].amb);
     Snd.startMusic(L.def.music);
   }
   function newGame(li) {
@@ -3400,7 +4331,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function gameOver() {
     G.state = 'over'; saveBest();
     $('overScore').textContent = 'Счёт: ' + G.score.toLocaleString('ru-RU') + (G.score >= G.best && G.score > 0 ? ' · новый рекорд' : '');
-    touchEl.hidden = true; showScreen('over'); Snd.sfx.over();
+    touchEl.hidden = true; showScreen('over'); Snd.sfx.over(); Snd.setAmbient(null);
   }
   function levelClear() {
     G.state = 'clear';
@@ -3414,7 +4345,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     touchEl.hidden = true; showScreen('clear');
   }
   function toTitle() {
-    Snd.stopMusic();
+    Snd.stopMusic(); Snd.setAmbient(null);
     G.state = 'title'; setBig(false, false); spark.state = 'off'; loadLevel(0); placePlayer(L.start); P.onGround = true; P.shield = false;
     hudEl.hidden = true; touchEl.hidden = true; showScreen('title');
     renderLevelPick();
@@ -3459,8 +4390,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ================= input =================
   const keys = new Set();
   const JUMP_KEYS = ['Space', 'KeyK', 'KeyJ', 'KeyZ'];
-  const input = { jumpQueued: false };
-  const touchJump = { id: null, held: false };
+  const ACT_KEYS = ['ShiftLeft', 'ShiftRight', 'KeyF', 'KeyX', 'KeyL'];
+  const input = { jumpQueued: false, actQueued: false };
+  const touchJump = { id: null, held: false }, touchAct = { id: null };
   const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const look = { id: null, x: 0, y: 0 };
   let isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
@@ -3482,6 +4414,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (e.code === 'Enter' && G.state === 'title' && document.activeElement === document.body) { newGame(0); return; }
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
+    if (ACT_KEYS.includes(e.code) && !e.repeat && G.state === 'playing') input.actQueued = true;
     keys.add(e.code);
   });
   addEventListener('keyup', (e) => keys.delete(e.code));
@@ -3500,7 +4433,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // touch: floating joystick on the left half
   const stickZone = $('stickZone'), stickBase = $('stickBase'), stickKnob = $('stickKnob'), lookZone = $('lookZone');
-  const btnJump = $('btnJump'), btnCam = $('btnCam');
+  const btnJump = $('btnJump'), btnCam = $('btnCam'), btnAct = $('btnAct'), actLbl = $('actLbl');
   const STICK_R = 52;
   function placeStick(x, y) { stickBase.style.left = x + 'px'; stickBase.style.top = y + 'px'; }
   function restStick() {
@@ -3556,12 +4489,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const jumpEnd = (e) => { if (e.pointerId !== touchJump.id) return; touchJump.id = null; touchJump.held = false; btnJump.classList.remove('on'); };
   btnJump.addEventListener('pointerup', jumpEnd); btnJump.addEventListener('pointercancel', jumpEnd); btnJump.addEventListener('lostpointercapture', jumpEnd);
   btnJump.addEventListener('contextmenu', (e) => e.preventDefault());
+  btnAct.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); Snd.init();
+    touchAct.id = e.pointerId; input.actQueued = true; btnAct.classList.add('on');
+    try { btnAct.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+  });
+  const actEnd = (e) => { if (e.pointerId !== touchAct.id) return; touchAct.id = null; btnAct.classList.remove('on'); };
+  btnAct.addEventListener('pointerup', actEnd); btnAct.addEventListener('pointercancel', actEnd); btnAct.addEventListener('lostpointercapture', actEnd);
+  btnAct.addEventListener('contextmenu', (e) => e.preventDefault());
   btnCam.addEventListener('pointerdown', (e) => { e.preventDefault(); cam.yawGoal = wrapPi(P.facing + Math.PI); });
 
   function showTouch(on) { touchEl.hidden = !on; if (on) restStick(); }
   function resetTouch() {
-    stick.id = null; stick.x = stick.y = 0; look.id = null; touchJump.id = null; touchJump.held = false;
-    btnJump.classList.remove('on'); restStick();
+    stick.id = null; stick.x = stick.y = 0; look.id = null; touchJump.id = null; touchJump.held = false; touchAct.id = null;
+    btnJump.classList.remove('on'); btnAct.classList.remove('on'); restStick();
   }
   addEventListener('touchstart', () => {
     if (isTouch) return;
@@ -3575,8 +4516,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function updateHowto() {
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
-      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Свайп справа', ' — поворот камеры.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Мышь с зажатой кнопкой или Q/E', ' — камера. '], ['Esc', ' — пауза.']];
+      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера.']]
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
@@ -3619,6 +4560,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     setHud('world', L.def.id);
     setHud('time', String(Math.max(0, Math.ceil(G.time))));
     setHud('lives', String(Math.max(0, G.lives)));
+    if (G.chain >= 2) comboBar.style.transform = 'scaleX(' + clamp(G.chainT / CHAIN_T, 0, 1).toFixed(3) + ')';
     const warn = G.time < 60 && (G.state === 'playing' || G.state === 'paused');
     if (hudCache.warn !== warn) { hudCache.warn = warn; H.time.classList.toggle('warn', warn); }
   }
@@ -3629,7 +4571,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     const portrait = w / h < 1;
-    camera.fov = portrait ? 68 : 55;
+    baseFov = portrait ? 68 : 55; camera.fov = baseFov;
+    PSCALE.value = h * pixelRatio / 2;
     cam.distGoal = portrait ? 12 : 9.5;
     camera.updateProjectionMatrix();
     if (composer) { composer.setPixelRatio(pixelRatio); composer.setSize(w, h); }
@@ -3683,7 +4626,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.state === 'playing') {
       G.time -= dt;
       if (G.time <= 0) { G.time = 0; die('time'); }
-      else if (G.time < 60 && !G.warned) { G.warned = true; Snd.sfx.warn(); }
+      else if (G.time < 60 && !G.warned) { G.warned = true; Snd.sfx.warn(); if (!L.boss) Snd.setTempo(1.12); }
     }
     updatePlatforms(dt);
     updateFirebars(dt);
@@ -3698,14 +4641,31 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateBoss(dt);
     updateRings(dt);
     updateShots(dt);
+    updateCannons(dt);
+    updateBalls(dt);
+    updateFireballs(dt);
+    updateChain(dt);
     magnetCoins(dt);
     updateSprings(dt);
     updateFx(dt);
     if (P.inv > 0) P.inv -= dt;
     if (P.growT > 0) P.growT -= dt;
     P.happyT -= dt; P.hurtT -= dt; P.jumpFaceT -= dt; P.landT -= dt;
+    if (P.spinT > 0) {
+      const a = P.facing + spinAngle(), R = spinReach() * .75;
+      glow(P.pos.x + Math.sin(a) * R, P.pos.y + PH * .5, P.pos.z + Math.cos(a) * R, 0xbff6ff, 1, .3, 0, 0, .25, .3);
+      P.spinT -= dt; if (P.spinT <= 0) { P.spinT = 0; P.spinCd = .12; }
+    } else if (P.spinCd > 0) P.spinCd -= dt;
+    P.poundJT -= dt; P.flipT -= dt; P.fireCd -= dt; P.throwT -= dt;
   }
 
+  const flashEl = $('flash');
+  let flashShown = false;
+  function updateFlash(dt) {
+    if (G.flash <= 0) { if (flashShown) { flashShown = false; flashEl.style.opacity = 0; } return; }
+    G.flash = Math.max(0, G.flash - dt * 2.4);
+    flashShown = true; flashEl.style.background = G.flashCol; flashEl.style.opacity = (G.flash * .55).toFixed(3);
+  }
   let last = performance.now();
   function frame(now) {
     requestAnimationFrame(frame);
@@ -3716,10 +4676,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.state === 'title') {
       time += dt; updatePlatforms(dt); updateEnemies(dt); updateBlocks(dt); titleCam(dt);
     } else if (G.state === 'playing' || G.state === 'dying' || G.state === 'goal') {
-      const n = Math.min(4, Math.ceil(dt * 60 - .01)), h = dt / n;
-      for (let i = 0; i < n; i++) step(h);
+      if (G.hitStop > 0) G.hitStop -= dt; // a few frames of freeze sell the impact
+      else {
+        const n = Math.min(4, Math.ceil(dt * 60 - .01)), h = dt / n;
+        for (let i = 0; i < n; i++) step(h);
+      }
       updateCam(dt, false);
     }
+    Snd.update(G.state === 'playing' ? Math.max(clamp((-P.vel.y - 11) / 18, 0, 1), P.riding && P.onGround ? clamp(Math.hypot(P.vel.x, P.vel.z) / RIDE_SPD, 0, 1) * .35 : 0) : 0);
     updateNpcs(dt);
     updateAmbient(dt);
     animateRide(dt);
@@ -3728,7 +4692,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     animateCoins();
     animateHero(dt);
     updateBlob();
-    updateParticles(dt);
+    if (G.hitStop <= 0) { updateParticles(dt); updateWaves(dt); }
+    updateWeather(dt);
+    updateFlash(dt);
     updatePops(dt);
     updateBubbles();
     updateHud();
