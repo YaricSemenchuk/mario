@@ -1879,7 +1879,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     C28.dispose(); K28.dispose();
     return g;
   })();
-  // Murr's rides: a scooter, a go-kart, a snowboard, a jet ski, a pogo stick and a little cloud with a face. Front is +z.
+  // Murr's rides: a scooter, a go-kart, a snowboard, a jet ski, a pogo stick, a little cloud with a face, skis, a UFO and a helicopter. Front is +z.
   const wheel = (x, y, z, r, w) => [[CYL, 0x1c1e2e, M4(x, y, z, r, w, r, 0, 0, Math.PI / 2)], [CYL, 0xffd23f, M4(x, y, z, r * .45, w * 1.1, r * .45, 0, 0, Math.PI / 2)]];
   GEO.rides = {
     scooter: mergedGeo([
@@ -1935,7 +1935,39 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       [SPH_HI, 0xfff2c0, M4(-.35, .52, .87, .08, .07, .04)], [SPH_HI, 0xfff2c0, M4(.35, .52, .87, .08, .07, .04)],
       [CYL, 0x3b3f50, M4(0, .75, .45, .03, .4, .03, .5, 0, 0)], [TORUS, 0x2b2f4a, M4(0, .9, .36, .36, .36, .8, -.8, 0, 0)],
     ]),
+    // skis with turned-up tips, and two poles held under the arms with their tips trailing behind
+    ski: mergedGeo([-1, 1].flatMap((s) => [
+      [BOX, 0xf0503a, M4(s * .15, .03, -.05, .13, .03, 1.6)], [BOX, 0xf0503a, M4(s * .15, .07, .82, .13, .03, .2, -.5, 0, 0)],
+      [BOX, 0xffffff, M4(s * .15, .047, -.1, .05, .006, 1.3)], [BOX, 0x2b2f4a, M4(s * .15, .075, 0, .15, .06, .26)],
+      [CYL, 0xb8bfcc, M4(s * .4, .42, -.12, .022, 1.15, .022, .85, 0, s * .09)], [CYL, 0x2b2f4a, M4(s * .357, .75, .25, .036, .18, .036, .85, 0, s * .09)],
+      [CYL, 0x2b2f4a, M4(s * .44, .11, -.475, .08, .015, .08, .85, 0, s * .09)],
+    ])),
+    // the UFO: a silver saucer ringed with coloured lights, the hero sitting in the hatch on top; the whole saucer
+    // turns slowly and a beam shines down from its belly (rideModel)
+    ufo: mergedGeo([
+      [SPH_HI, 0xb8bfcc, M4(0, .6, 0, 1.3, .24, 1.3)], [CYL, 0x9a7aff, M4(0, .62, 0, 1.33, .07, 1.33)], [SPH_HI, 0xdfe3ee, M4(0, .72, 0, 1, .2, 1)],
+      [TORUS, 0x7dfcff, M4(0, .92, 0, 1.05, 1.05, 3, Math.PI / 2, 0, 0)], [CYL, 0x3b3f50, M4(0, .4, 0, .62, .06, .62)], [CYL, 0x7dfcff, M4(0, .37, 0, .5, .04, .5)],
+      ...Array.from({ length: 12 }, (_, i) => [SPH_HI, [0xffd23f, 0x7dfcff, 0xff7aa8][i % 3], M4(Math.cos(i * Math.PI / 6) * 1.3, .66, Math.sin(i * Math.PI / 6) * 1.3, .085, .085, .085)]),
+    ]),
+    // the helicopter: a round cabin open at the top with a windscreen, a tail with fins, two skids; the rotors are
+    // meshes of their own so they can spin (rideModel)
+    heli: mergedGeo([
+      ...[-1, 1].flatMap((s) => [[CYL, 0x3b3f50, M4(s * .55, .05, 0, .045, 1.9, .045, Math.PI / 2, 0, 0)],
+        [CYL, 0x3b3f50, M4(s * .465, .225, .45, .035, .39, .035, 0, 0, s * .45)], [CYL, 0x3b3f50, M4(s * .465, .225, -.45, .035, .39, .035, 0, 0, s * .45)]]),
+      [SPH_HI, 0xffc53d, M4(0, .62, .1, .74, .32, 1.02)], [SPH_HI, 0x4262ff, M4(0, .6, .1, .75, .06, 1.03)],
+      [SPH_HI, 0x9fd8ff, M4(0, .98, .62, .52, .34, .1, -.5, 0, 0)], [SPH_HI, 0xffffff, M4(-.18, 1.1, .64, .08, .05, .02, -.5, 0, 0)],
+      [SPH_HI, 0xfff2c0, M4(0, .45, 1.08, .09, .07, .04)], [BOX, 0x2b2f4a, M4(0, 1.08, -.36, .56, .42, .1, -.12, 0, 0)],
+      [CYL, 0xffc53d, M4(0, .8, -1.45, .1, 1.3, .1, Math.PI / 2 + .1, 0, 0)], [BOX, 0x4262ff, M4(0, 1.1, -2.08, .05, .5, .3, -.3, 0, 0)],
+      [BOX, 0x4262ff, M4(0, .88, -1.9, .72, .04, .2)], [CYL, 0x3b3f50, M4(0, 1.7, -.5, .05, 1.8, .05)],
+    ]),
   };
+  GEO.rotor = mergedGeo([[BOX, 0x2b2f4a, M4(0, 0, 0, 3.4, .03, .16)], [BOX, 0x2b2f4a, M4(0, 0, 0, .16, .03, 3.4)],
+    ...[0, 1, 2, 3].map((i) => [BOX, 0xffd23f, M4(Math.cos(i * Math.PI / 2) * 1.6, .002, Math.sin(i * Math.PI / 2) * 1.6, i % 2 ? .165 : .2, .032, i % 2 ? .2 : .165)]),
+    [CYL, 0x3b3f50, M4(0, 0, 0, .13, .12, .13)], [SPH_HI, 0xf0503a, M4(0, .07, 0, .08, .06, .08)]]);
+  GEO.tailRotor = mergedGeo([[CYL, 0x3b3f50, M4(0, 0, 0, .05, .06, .05, 0, 0, Math.PI / 2)], [BOX, 0x2b2f4a, M4(0, 0, 0, .02, .7, .08)], [BOX, 0x2b2f4a, M4(0, 0, 0, .02, .08, .7)]]);
+  // the UFO's beam: an open cone hanging from y 0 down to y -1, stretched to reach the ground
+  GEO.beam = shared(new T.CylinderGeometry(.4, .9, 1, 24, 1, true)); GEO.beam.translate(0, -.5, 0);
+  MAT.beam = new T.MeshBasicMaterial({ color: 0x9ffcff, transparent: true, opacity: .22, depthWrite: false, side: T.DoubleSide });
   // what the hero wears in some worlds: a glass helmet and an air tank on the moon, a snorkel mask under the sea
   GEO.pack = mergedGeo([
     [BOX, 0xf4f6fb, M4(0, .28, -.4, .42, .44, .2)], [CYL, 0xb8bfcc, M4(-.11, .3, -.52, .08, .42, .08)], [CYL, 0xb8bfcc, M4(.11, .3, -.52, .08, .42, .08)],
@@ -2783,19 +2815,29 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     function setUnder(on) { if (underOn === on || !ctx) return; underOn = on; under.frequency.setTargetAtTime(on ? 650 : 22000, ctx.currentTime, .08); }
     function setRoom(v) { room = v; if (ctx) { verbSfx.gain.setTargetAtTime(v, ctx.currentTime, .1); verbMus.gain.setTargetAtTime(v * 1.3, ctx.currentTime, .1); } }
 
-    // an engine hum for the kart and the jet ski: a sawtooth through a low-pass, louder and higher with speed
-    let motorO = null, motorG = null, motorF = null;
-    function motor(k, pitch) {
+    // an engine hum for the kart and the jet ski: a sawtooth through a low-pass, louder and higher with speed.
+    // A slow wave (lfo) chops its volume into the helicopter's thud-thud, or wobbles its pitch into the UFO's warble.
+    let motorO = null, motorG = null, motorF = null, lfo = null, lfoVol = null, lfoPitch = null;
+    function motor(k, pitch, wob) {
       if (!ctx || (!motorO && k <= 0)) return;
       if (!motorO) {
         motorO = ctx.createOscillator(); motorO.type = 'sawtooth'; motorO.frequency.value = 60;
         motorF = ctx.createBiquadFilter(); motorF.type = 'lowpass'; motorF.frequency.value = 500; motorF.Q.value = 2;
         motorG = ctx.createGain(); motorG.gain.value = 0;
         motorO.connect(motorF); motorF.connect(motorG); motorG.connect(sfxBus); motorO.start();
+        lfo = ctx.createOscillator(); lfo.frequency.value = 10; lfoVol = ctx.createGain(); lfoVol.gain.value = 0; lfoPitch = ctx.createGain(); lfoPitch.gain.value = 0;
+        lfo.connect(lfoVol); lfoVol.connect(motorG.gain); lfo.connect(lfoPitch); lfoPitch.connect(motorO.frequency); lfo.start();
       }
       const t = ctx.currentTime, on = k > 0 && !muted;
       motorG.gain.setTargetAtTime(on ? .05 * k : 0, t, .08);
-      if (on) { motorO.frequency.setTargetAtTime((48 + k * 70) * pitch, t, .1); motorF.frequency.setTargetAtTime(300 + k * 900, t, .1); }
+      lfoVol.gain.setTargetAtTime(on && wob === 'chop' ? .045 * k : 0, t, .08);
+      lfoPitch.gain.setTargetAtTime(on && wob === 'warble' ? 40 : 0, t, .1);
+      if (on) {
+        const shape = wob === 'warble' ? 'triangle' : 'sawtooth';
+        if (motorO.type !== shape) motorO.type = shape;
+        motorO.frequency.setTargetAtTime((48 + k * 70) * pitch, t, .1); motorF.frequency.setTargetAtTime(300 + k * 900, t, .1);
+        lfo.frequency.setTargetAtTime(wob === 'chop' ? 8 + k * 8 : 5, t, .1);
+      }
     }
     // ambience: a filtered noise bed plus occasional events (birdsong, lava bubbles, candy chimes)
     const AMB = {
@@ -4854,7 +4896,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (questDone('garden')) return ['Спасибо! Звезда твоя, забирай!'];
       return ['Караул! Каштаны топчут мой огород! Прогони их всех!', 'Прыгай им на макушку или крутись вихрем.' + (garden.left > 0 ? ' Осталось ' + garden.left + '.' : '')];
     }, { yaw: -Math.PI / 2 });
-    const garden = B.clearQuest({ key: 'garden', star: 'garden', owner: foma, win: 'Огород спасён! Вот тебе звезда!', left: (n) => 'Каштанов осталось: ' + n });
+    const garden = B.clearQuest({ key: 'garden', star: 'garden', owner: foma, win: 'Огород спасён! Вот тебе звезда!', rest: (n) => 'Каштанов осталось: ' + n });
     B.sign(20, 0, 23, ['Огород'], -Math.PI / 2);
     if (!questDone('garden')) {
       for (const [x, d, ax, rg, sp, ph] of [[27, 13, 'x', 2.5, 1.2, 0], [36.5, 13, 'x', 2.5, 1.3, .5], [31, 8.5, 'x', 5, 1.1, .2], [31, 18.5, 'x', 5, 1.2, .7], [26, 18, 'z', 3, 1, .3], [38, 9, 'z', 3, 1.1, .6]]) {
@@ -7004,10 +7046,21 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the moon pulls less: gravity and jumps are scaled so a jump goes up about twice as high and hangs in the air
   const gravK = () => L.def.grav || 1;
   const jumpK = () => (L.def.grav ? .86 : 1);
-  // a ride's top speed right now: the jet ski is fast on water, the snowboard on snow, ice and sand (kept through a jump)
+  // a ride's top speed right now: the jet ski is fast on water, the snowboard on snow, ice and sand, the skis on snow and ice
+  // (kept through a jump)
   function rideSpeed(V) {
-    if (P.onGround) P.rideFast = (V.water && (P.ground === SURF_FLOAT || !!P.ground.wet)) || (V.snow && !!P.ground && (P.ground.ice || ['snow', 'glacier', 'sand', 'canyon'].includes(P.ground.surf)));
+    if (P.onGround) P.rideFast = (V.water && (P.ground === SURF_FLOAT || !!P.ground.wet)) || (V.snow && !!P.ground && (P.ground.ice || V.surfs.includes(P.ground.surf)));
     return P.rideFast ? V.water || V.snow || V.spd : V.spd; // a ride called in the air after a fast one has neither
+  }
+  // the helicopter: with the jump held it climbs to FLY_H above whatever is under it and hangs there, let go and it
+  // sinks slowly. Past the edge of the world there is nothing to climb from, so there it only sinks.
+  const FLY_H = 7;
+  function heliLift(dt) {
+    let floor = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, 0);
+    const w = L.waters.length ? waterAt(P.pos.x, P.pos.z) : null;
+    if (w !== null && w > floor) floor = w;
+    const want = !jumpHeld() ? -2.6 : floor > -Infinity ? clamp((floor + FLY_H - P.pos.y) * 1.6, -2.6, 6) : -1.2;
+    P.vel.y = damp(P.vel.y, want, 4, dt); P.noCut = true;
   }
   // a slide pulls the hero downhill
   function slidePull(dt) {
@@ -7055,14 +7108,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.wallSlide = P.wallT > .05 && !P.onGround && !P.riding && !V && !P.pound && P.vel.y < 0 && push > .3;
     if (P.pound) { P.vel.x = P.vel.z = 0; } // no steering during a ground pound
     else {
-      const icy = P.onGround && P.ground && P.ground.ice, slide = P.onGround && P.ground && P.ground.slide, board = V && V.pose === 'board';
+      // the snowboard and the skis bite into ice; the helicopter steers as well in the air as on the ground
+      const icy = P.onGround && P.ground && P.ground.ice, slide = P.onGround && P.ground && P.ground.slide, grip = V && !!V.snow;
       let acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
-      if (V) acc = mag > .01 ? V.acc * (P.onGround ? (icy && !board ? .45 : 1) : .55) : P.onGround ? V.acc * (icy && !board ? .25 : .7) : DEC_A;
+      if (V) acc = mag > .01 ? V.acc * (P.onGround ? (icy && !grip ? .45 : 1) : V.fly ? 1 : .55) : P.onGround ? V.acc * (icy && !grip ? .25 : .7) : V.fly ? V.acc * .5 : DEC_A;
       else if (P.skidT > 0) acc = 26;
       if (P.wallLock > 0) acc *= .2; // right after a wall kick the hero flies away from the wall
       if (P.swim) acc = mag > .01 ? 14 : 5;
       if (P.sand) acc = 12;
-      if (slide && !board) acc = mag > .01 ? 10 : 2.5;
+      if (slide && !grip) acc = mag > .01 ? 10 : 2.5;
       let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1);
       if (slide) spdMax = Math.max(spdMax, 14); // steering down a slide must not brake it
       let dvx = wx * spdMax - P.vel.x, dvz = wz * spdMax - P.vel.z;
@@ -7145,11 +7199,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else if (P.sand) {
       P.vel.y = damp(P.vel.y, -.7 * wsc, 8, dt);
       if (Math.random() < dt * (mag > .1 ? 10 : 3)) puff(P.pos.x + (Math.random() - .5) * .8, qy + .05, P.pos.z + (Math.random() - .5) * .8, 0xe0bd78, 1, .6, .4, .5, .6);
-    } else {
+    } else if (V && V.fly && (!P.onGround || jumpHeld())) heliLift(dt);
+    else {
       let grav = GRAV * gravK();
       if (P.vel.y > 0 && !jumpHeld() && !P.noCut) grav *= 2.3;
       P.vel.y = Math.max(P.vel.y - grav * dt, TERM * (L.def.grav ? .6 : 1));
       if (V && V.glide && P.vel.y < -2.6 && jumpHeld()) P.vel.y = -2.6; // the cloud glides while the jump is held
+      if (V && V.hover && P.vel.y < -3.4) P.vel.y = -3.4; // the UFO never drops fast
       if (P.wallSlide) {
         P.vel.y = Math.max(P.vel.y, -4);
         if (Math.random() < dt * 14) puff(P.pos.x - P.wallN.x * HW, P.pos.y + .3, P.pos.z - P.wallN.z * HW, 0xe9e4d8, 1, .4, .6, .4, .45);
@@ -7632,10 +7688,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (s.talking) { s.lt += dt; if (s.lt > 0) { s.talking = false; s.el.classList.remove('show'); } }
   }
   function magnetCoins(dt) {
-    const mag = perkOn('magnet');
-    if ((!mag && (!G.star || spark.state !== 'follow')) || G.state !== 'playing') return;
-    // Iskra pulls from about 3.7 m, the magnet from the shop from 6 m
-    const cx = P.pos.x, cy = P.pos.y + PH / 2, cz = P.pos.z, k = Math.min(1, dt * 7), r2 = mag ? 36 : 14, ry = mag ? 4.5 : 3;
+    const mag = perkOn('magnet'), beam = !!(P.veh && P.veh.beam);
+    if ((!mag && !beam && (!G.star || spark.state !== 'follow')) || G.state !== 'playing') return;
+    // Iskra pulls from about 3.7 m, the magnet from the shop from 6 m, the UFO's beam from 8 m
+    const cx = P.pos.x, cy = P.pos.y + PH / 2, cz = P.pos.z, k = Math.min(1, dt * 7), r2 = beam ? 64 : mag ? 36 : 14, ry = beam ? 6 : mag ? 4.5 : 3;
     for (const c of L.coins) {
       if (c.taken) continue;
       const dx = cx - c.x, dz = cz - c.z, dy = cy - c.y;
@@ -8442,15 +8498,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { id: 'halo', name: 'Нимб', price: 160 },
     { id: 'crown', name: 'Корона', price: 200, hide: true },
   ];
-  // rides: speed on the ground, what they are good at, the hero's pose, how high he stands (y) above the ground
+  // rides: speed on the ground, what they are good at, the hero's pose, how high he stands (y) above the ground.
+  // New ones go at the end: a friend's packet names the ride by its place in this list (RIDE_IDS).
   const RIDES = {
     scooter: { name: 'Самокат', price: 90, sub: 'Быстрый и вёрткий', spd: 11.5, acc: 34, jump: 1, air: 0, y: .22, pose: 'stand' },
     kart: { name: 'Карт', price: 160, sub: 'Самый быстрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, pose: 'sit', bump: true, motor: 1 },
-    board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
+    board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, surfs: ['snow', 'glacier', 'sand', 'canyon'], acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
     jetski: { name: 'Водный скутер', price: 140, sub: 'Мчится по воде, на суше медленный', spd: 6.5, water: 14.5, acc: 26, jump: .95, air: 0, y: .3, pose: 'sit', floats: true, motor: 1.4 },
     pogo: { name: 'Пого-палка', price: 110, sub: 'Сама прыгает и давит даже колючек', spd: 7.5, acc: 30, jump: 1.25, air: 0, y: .38, pose: 'pogo', pogo: true },
     cloud: { name: 'Облачко', price: 260, sub: 'Парит, прыгает в воздухе и не тонет', spd: 9.5, acc: 24, jump: 1.05, air: 1, y: .52, pose: 'stand', glide: true, floats: true },
     rover: { name: 'Луноход', price: 220, sub: 'Шесть колёс: быстрый и сбивает врагов', spd: 12.5, acc: 26, jump: 1, air: 0, y: .36, pose: 'sit', bump: true, motor: .8 },
+    ski: { name: 'Лыжи', price: 130, sub: 'Самые быстрые на снегу и льду', spd: 8.5, snow: 16.5, surfs: ['snow', 'glacier'], acc: 32, jump: 1.05, air: 0, y: .08, pose: 'ski' },
+    ufo: { name: 'НЛО', price: 280, sub: 'Парит над землёй и водой, лучом тянет значки', spd: 11, acc: 26, jump: 1, air: 0, y: .34, pose: 'sit', hover: true, floats: true, beam: true, motor: 3, wob: 'warble' },
+    heli: { name: 'Вертолёт', price: 320, sub: 'Летает! Держи прыжок, и он поднимется', spd: 10.5, acc: 22, jump: .55, air: 0, y: .34, pose: 'sit', fly: true, floats: true, motor: 1.1, wob: 'chop' },
   };
   const skinDef = (id = SAVE.skin) => SKINS.find((s) => s.id === id) || SKINS[0];
   const capDef = (id = SAVE.cap, skin = SAVE.skin) => { const c = CAPS.find((k) => k.id === id); if (c && c.col !== undefined) return c; const s = skinDef(skin); return { col: s.cap, dark: s.dark }; };
@@ -8596,11 +8656,34 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ---------- rides: bought in the shop, called with the ride button (or V) in the open worlds ----------
+  // a ride's model, ours or a friend's: the merged mesh, plus the helicopter's rotors and the UFO's beam
+  function rideModel(id) {
+    const g = new T.Group(), m = new T.Mesh(GEO.rides[id], MAT.char), u = g.userData; m.castShadow = true; g.add(m); g.rotation.order = 'YXZ';
+    if (id === 'heli') {
+      u.rotor = new T.Mesh(GEO.rotor, MAT.char); u.rotor.position.set(0, 2.6, -.5); u.rotor.castShadow = true;
+      u.tail = new T.Mesh(GEO.tailRotor, MAT.char); u.tail.position.set(.1, 1.1, -2.1);
+      g.add(u.rotor, u.tail);
+    } else if (id === 'ufo') { u.hull = m; u.beam = new T.Mesh(GEO.beam, MAT.beam); u.beam.position.y = .38; g.add(u.beam); }
+    return g;
+  }
+  // the parts that turn by themselves: the rotors (k: how hard they work) and the UFO's saucer; its beam flickers
+  function spinRide(g, dt, k) {
+    const u = g.userData;
+    if (u.rotor) { u.rotor.rotation.y += dt * 26 * k; u.tail.rotation.x += dt * 34 * k; }
+    if (u.hull) { u.hull.rotation.y += dt * 1.4; u.beam.material.opacity = .2 + Math.sin(time * 7) * .05; }
+  }
+  // the UFO's beam reaches down to the ground or the water under it (feet: where the saucer's group stands)
+  function beamTo(g, x, feet, z) {
+    let f = groundAt(x, z, feet + .05, 0);
+    const w = L.waters.length ? waterAt(x, z) : null;
+    if (w !== null && w > f) f = w;
+    g.userData.beam.scale.y = clamp(feet + .38 - f, .3, 6);
+  }
+  const rideBob = () => (P.vehId === 'cloud' ? Math.sin(time * 3) * .05 : P.vehId === 'ufo' ? Math.sin(time * 2.4) * .07 : 0);
   const rideMesh = {};
   function rideGroup(id) {
     if (rideMesh[id]) return rideMesh[id];
-    const g = new T.Group(), m = new T.Mesh(GEO.rides[id], MAT.char); m.castShadow = true; g.add(m);
-    g.rotation.order = 'YXZ'; g.visible = false; scene.add(g);
+    const g = rideModel(id); g.visible = false; scene.add(g);
     return (rideMesh[id] = g);
   }
   // what the hero stands on when a ride skims water (the jet ski, the cloud) or quicksand
@@ -8658,10 +8741,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     g.position.set(P.pos.x, P.pos.y, P.pos.z);
     g.rotation.y = P.facing + spinAngle();
     const lean = clamp(spd / 12, 0, 1);
-    g.rotation.x = id === 'pogo' ? lean * .25 : id === 'kart' || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : 0;
-    g.rotation.z = id === 'scooter' || id === 'board' ? Math.sin(time * 2) * .02 * lean : 0;
+    g.rotation.x = id === 'pogo' ? lean * .25 : id === 'kart' || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
+    g.rotation.z = id === 'scooter' || id === 'board' || id === 'ski' ? Math.sin(time * 2) * .02 * lean : 0;
     if (id === 'pogo') { const sq = P.onGround ? .8 : clamp(1 + P.vel.y * .01, .9, 1.08); g.scale.set(1, sq, 1); }
-    if (id === 'cloud') { g.position.y += Math.sin(time * 3) * .05; if (Math.random() < dt * 6) puff(P.pos.x - Math.sin(P.facing) * .8, P.pos.y + .2, P.pos.z - Math.cos(P.facing) * .8, 0xffffff, 1, .3, 0, .5, .6); }
+    g.position.y += rideBob();
+    if (id === 'cloud' && Math.random() < dt * 6) puff(P.pos.x - Math.sin(P.facing) * .8, P.pos.y + .2, P.pos.z - Math.cos(P.facing) * .8, 0xffffff, 1, .3, 0, .5, .6);
+    spinRide(g, dt, P.onGround && spd < 1 && !jumpHeld() ? .45 : 1);
+    if (id === 'ufo') beamTo(g, P.pos.x, g.position.y, P.pos.z);
+    // the rotor's wind flattens the dust under a hovering helicopter
+    if (id === 'heli' && !P.onGround && Math.random() < dt * 10) {
+      const f = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, 0);
+      if (P.pos.y - f < 5) puff(P.pos.x + (Math.random() - .5) * 2.4, f + .1, P.pos.z + (Math.random() - .5) * 2.4, dustColor(), 1, 1.6, .2, .5, .7);
+    }
     if (P.ground === SURF_FLOAT && spd > 3 && Math.random() < dt * 30) {
       emit(P.pos.x - Math.sin(P.facing) * 1.1, P.pos.y + .1, P.pos.z - Math.cos(P.facing) * 1.1, splashCol(), 2, 2, 2.5, 10, .4, .16);
       if (Math.random() < .3) wave(P.pos.x, P.pos.y - .04, P.pos.z, 0xffffff, 1.4, .5, false);
@@ -9076,6 +9167,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       } else if (pose === 'board') { // sideways on the snowboard, knees bent, arms out, looking where it goes
         t.hipL = -.35; t.hipR = -.35; t.sprL = t.sprR = .32; t.kneeL = t.kneeR = .7; t.ankL = t.ankR = -.3;
         t.shLz = t.shRz = 1.15; t.shLx = t.shRx = -.25; t.elL = t.elR = -.35; t.headY = 1.1; t.torsoX = .12; t.torsoZ = bank * 1.4;
+      } else if (pose === 'ski') { // skis: knees bent, leaning into the run, the poles tucked under the arms
+        t.hipL = t.hipR = -.55; t.sprL = t.sprR = .08; t.kneeL = t.kneeR = .95; t.ankL = t.ankR = -.4;
+        t.shLx = t.shRx = -.55; t.elL = t.elR = -.9; t.shLz = t.shRz = .3; t.torsoX = .28 + k * .12; t.torsoZ = bank; t.headX = -.2;
       } else if (pose === 'pogo') { // on the pegs, both hands on the handle
         const c = P.onGround ? .6 : .15;
         t.hipL = t.hipR = -.35 - c * .4; t.kneeL = t.kneeR = .25 + c; t.ankL = t.ankR = -.2 - c * .3; t.sprL = t.sprR = .12;
@@ -9087,7 +9181,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         t.hipL = -.18; t.hipR = .12; t.kneeL = .3; t.kneeR = .18; t.shLx = t.shRx = -1.2; t.elL = t.elR = -.4; t.shLz = t.shRz = .1;
         t.torsoX = .12 + k * .12; t.torsoZ = bank;
       }
-      if (air && P.vel.y > 2 && pose !== 'pogo') { t.shLz = Math.max(t.shLz, .7); t.shRx = -2.4; t.elR = -.3; face = 'cheer'; }
+      // going up: a cheer with one hand (the skis' poles and the pogo's handle keep both)
+      if (air && P.vel.y > 2 && pose !== 'pogo' && pose !== 'ski') { t.shLz = Math.max(t.shLz, .7); t.shRx = -2.4; t.elR = -.3; face = 'cheer'; }
       else if (spd > 9) face = 'determined';
       else if (spd > 3) face = 'happy';
       return [face, rate];
@@ -9241,7 +9336,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (P.riding) {
       const f = P.facing, bob = P.onGround ? Math.abs(Math.sin(P.riding.walk)) * .05 : 0;
       r.position.set(P.pos.x - Math.sin(f) * .06, P.pos.y + .95 + bob, P.pos.z - Math.cos(f) * .06);
-    } else if (P.veh) r.position.set(P.pos.x, P.pos.y + P.veh.y + (P.vehId === 'cloud' ? Math.sin(time * 3) * .05 : 0), P.pos.z);
+    } else if (P.veh) r.position.set(P.pos.x, P.pos.y + P.veh.y + rideBob(), P.pos.z);
     else r.position.copy(P.pos);
     const spinA = spinAngle();
     // on the snowboard the hero stands sideways
@@ -9391,7 +9486,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // (a cave can ask for a looser camera: `dist` and `pitch`)
       const cave = L.caves ? L.caves.find((c) => P.pos.x > c.x0 && P.pos.x < c.x1 && P.pos.z > c.z0 && P.pos.z < c.z1 && P.pos.y < c.y1) : null;
       cam.tight = !!cave; cam.tightPitch = cave ? cave.pitch || .16 : .16;
-      const far = cam.distGoal + (P.big ? .9 : 0) + (P.riding || P.veh ? .9 : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
+      const far = cam.distGoal + (P.big ? .9 : 0) + (P.riding || P.veh ? (P.veh && P.veh.fly ? 2.2 : .9) : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
       cam.dist = damp(cam.dist, cave ? cave.dist || 4.2 : far, 4, dt);
     }
     // field of view widens for a moment on big launches and while the dino runs flat out
@@ -10194,10 +10289,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (g.ride) { scene.remove(g.ride.g); g.ride = null; }
     g.rideId = id;
     if (id === 255) g.ride = dinoModel();
-    else if (RIDE_IDS[id - 1]) {
-      const gr = new T.Group(), m = new T.Mesh(GEO.rides[RIDE_IDS[id - 1]], MAT.char); m.castShadow = true; gr.add(m); gr.rotation.order = 'YXZ';
-      g.ride = { g: gr };
-    }
+    else if (RIDE_IDS[id - 1]) g.ride = { g: rideModel(RIDE_IDS[id - 1]) };
     if (g.ride) scene.add(g.ride.g);
   }
   // the pose a little in the past, between the two packets around that moment, so the motion stays smooth
@@ -10221,7 +10313,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (g.ride) g.ride.g.visible = false;
     if (g.tag) g.tag.el.hidden = true;
   }
-  function netShowPeer(g, loc, now) {
+  function netShowPeer(g, loc, now, dt) {
     if (!loc || g.loc !== loc || !g.snaps.length || g.old) { netHide(g); return; }
     if (!g.rig) netRig(g);
     netSample(g, now);
@@ -10239,6 +10331,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const rg = g.ride.g; rg.visible = r.visible;
       rg.position.set(g.px, feetY, g.pz); rg.rotation.set(v[4], v[5], v[6]); rg.scale.set(1, v[7] || 1, 1);
       if (g.ride.legs) { g.ride.legs[0].rotation.x = v[8]; g.ride.legs[1].rotation.x = v[9]; }
+      spinRide(rg, dt, 1);
+      if (rg.userData.beam) beamTo(rg, g.px, feetY, g.pz);
     }
     // a soft shadow on whatever is under the friend
     const bl = g.blob;
@@ -10307,7 +10401,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       netSend(net.act.pose, netPack(loc));
     }
     camera.updateMatrixWorld();
-    for (const g of net.peers.values()) netShowPeer(g, loc, now);
+    for (const g of net.peers.values()) netShowPeer(g, loc, now, dt);
     duelUpdate(dt);
     if (!screens.net.hidden) { net.uiT -= dt; if (net.uiT <= 0) { net.uiT = 1; renderNet(); } }
   }
@@ -11087,8 +11181,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     const spdNow = Math.hypot(P.vel.x, P.vel.z), playing = G.state === 'playing';
     Snd.update(playing ? Math.max(clamp((-P.vel.y - 11) / 18, 0, 1), (P.riding || P.veh) && P.onGround ? clamp(spdNow / RIDE_SPD, 0, 1) * .35 : 0) : 0);
-    // the kart and the jet ski hum, higher the faster they go
-    Snd.motor(playing && P.veh && P.veh.motor ? .35 + clamp(spdNow / 12, 0, 1) * .65 : 0, P.veh && P.veh.motor ? P.veh.motor : 1);
+    // the kart and the jet ski hum, higher the faster they go; a helicopter in the air works hard even hanging still
+    const rev = P.veh && P.veh.fly && !P.onGround ? Math.max(spdNow, 8) : spdNow;
+    Snd.motor(playing && P.veh && P.veh.motor ? .35 + clamp(rev / 12, 0, 1) * .65 : 0, P.veh && P.veh.motor ? P.veh.motor : 1, P.veh && P.veh.wob);
     updateNpcs(dt);
     updateAmbient(dt);
     animateRide(dt);
