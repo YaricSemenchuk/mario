@@ -353,6 +353,35 @@
   .btn-sm { flex: none; padding: 9px 12px; font-size: 13px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
   .btn-sm:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 var(--ink); }
   .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-go { background: var(--gold); }
+  .net-games { display: grid; gap: 8px; }
+  .net-hint { margin: 0; font: 600 12px/1.35 var(--ui); color: var(--ink-soft); text-wrap: pretty; }
+
+  /* ---------- games with friends: the panel under the HUD (an invite, the wait, the results) and the seeker's blindfold ---------- */
+  #duel {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 58px); transform: translateX(-50%); z-index: 11;
+    width: min(330px, calc(100vw - 32px)); box-sizing: border-box; display: grid; gap: 8px; padding: 12px 14px 14px; text-align: center;
+    background: var(--paper); color: var(--ink); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 5px 0 var(--ink);
+  }
+  #duel p { margin: 0; }
+  #duelBig { font: 400 30px/1 var(--display); color: var(--gold); letter-spacing: .02em;
+    text-shadow: 0 2px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink), 2px 2px 0 var(--ink), -2px 2px 0 var(--ink), 2px -2px 0 var(--ink), -2px -2px 0 var(--ink), 0 4px 0 var(--ink); }
+  #duelText { font: 700 14px/1.35 var(--ui); color: var(--ink-soft); text-wrap: balance; }
+  #duelList { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; text-align: left; }
+  #duelList li { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: baseline; padding: 6px 9px; border-radius: 10px; background: var(--white); font: 800 14px/1.2 var(--ui); }
+  #duelList li.me { background: #fff4c9; }
+  #duelList li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #duelList li small { font: 700 12px/1.2 var(--ui); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  #duelBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #duelBtns.one { grid-template-columns: 1fr; }
+  #blind {
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 8; display: grid; place-content: center; justify-items: center; gap: 12px;
+    padding: 24px; text-align: center; color: var(--white); background: radial-gradient(ellipse at 50% 45%, #2a2d57 0%, #14152c 75%);
+  }
+  #blind p { margin: 0; max-width: 34ch; font: 800 16px/1.4 var(--ui); text-shadow: var(--outline); text-wrap: balance; }
+  #blind .eyebrow { color: var(--gold); }
+  #blind b { font: 400 clamp(84px, 20vw, 150px)/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums;
+    text-shadow: 0 4px 0 var(--ink), 4px 0 0 var(--ink), -4px 0 0 var(--ink), 0 -4px 0 var(--ink), 4px 4px 0 var(--ink), -4px 4px 0 var(--ink), 4px -4px 0 var(--ink), -4px -4px 0 var(--ink); }
 
   #errBar {
     position: fixed; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 50;
@@ -375,8 +404,9 @@
     /* the friends card sideways: the name, the status and the buttons on the left, the room on the right */
     #scrNet .card { width: min(720px, 100%); grid-template-columns: 1fr 1fr; column-gap: 18px; align-items: start; }
     #scrNet .eyebrow, #scrNet h2, #scrNet .card-sub { display: none; }
-    #scrNet .net-field, #netStatus, #scrNet .btn-row { grid-column: 1; }
+    #scrNet .net-field, #netStatus, #scrNet .btn-row, #netGames { grid-column: 1; }
     #netOff, #netOn { grid-column: 2; grid-row: 1 / span 3; margin: 0; }
+    #btnNetLeave { grid-column: 2; grid-row: 4; }
     #netOn { gap: 10px; }
     .net-code b { font-size: 34px; }
     .net-list { max-height: calc(100dvh - 250px); }
@@ -438,6 +468,14 @@
 <div id="toast" aria-live="polite"></div>
 <div id="netFeed" aria-live="polite"></div>
 <div id="bossBar" hidden><span id="bossName"></span><div id="bossHp"></div></div>
+<div id="duel" role="status" hidden>
+  <p class="eyebrow" id="duelHead"></p>
+  <b id="duelBig" hidden></b>
+  <p id="duelText"></p>
+  <ol id="duelList" hidden></ol>
+  <div id="duelBtns"><button class="btn btn-sm" id="duelNo" type="button"></button><button class="btn btn-sm btn-go" id="duelYes" type="button"></button></div>
+</div>
+<div id="blind" hidden><p class="eyebrow">Прятки · ты водишь</p><b id="blindN"></b><p id="blindText"></p></div>
 
 <section class="screen screen-title" id="scrTitle">
   <div class="title-wrap">
@@ -543,7 +581,7 @@
   <div class="card">
     <p class="eyebrow">Игра с друзьями</p>
     <h2>Играть вместе</h2>
-    <p class="card-sub">Друзья в одной комнате видят героев друг друга, когда они в одном мире. Звёзды и квесты у каждого свои.</p>
+    <p class="card-sub">Друзья в одной комнате видят героев друг друга, когда они в одном мире, и вместе проходят в любые врата, открытые хоть у одного. Звёзды и квесты у каждого свои.</p>
     <label class="net-field">Твоё имя <input class="net-input" id="netName" maxlength="14" autocomplete="nickname" enterkeyhint="done" spellcheck="false"></label>
     <div class="card-actions" id="netOff">
       <button class="btn btn-main" id="btnNetCreate" type="button">Создать комнату</button>
@@ -557,8 +595,17 @@
       <p class="net-code"><small>Комната</small><b id="netCodeShow"></b></p>
       <button class="btn btn-main" id="btnNetShare" type="button">Позвать друга</button>
       <ul class="net-list" id="netList" aria-label="Друзья в комнате"></ul>
-      <button class="btn btn-ghost" id="btnNetLeave" type="button">Выйти из комнаты</button>
     </div>
+    <div class="net-games" id="netGames" hidden>
+      <p class="net-or">Поиграть вместе в этом мире</p>
+      <div class="btn-row" id="netGameBtns">
+        <button class="btn btn-sm" id="btnDuelRace" type="button">Гонка</button>
+        <button class="btn btn-sm" id="btnDuelHide" type="button">Прятки</button>
+      </div>
+      <button class="btn btn-sm" id="btnDuelQuit" type="button" hidden>Выйти из игры</button>
+      <p class="net-hint" id="netGameHint"></p>
+    </div>
+    <button class="btn btn-ghost" id="btnNetLeave" type="button" hidden>Выйти из комнаты</button>
     <p class="net-status" id="netStatus" role="status" hidden></p>
     <div class="btn-row">
       <button class="btn btn-ghost" id="btnNetBack" type="button">Назад</button>
@@ -3612,7 +3659,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           const a = rings[Math.max(0, i - 1)], b = rings[Math.min(rings.length - 1, i + 1)];
           addRing(i, x, y, -d, Math.atan2(b[0] - a[0], -(b[2] - a[2])));
         });
+        if (!L.course) L.course = courseOf(rings); // friends race on the same rings, quest done or not
       },
+      // rings for the races with friends where the world's own race does not suit a ride
+      course(rings) { L.course = courseOf(rings); },
       clearQuest(cfg) { const q = Object.assign({ left: -1 }, cfg); ISL.clears.push(q); return q; },
       switchQuest(cfg) { ISL.switches = Object.assign({ n: 4 }, cfg); },
       // a big red button on a pedestal: stepping on it presses it for good
@@ -5547,6 +5597,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       fail: 'Не все огни горят… Попробуем ещё!', win: 'Все огни горят! Держи звезду!' },
       [[-36, 0, 38], [34, 0, 38], [-12, 0, 64], [12, 0, 90], [-70, 2, 7], [-14, 0, -6]]);
     B.star('f.lights', -21.5, 2.2, 12, !questDone('f.lights'));
+    // the factory has no race of its own; friends race karts round the oven, over the lower deck
+    B.course([[0, 1.6, 8.5], [-20, 1.6, 10], [-35, 1.6, 12], [-34, 1.6, 38], [-16, 1.6, 41], [0, 1.6, 41], [16, 1.6, 40], [24, 1.6, 34], [26, 1.6, 20], [30, 1.6, 10], [12, 1.6, 10]]);
 
     // --- the landing stage past the western edge: blinking tiles out to it ---
     for (let i = 0; i < 4; i++) { const x = -43.5 - i * 4; B.blinker(x, 1 + i * .25, 10, 2.6, 2.6, i % 2); B.coin(x, 2.6 + i * .25, 10); }
@@ -6179,7 +6231,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cannons: [], balls: [], fireballs: [], crushers: [], blinkers: [], blinkPh: -1, fans: [], gears: [], smokers: [], stormT: 4,
       // the island
       waters: [], falls: [], fountains: [], spinners: [], portals: [], pads: [], stars: [], lost: [], setItems: [], raceRings: [], buttons: [], magic: [], digs: [], paths: [],
-      sands: [], lavas: [], switches: [], rocket: null,
+      sands: [], lavas: [], switches: [], rocket: null, course: null,
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     resetIsland();
@@ -6955,7 +7007,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // a ride's top speed right now: the jet ski is fast on water, the snowboard on snow, ice and sand (kept through a jump)
   function rideSpeed(V) {
     if (P.onGround) P.rideFast = (V.water && (P.ground === SURF_FLOAT || !!P.ground.wet)) || (V.snow && !!P.ground && (P.ground.ice || ['snow', 'glacier', 'sand', 'canyon'].includes(P.ground.surf)));
-    return P.rideFast ? V.water || V.snow : V.spd;
+    return P.rideFast ? V.water || V.snow || V.spd : V.spd; // a ride called in the air after a fast one has neither
   }
   // a slide pulls the hero downhill
   function slidePull(dt) {
@@ -6973,6 +7025,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (g.dy) P.pos.y += g.dy;
     }
     if (g && g.belt) { moveH('x', g.bvx * dt, false); moveH('z', g.bvz * dt, false); }
+    if (duelFrozen()) input.jumpQueued = input.actQueued = false;
     if (input.actQueued) { input.actQueued = false; action(); }
     const inp = readInput();
     const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
@@ -7736,7 +7789,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   resetIsland();
   function awardStar(id) {
     if (hasStar(id)) return false;
-    SAVE.stars.push(id); saveGame(); return true;
+    SAVE.stars.push(id); saveGame();
+    netLookChanged(); // friends in the room open what this star opens
+    return true;
   }
 
   // ---------- stars: spin and glow under a beam of light until picked up; some wait hidden until a quest is done ----------
@@ -7881,6 +7936,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const m = new T.Mesh(RACE_RING_GEO, i ? MAT.ringDim : MAT.ring); m.position.set(x, y, z); m.rotation.y = yaw; L.group.add(m);
     L.raceRings.push({ i, x, y, z, m });
   }
+  // a ring course as points in the world, each ring turned along the way
+  const courseOf = (rings) => rings.map(([x, y, d], i) => {
+    const a = rings[Math.max(0, i - 1)], b = rings[Math.min(rings.length - 1, i + 1)];
+    return { x, y, z: -d, yaw: Math.atan2(b[0] - a[0], -(b[2] - a[2])) };
+  });
   function resetRace() {
     const R = ISL.race; if (!R) return;
     R.on = false; R.next = 0;
@@ -7888,7 +7948,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function updateRace(dt) {
     const rings = L.raceRings, R = ISL.race;
-    if (!R || !rings.length) return;
+    if (!R || !rings.length || duelRacing()) return; // a race with friends on the same rings hides these for a while
     const nx = rings[R.next];
     if (nx) nx.m.scale.setScalar(1 + Math.sin(time * 6) * .07);
     if (G.state !== 'playing') return;
@@ -7901,6 +7961,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (R.t < 6 && Math.ceil(R.t) !== Math.ceil(before)) Snd.sfx.tock(true);
     }
     if (!nx) return;
+    // right after a race with friends that finished through this first ring, it waits until the hero drives off
+    if (R.hold) { if (Math.hypot(nx.x - P.pos.x, nx.z - P.pos.z) > 6) R.hold = false; else return; }
     const dx = nx.x - P.pos.x, dy = nx.y - (P.pos.y + PH * .5), dz = nx.z - P.pos.z;
     if (dx * dx + dy * dy + dz * dz > 2.1 * 2.1) return;
     nx.m.visible = false; Snd.sfx.ring(R.next); glow(nx.x, nx.y, nx.z, 0xffe07a, 20, 4, 0, 1, .5, .3); flashAt(nx.x, nx.y, nx.z, 0xfff3b0, 3, .25);
@@ -8034,7 +8096,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (nearNpc(c.q.steps[c.step].to)) deliver();
       return;
     }
-    if (G.state !== 'playing') return;
+    if (G.state !== 'playing' || duelOn()) return; // no errands in the middle of a game with friends
     for (const q of ISL.deliveries) {
       const i = delivStep(q);
       if (questDone(q.star) || i >= q.steps.length || !nearNpc(q.steps[i].from)) continue;
@@ -8143,6 +8205,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // what the hero is up to right now, for the line under the buttons: a delivery, a race, beacons, a runaway, followers
   function questTrack() {
+    const du = duelTrack(); if (du) return du;
     const c = ISL.carry;
     if (c) { const st = c.q.steps[c.step]; return ['Доставка', st.name + ' → ' + st.to.name]; }
     if (ISL.race && ISL.race.on) return ['Гонка', 'Кольцо ' + (ISL.race.next + 1) + ' из ' + L.raceRings.length];
@@ -8156,6 +8219,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // seconds left on whatever challenge is timed right now (the HUD shows them), or null
   function challengeLeft() {
+    const dc = duelClock(); if (dc !== null) return dc;
     if (ISL.race && ISL.race.on) return ISL.race.t;
     if (ISL.beacons && ISL.beacons.on) return ISL.beacons.t;
     if (ISL.carry && ISL.carry.limit) return ISL.carry.t;
@@ -8164,11 +8228,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- gates: to the worlds (on the island), between the worlds, into the levels ----------
   SWIRL_TEX.center.set(.5, .5);
-  // a level is open when it is the first behind its gate or the one before it has been cleared
-  const prevLevel = (li) => { const W = WORLDS[worldOf(li)], k = W.levels.indexOf(li); return k > 0 ? LEVELS[W.levels[k - 1]] : null; };
-  const levelOpen = (li) => { const p = prevLevel(li); return !p || hasStar('l:' + p.id); };
+  // A level is open when it is the first behind its gate or the one before it has been cleared. Friends in one room share
+  // what they have opened: while they play together, a gate or a door open for one of them is open for all of them.
+  const prevIdx = (li) => { const W = WORLDS[worldOf(li)], k = W.levels.indexOf(li); return k > 0 ? W.levels[k - 1] : -1; };
+  const prevLevel = (li) => { const i = prevIdx(li); return i < 0 ? null : LEVELS[i]; };
+  const levelOpen = (li) => { const i = prevIdx(li); return i < 0 || hasStar('l:' + LEVELS[i].id) || netFriendCleared(i); };
+  const openStars = () => Math.max(starCount(), netFriendStars());
   function gateOpen(pt) {
-    if (pt.kind === 'world') return starCount() >= WORLDS[pt.target].need;
+    if (pt.kind === 'world') return openStars() >= WORLDS[pt.target].need;
     return pt.kind === 'level' ? levelOpen(pt.target) : true;
   }
   function gateLabel(pt, open) {
@@ -8193,7 +8260,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
       const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
       if (!inside) pd.armed = true;
-      else if (pd.armed && G.state === 'playing' && P.onGround) { pd.armed = false; if (pd.kind === 'shop') openShop(); else if (pd.kind === 'rent') rentRide(pd.data); }
+      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn()) { pd.armed = false; if (pd.kind === 'shop') openShop(); else if (pd.kind === 'rent') rentRide(pd.data); }
     }
     for (const pt of L.portals) {
       const open = gateOpen(pt);
@@ -8203,10 +8270,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!inside) { pt.armed = true; continue; }
       if (!pt.armed || G.state !== 'playing') continue;
       pt.armed = false;
-      if (open) { enterGate(pt); continue; }
+      const busy = duelOn(); // a game with friends keeps everyone in this world until it is over
+      if (open && !busy) { enterGate(pt); continue; }
       P.vel.set(pt.nx * 7, 7, pt.nz * 7); P.onGround = false; P.noCut = true; G.shake = Math.max(G.shake, .2);
       Snd.sfx.locked();
-      popup(pt.kind === 'world' ? 'Нужно ★ ' + WORLDS[pt.target].need : 'Сначала ' + prevLevel(pt.target).id, pt.x, pt.top + 3.2, pt.z, 'gold');
+      popup(busy ? 'Сначала доиграйте!' : pt.kind === 'world' ? 'Нужно ★ ' + WORLDS[pt.target].need : 'Сначала ' + prevLevel(pt.target).id, pt.x, pt.top + 3.2, pt.z, 'gold');
     }
   }
   function enterGate(pt) {
@@ -8539,11 +8607,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const SURF_FLOAT = { kind: 'water', surf: 'water', active: true, min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
   // a ride from the shop, or the one lent at a pier or a base (P.rent) until the hero gets off it
   function rideOn() {
-    const id = P.rent || SAVE.ride, def = RIDES[id];
+    const id = P.rent || duelRide() || SAVE.ride, def = RIDES[id];
     if (!def || P.veh || P.riding || P.pound || G.state !== 'playing' || !L.def.hub) return;
     if (P.rideCd > 0) return;
+    if (duelHiding()) { popup('В прятках без транспорта', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
+    if (id !== P.rent && id === duelRide()) P.rent = id; // back on the race's ride after a knock
     if (P.swim && !def.floats) { popup('Сначала выберись из воды', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
-    P.veh = def; P.vehId = id; applySize();
+    P.veh = def; P.vehId = id; P.rideFast = false; applySize();
     if (!freeAt(P.pos.x, P.pos.y + .02, P.pos.z)) { P.veh = null; applySize(); popup('Тут тесно', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (P.swim) { const wy = waterAt(P.pos.x, P.pos.z); P.swim = false; P.dive = false; if (wy !== null) P.pos.y = wy; }
     P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.wallSlide = false; P.wallT = 0; P.skidT = 0; P.airJumps = def.air;
@@ -8573,7 +8643,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.rent = id; P.rideCd = 0; rideOn();
     if (!P.veh) P.rent = '';
   }
-  function rideToggle() { if (P.veh) rideOff(false); else rideOn(); }
+  function rideToggle() { if (duelFrozen()) return; if (P.veh) rideOff(false); else rideOn(); }
   const btnRide = $('btnRide');
   function updateRideBtn() {
     const show = !!(L && L.def.hub && (RIDES[SAVE.ride] || P.veh) && !hudEl.hidden);
@@ -8601,6 +8671,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- the compass perk: an arrow over the hero's head towards the nearest star he can take ----------
   const compass = new T.Mesh(GEO.arrow, MAT.arrow); compass.visible = false; compass.scale.setScalar(1); compass.renderOrder = 6; scene.add(compass);
   function updateCompass() {
+    const ring = duelTarget();
+    if (ring) { // in a race with friends it points at the next ring
+      compass.visible = true;
+      compass.position.set(P.pos.x, P.pos.y + PH + (P.veh ? .7 : .9) + Math.sin(time * 3) * .08, P.pos.z);
+      compass.rotation.y = Math.atan2(ring.x - P.pos.x, ring.z - P.pos.z);
+      return;
+    }
     let best = null, bd = 16;
     if (L.def.hub && perkOn('compass') && G.state === 'playing') {
       for (const st of L.stars) {
@@ -9493,17 +9570,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     toast(def.name, key === 'island' ? '★ ' + starCount() + ' / ' + TOTAL_STARS : 'Звёзды этого мира: ' + ws.got + ' из ' + ws.all);
     Snd.setRoom(.12); Snd.setAmbient(def.amb); Snd.startMusic(def.music);
   }
-  // falling in an open world costs nothing: the hero is back at the last flag he touched
+  // falling in an open world costs nothing: the hero is back at the last flag he touched (in a race with friends, at the
+  // last ring he flew through, on the race's ride)
   function hubRespawn(quiet) {
-    const c = ISL.cp, pt = c ? cpSpawn(c) : L.start;
-    setBig(false, false); placePlayer(pt);
+    const c = ISL.cp, back = duelSpot(), pt = back || (c ? cpSpawn(c) : L.start);
+    setBig(false, false); placePlayer(pt, back ? back.face : undefined);
     for (const f of L.lost) if (f.state === 'follow') { f.x = pt.x; f.y = pt.y; f.z = pt.z; }
     ISL.trail.length = 0;
     if (ISL.race && ISL.race.on) resetRace();
     if (ISL.carry) dropCarry('fall');
-    G.state = 'playing'; updateCam(0, true); updateRideBtn();
+    G.state = 'playing'; updateCam(0, true);
+    if (back) duelMount();
+    updateRideBtn();
     Snd.startMusic(L.def.music);
-    if (!quiet) toast('Ой!', c ? 'Начнём от флажка' : 'Начнём сначала');
+    if (!quiet) toast('Ой!', back ? 'Назад к кольцу' : c ? 'Начнём от флажка' : 'Начнём сначала');
   }
   function startGame(key = 'island') {
     Snd.init(); goFullscreen(); keepAwake();
@@ -9593,8 +9673,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (key !== 'island') return;
     for (const W of WORLDS) {
       if (!W.hub) continue;
-      const w = worldStars(W.hub), open = starCount() >= W.need;
-      row(w.got === w.all, W.name + ' (' + w.got + '/' + w.all + ')', (open ? (W.levels.length ? 'Врата открыты: там свои жители, звёзды и уровни.' : 'Врата открыты: там свои жители и звёзды.') : 'Врата откроются при ★ ' + W.need + '.') + (W.where ? ' ' + W.where : ''));
+      const w = worldStars(W.hub), own = starCount() >= W.need, open = openStars() >= W.need;
+      const say = !open ? 'Врата откроются при ★ ' + W.need + '.' : !own ? 'Врата открыты, пока ты играешь с друзьями: у кого-то из них хватает звёзд.'
+        : W.levels.length ? 'Врата открыты: там свои жители, звёзды и уровни.' : 'Врата открыты: там свои жители и звёзды.';
+      row(w.got === w.all, W.name + ' (' + w.got + '/' + w.all + ')', say + (W.where ? ' ' + W.where : ''));
     }
   }
   function pause() {
@@ -9632,6 +9714,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   function readInput() {
     let x = 0, y = 0;
+    if (duelFrozen()) return { x, y }; // the race's countdown, the seeker counting
     if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
     if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
     if (keys.has('KeyW') || keys.has('ArrowUp')) y += 1;
@@ -9775,7 +9858,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
     if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Стереть звёзды? Нажми ещё раз'; setTimeout(renderTitleInfo, 3500); return; }
-    Object.assign(SAVE, SAVE_NEW()); saveGame(); store.set('unlocked', 1); Snd.sfx.shrink(); applyLook(); renderTitleInfo();
+    Object.assign(SAVE, SAVE_NEW()); saveGame(); store.set('unlocked', 1); Snd.sfx.shrink(); applyLook(); netLookChanged(); renderTitleInfo();
   });
   $('btnResume').addEventListener('click', resume);
   $('btnRestart').addEventListener('click', () => { Snd.init(); G.cpIndex = -1; startLevel(G.li, true); });
@@ -9834,7 +9917,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 1, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 2, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
@@ -9933,7 +10016,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function netPeer(id) {
     let g = net.peers.get(id);
     if (!g) {
-      g = { id, name: '', old: false, look: { skin: 'classic', cap: 'auto', hat: '' }, snaps: [], off: null, loc: 0, seen: 0, last: null,
+      g = { id, name: '', old: false, look: { skin: 'classic', cap: 'auto', hat: '' }, st: 0, lv: 0, snaps: [], off: null, loc: 0, seen: 0, last: null,
         rig: null, nodes: null, visNodes: null, blob: null, ride: null, rideId: 0, dress: '', tag: null, emoT: 0,
         cur: new Float32Array(NET_N), px: 0, py: 0, pz: 0, vis: 0, flags: 0, rideNow: 0 };
       net.peers.set(id, g);
@@ -9942,6 +10025,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function netDrop(id, quiet) {
     const g = net.peers.get(id); if (!g) return;
+    if (duel) duelGone(id);
     net.peers.delete(id);
     if (g.rig) {
       scene.remove(g.rig.root); scene.remove(g.blob); g.blob.material.dispose();
@@ -9953,6 +10037,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!quiet && g.name) netNote(g.name + ' уже не в игре');
     netUi();
   }
+  // What the friends have opened, from their hellos: the most stars any of them has (the world gates) and the levels
+  // each has cleared, one bit a level (the doors of the next ones)
+  function netFriendStars() {
+    let n = 0;
+    for (const g of net.peers.values()) if (!g.old && g.st > n) n = g.st;
+    return n;
+  }
+  function netFriendCleared(li) {
+    for (const g of net.peers.values()) if (!g.old && g.lv & (1 << li)) return true;
+    return false;
+  }
+  const levelMask = () => LEVELS.reduce((m, l, i) => (hasStar('l:' + l.id) ? m | (1 << i) : m), 0);
   function netOnHello(d, id) {
     if (!d || typeof d !== 'object') return;
     const g = netPeer(id), first = !g.name;
@@ -9963,7 +10059,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cap: CAPS.some((c) => c.id === d.c) ? d.c : 'auto',
       hat: HATS.some((k) => k.id === d.h) ? d.h : '',
     };
+    const was = openStars();
+    g.st = g.old ? 0 : clamp(Math.floor(+d.st) || 0, 0, TOTAL_STARS);
+    g.lv = g.old ? 0 : (Math.floor(+d.lv) || 0) & ((1 << LEVELS.length) - 1);
     if (first) { netNote(g.name + ' в игре'); Snd.sfx.pop(); }
+    // the gates this friend opens for us
+    const now = openStars(), opened = WORLDS.filter((W) => W.need > was && W.need <= now);
+    if (opened.length) netNote('Пока вы вместе, открыты врата: ' + opened.map((W) => W.name).join(', '));
     netUi();
   }
   function netOnPose(data, id) {
@@ -9991,11 +10093,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     popup('👋', P.pos.x, P.pos.y + PH + .7, P.pos.z);
     netSend(net.act.emo, { e: 'wave' });
   }
-  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat });
-  // the name or the costume changed: tell everyone
+  // who we are and how we look, and what we have opened (our stars and cleared levels) for the friends to share
+  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat, st: starCount(), lv: levelMask() });
+  // the name, the costume or the progress changed: tell everyone
   function netLookChanged() {
     if (!net.room) return;
-    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h;
+    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h + '|' + h.st + '|' + h.lv;
     if (key === net.helloKey) return;
     net.helloKey = key; netSend(net.act.hello, h);
   }
@@ -10003,7 +10106,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function netFriendNear(d2max) {
     let best = d2max, tgt = null;
     for (const g of net.peers.values()) {
-      if (!g.rig || !g.rig.root.visible) continue;
+      if (!g.rig || !g.rig.root.visible || duelHidesTag(g)) continue;
       const dx = g.px - P.pos.x, dz = g.pz - P.pos.z, d = dx * dx + dz * dz;
       if (d < best && Math.abs(g.py - P.pos.y) < 4) { best = d; tgt = [g.px, g.py + 1.3 * g.cur[2], g.pz, true]; }
     }
@@ -10043,11 +10146,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       });
     } catch (e) { net.code = ''; net.state = 'off'; net.note = 'Игра по сети не запустилась в этом браузере.'; renderNet(); return; }
     net.room = room; net.state = 'on'; net.openedAt = performance.now();
-    const hello = room.makeAction('hello'), pose = room.makeAction('pose'), emo = room.makeAction('emote');
-    net.act = { hello, pose, emo };
+    const hello = room.makeAction('hello'), pose = room.makeAction('pose'), emo = room.makeAction('emote'), dl = room.makeAction('duel');
+    net.act = { hello, pose, emo, duel: dl };
     hello.onMessage = (d, m) => netOnHello(d, m.peerId);
     pose.onMessage = (d, m) => netOnPose(d, m.peerId);
     emo.onMessage = (d, m) => netOnEmote(d, m.peerId);
+    dl.onMessage = (d, m) => netOnDuel(d, m.peerId);
     room.onPeerJoin = (id) => { net.err = ''; netPeer(id); netSend(hello, netHello(), { target: id }); netUi(); };
     room.onPeerLeave = (id) => netDrop(id);
     net.helloKey = ''; netLookChanged();
@@ -10058,6 +10162,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (r) { try { const p = r.leave(); if (p && p.then) netLeaving = p.catch(() => {}).then(() => { netLeaving = null; }); } catch (e) { /* already gone */ } }
   }
   function netLeave() {
+    duelQuit(); // while the room can still carry the word
     netClose();
     net.code = ''; net.state = 'off'; net.err = ''; net.note = '';
     for (const id of Array.from(net.peers.keys())) netDrop(id, true);
@@ -10157,7 +10262,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       g.tag = { el, dir, dot, name, note, key: '', edge: null };
     }
     const tg = g.tag;
-    if (!shown || hudEl.hidden) { tg.el.hidden = true; return; }
+    if (!shown || hudEl.hidden || duelHidesTag(g)) { tg.el.hidden = true; return; }
     tg.el.hidden = false;
     const w = innerWidth, hh = innerHeight, y = g.py + 2.25 * g.cur[2] + (g.rideId === 255 ? .2 : 0);
     _tc.set(g.px, y, g.pz).applyMatrix4(camera.matrixWorldInverse);
@@ -10203,6 +10308,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     camera.updateMatrixWorld();
     for (const g of net.peers.values()) netShowPeer(g, loc, now);
+    duelUpdate(dt);
     if (!screens.net.hidden) { net.uiT -= dt; if (net.uiT <= 0) { net.uiT = 1; renderNet(); } }
   }
 
@@ -10226,12 +10332,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else if (G.state === 'title') showScreen('title');
     else showScreen(null);
   }
-  // can we follow a friend there: only into open worlds, and only the ones our stars have opened
+  // can we follow a friend there: only into open worlds, only the ones open for us (or for one of the friends), and not
+  // in the middle of a game with friends
   function netCanGo(g) {
     const k = NET_LOCS[g.loc] || '';
-    if (k[0] !== 'h' || !g.last || g.old) return null;
+    if (k[0] !== 'h' || !g.last || g.old || duelOn()) return null;
     const key = k.slice(2), W = WORLDS.find((w) => w.hub === key);
-    return { key, need: W && starCount() < W.need ? W.need : 0 };
+    return { key, need: W && openStars() < W.need ? W.need : 0 };
   }
   function netWhere(g, loc) {
     if (g.old) return 'у друга другая версия игры: обновите страницу';
@@ -10242,7 +10349,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function renderNet() {
     const on = !!net.code, loc = netLoc();
-    $('netOff').hidden = on; $('netOn').hidden = !on;
+    $('netOff').hidden = on; $('netOn').hidden = $('btnNetLeave').hidden = !on;
     const nameIn = $('netName');
     if (document.activeElement !== nameIn) nameIn.value = net.name;
     nameIn.placeholder = net.auto;
@@ -10261,6 +10368,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       }
     }
     const st = $('netStatus'); st.textContent = [status, on ? net.err : '', net.note].filter(Boolean).join(' '); st.hidden = !st.textContent;
+    renderNetGames();
     // the list is rebuilt only when something in it changed, so a tap on a button is not lost
     const rows = Array.from(net.peers.values()).map((g) => {
       const go = netCanGo(g);
@@ -10338,11 +10446,493 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('netName').addEventListener('input', (e) => { net.name = e.target.value.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 14); netSave(); });
   $('netName').addEventListener('change', () => { net.name = net.name.trim(); netSave(); netLookChanged(); });
   $('btnNetShare').addEventListener('click', netShare);
+  // a game with friends from the card: the invites go out and the card gives way to the game
+  for (const [id, kind] of [['btnDuelRace', 'race'], ['btnDuelHide', 'hide']]) {
+    $(id).addEventListener('click', () => {
+      Snd.init();
+      const why = duelPropose(kind);
+      if (why) { net.note = why; renderNet(); return; }
+      if (G.state === 'paused') resume(); else showScreen(null);
+    });
+  }
+  $('btnDuelQuit').addEventListener('click', () => { Snd.sfx.ui(); duelQuit(); netNote('Ты больше не в игре'); renderNet(); });
   $('btnNetLeave').addEventListener('click', () => { netLeave(); renderNet(); Snd.sfx.ui(); });
   $('btnNetBack').addEventListener('click', () => { Snd.sfx.ui(); closeNet(); });
   $('btnNetGo').addEventListener('click', () => { if (G.state === 'title') startGame(); else if (G.state === 'paused') resume(); else closeNet(); });
   btnWave.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); netWave(); });
   btnWave.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // ---------- games with friends: a ring race on rides, hide and seek ----------
+  // Whoever starts a game invites the friends who are in the same open world, and those who say yes play. From the start
+  // every browser runs the game by itself and tells the others only what they need: the rings passed and the finish time
+  // in a race, who has been found in hide and seek (the seeker's screen decides that). The race runs on the rings of the
+  // world's own race quest (the factory has a course of its own) and lends everyone the same ride. Hide and seek
+  // blindfolds the seeker while the others hide and hides the name tags of whoever is still hidden; near the end the
+  // hidden ones call out now and then, and their tags come back on the seeker's screen for a moment.
+  const DUEL_ASK = 12, DUEL_COUNT = 3, RACE_AFTER = 25, RACE_MAX = 300, RACE_LEN = 300, HIDE_T = 25, SEEK_T = 150, CUCKOO_T = 3, FIND_R = 1.9, DUEL_PAY = 20;
+  // the ride for a race in each world: the kart on land, the snowboard down the ice slalom, the jet ski on the lagoon,
+  // the rover on the moon
+  const DUEL_RIDE = { island: 'kart', desert: 'kart', ice: 'board', candy: 'kart', factory: 'kart', sea: 'jetski', space: 'rover' };
+  const DUEL_NAME = { race: 'Гонка по кольцам', hide: 'Прятки' };
+  let duel = null, duelSeekerLast = '';
+  const duelMe = () => (net.lib && net.lib.selfId) || 'me';
+  const duelAct = () => net.act && net.act.duel;
+  const duelOn = () => !!duel && ['count', 'run', 'hide', 'seek'].includes(duel.phase);
+  const duelPending = () => !!duel && ['ask', 'invited', 'wait'].includes(duel.phase);
+  const duelRacing = () => !!duel && duel.kind === 'race' && (duel.phase === 'count' || duel.phase === 'run');
+  const duelHiding = () => !!duel && duel.kind === 'hide' && (duel.phase === 'hide' || duel.phase === 'seek');
+  // nobody moves during the race's countdown, the seeker not while the others hide
+  const duelFrozen = () => !!duel && (duel.phase === 'count' || (duel.phase === 'hide' && duel.seeker === duelMe()));
+  const duelRide = () => (duelRacing() ? duel.rideId : '');
+  const duelTarget = () => (duelRacing() && !duel.fin.has(duelMe()) ? duel.rings[duel.seq[duel.next]] || null : null);
+  const duelName = (id) => (id === duelMe() ? 'Ты' : (net.peers.get(id) || {}).name || 'Друг');
+  const duelSay = (m) => netSend(duelAct(), Object.assign({ id: duel.id }, m), { target: duel.players.filter((p) => p !== duelMe()) });
+  const fmtT = (ms) => { const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); };
+
+  // the friends in our open world right now, connected and on the same version of the game
+  function duelFriendsHere() {
+    const loc = netLoc(), now = performance.now(), out = [];
+    if (!loc || !L.def.hub) return out;
+    for (const g of net.peers.values()) if (!g.old && g.name && g.loc === loc && now - g.seen < NET_AWAY) out.push(g);
+    return out;
+  }
+  // why a game cannot start right now, or '' when it can
+  function duelWhyNot(kind) {
+    if (!net.room) return 'Сначала зайди в комнату с друзьями.';
+    if (duelOn() || duelPending()) return 'Игра уже идёт.';
+    if (!L || !L.def.hub || !netLoc()) return 'Игры идут в открытых мирах: зайди в мир, где есть друг.';
+    if (!duelFriendsHere().length) return 'В этом мире пока нет друзей. Нажми «К другу» или позови друга сюда.';
+    if (kind === 'race' && !L.course) return 'В этом мире нет трассы для гонки.';
+    return '';
+  }
+
+  // ---------- inviting ----------
+  function duelPropose(kind) {
+    const why = duelWhyNot(kind); if (why) return why;
+    const ids = duelFriendsHere().map((g) => g.id);
+    duelStop('');
+    duel = { id: netNewCode() + netNewCode(), kind, host: duelMe(), loc: netLoc(), phase: 'ask', t: DUEL_ASK, asked: new Map(ids.map((i) => [i, null])), players: [] };
+    netSend(duelAct(), { t: 'inv', id: duel.id, k: kind, loc: duel.loc }, { target: ids });
+    Snd.sfx.ui(); duelUi();
+    return '';
+  }
+  function duelInvited(d, from) {
+    const kind = d.k === 'race' || d.k === 'hide' ? d.k : '';
+    const no = () => netSend(duelAct(), { t: 'ans', id: d.id, yes: false }, { target: from });
+    if (!kind || d.loc !== netLoc() || !L.def.hub || (kind === 'race' && !L.course)) { no(); return; }
+    const inv = { id: d.id, kind, host: from, loc: d.loc, phase: 'invited', t: DUEL_ASK, players: [] };
+    // two friends asking each other at the same moment: the smaller id wins, and the other one says yes to it
+    if (duel && duel.phase === 'ask' && duel.kind === kind && duel.asked.has(from) && d.id < duel.id) {
+      netSend(duelAct(), { t: 'cancel', id: duel.id }, { target: Array.from(duel.asked.keys()) });
+      duel = inv; duelAnswer(true); return;
+    }
+    if (duelOn() || duelPending()) { no(); return; }
+    duelStop(''); duel = inv;
+    Snd.sfx.pop(); duelUi();
+  }
+  function duelAnswer(yes) {
+    if (!duel || duel.phase !== 'invited') return;
+    netSend(duelAct(), { t: 'ans', id: duel.id, yes }, { target: duel.host });
+    if (yes) { duel.phase = 'wait'; duel.t = DUEL_ASK + 8; Snd.sfx.ui(); } else duel = null;
+    duelUi();
+  }
+  // the host starts once everyone has answered, when the time to answer is up, or on "Start" with whoever said yes
+  function duelAskDone(force) {
+    const d = duel, ans = Array.from(d.asked);
+    if (!force && ans.some(([, v]) => v === null)) { duelUi(); return; }
+    const yes = ans.filter(([, v]) => v).map(([id]) => id), late = ans.filter(([, v]) => v === null).map(([id]) => id);
+    if (late.length) netSend(duelAct(), { t: 'cancel', id: d.id, late: yes.length > 0 }, { target: late });
+    if (!yes.length) { duelStop(ans.length ? 'Друзья сейчас не смогут' : 'Друзья ушли'); return; }
+    const players = [duelMe(), ...yes], go = { t: 'go', id: d.id, k: d.kind, loc: d.loc, p: players };
+    if (d.kind === 'hide') {
+      const pool = players.filter((p) => p !== duelSeekerLast), from = pool.length ? pool : players; // not the same seeker twice running
+      go.s = from[Math.floor(Math.random() * from.length)];
+      const at = P.onGround || !P.lastSafe ? P.pos : P.lastSafe;
+      go.at = [at.x, at.y, at.z].map((v) => Math.round(v * 100) / 100);
+    }
+    netSend(duelAct(), go, { target: yes });
+    duelBegin(go);
+  }
+
+  // ---------- the start ----------
+  function duelBegin(d) {
+    const me = duelMe(), players = Array.isArray(d.p) ? d.p.map(String).filter((p, i, a) => a.indexOf(p) === i) : [];
+    if (!players.includes(me) || d.loc !== netLoc() || !L.def.hub || (duel.kind === 'race' && !L.course)) {
+      netSend(duelAct(), { t: 'quit', id: duel.id }, { target: players.filter((p) => p !== me) });
+      duelStop('Игра не началась'); return;
+    }
+    duel.players = players;
+    const i = players.indexOf(me), n = players.length;
+    if (duel.kind === 'race') {
+      Object.assign(duel, { phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, rideId: DUEL_RIDE[L.def.key] || 'kart', next: 0, prog: new Map(), fin: new Map(),
+        runAt: 0, firstAt: 0, mountT: 0 });
+      duel.rings = L.course.map((c) => {
+        const m = new T.Mesh(RACE_RING_GEO, MAT.ringDim); m.position.set(c.x, c.y, c.z); m.rotation.y = c.yaw; L.group.add(m);
+        return { x: c.x, y: c.y, z: c.z, m };
+      });
+      // The start line runs through the first ring. A course that comes back round to it is raced two or three times
+      // round, about 300 m in all, finishing through the first ring; the ice slalom runs downhill once.
+      const rs = duel.rings, first = rs[0], end = rs[rs.length - 1], lap = rs.map((r, k) => k).slice(1);
+      let len = Math.hypot(end.x - first.x, end.z - first.z);
+      for (let k = 1; k < rs.length; k++) len += Math.hypot(rs[k].x - rs[k - 1].x, rs[k].z - rs[k - 1].z);
+      duel.laps = Math.hypot(end.x - first.x, end.z - first.z) < 25 ? clamp(Math.round(RACE_LEN / len), 2, 3) : 1;
+      duel.lapLen = duel.laps > 1 ? rs.length : rs.length - 1;
+      duel.seq = duel.laps > 1 ? Array.from({ length: duel.laps }, () => lap.concat(0)).flat() : lap;
+      rs[duel.seq[0]].m.material = MAT.ring;
+      if (ISL.race) resetRace();
+      for (const r of L.raceRings) r.m.visible = false; // the quest's rings on the same spots wait until the race is over
+      duelPlace(duelLane(i, n)); duelMount();
+      toast(DUEL_NAME.race, 'Все кольца по порядку. Кто первый?');
+    } else {
+      const seeker = players.includes(String(d.s)) ? String(d.s) : players[0];
+      Object.assign(duel, { phase: 'hide', t: HIDE_T, seeker, found: new Set(), foundAt: new Map(), cuT: 0, seekAt: 0 });
+      duelSeekerLast = seeker;
+      const ok = Array.isArray(d.at) && d.at.length === 3 && d.at.every((v) => Number.isFinite(v) && Math.abs(v) < 1e4);
+      duelPlace(duelCircle(ok ? { x: d.at[0], y: d.at[1], z: d.at[2] } : { x: P.pos.x, y: P.pos.y, z: P.pos.z }, i, n));
+      if (seeker === me) Snd.sfx.ui(); else toast('Прячься!', duelName(seeker) + ' водит и считает до ' + HIDE_T);
+    }
+    duelUi();
+  }
+  // everyone to the start: out of any card, a delivery dropped and a quest race stopped as after a fall
+  function duelPlace(s) {
+    if (ISL.race && ISL.race.on) resetRace();
+    if (ISL.carry) dropCarry('fall');
+    const was = G.state;
+    if (was === 'paused') resume(); else if (was === 'menu') closeMenu();
+    placePlayer(s, s.face);
+    for (const fo of L.lost) if (fo.state === 'follow') { fo.x = s.x; fo.y = s.y; fo.z = s.z; }
+    ISL.trail.length = 0;
+    if (was === 'dying') Snd.startMusic(L.def.music);
+    G.state = 'playing'; showScreen(null); hudEl.hidden = false; showTouch(isTouch); updateCam(0, true); updateRideBtn();
+    puff(s.x, s.y + .4, s.z, 0xffffff, 10, 2, .6, .5, 1); Snd.sfx.portal();
+  }
+  // the ground under a spot, or the water for a ride that skims it; null over a drop, or over deep water for a ride that sinks
+  function duelFloor(x, z, fromY) {
+    let y = groundAt(x, z, fromY);
+    const w = L.waters.length ? waterAt(x, z) : null;
+    if (w !== null && w > y) { if ((RIDES[duel.rideId] || {}).floats) y = w; else if (w > y + 1) return null; }
+    return y > -Infinity ? y : null;
+  }
+  // the start line: side by side through the first ring (a little before or after it where something stands in the
+  // way), facing along the course
+  function duelLane(i, n) {
+    const c = duel.rings, a = c[0], b = c[1] || a, face = Math.atan2(b.x - a.x, b.z - a.z);
+    const fx = Math.sin(face), fz = Math.cos(face), side = (i - (n - 1) / 2) * 2.4;
+    for (const back of [0, 2, 4, -2, 6]) {
+      const x = a.x - fx * back - fz * side, z = a.z - fz * back + fx * side, y = duelFloor(x, z, a.y + 2.5);
+      if (y !== null && y > a.y - 5 && freeAt(x, y + .05, z)) return { x, y: y + .05, z, face };
+    }
+    const y = duelFloor(a.x, a.z, a.y + 2.5);
+    return { x: a.x, y: (y === null ? a.y - 1.3 : y) + .05, z: a.z, face };
+  }
+  // after a fall: under the last ring passed, facing the next one; the start line before the first
+  function duelSpot() {
+    if (!duelRacing()) return null;
+    const d = duel, r = d.next ? d.rings[d.seq[d.next - 1]] : null, nx = d.rings[d.seq[d.next]], lane = () => duelLane(d.players.indexOf(duelMe()), d.players.length);
+    if (!r) return lane();
+    const y = duelFloor(r.x, r.z, r.y + .5);
+    if (y === null) return lane();
+    return { x: r.x, y: y + .05, z: r.z, face: nx ? Math.atan2(nx.x - r.x, nx.z - r.z) : 0 };
+  }
+  function duelMount() {
+    if (!duelRacing() || P.veh || G.state !== 'playing') return;
+    P.rent = duel.rideId; P.rideCd = 0; rideOn();
+    if (!P.veh) P.rent = '';
+  }
+  // hide and seek starts with everyone in a ring round one spot
+  function duelCircle(at, i, n) {
+    const a = i / n * Math.PI * 2, r = n > 1 ? 2.4 : 0, x = at.x + Math.sin(a) * r, z = at.z + Math.cos(a) * r, y = groundAt(x, z, at.y + 2);
+    if (y > at.y - 2 && freeAt(x, y + .05, z)) return { x, y: y + .05, z, face: a };
+    return { x: at.x, y: at.y + .05, z: at.z, face: a };
+  }
+
+  // ---------- the race ----------
+  function duelRace(dt) {
+    const d = duel, rings = d.rings, me = duelMe(), now = performance.now(), nx = rings[d.seq[d.next]];
+    if (nx) nx.m.scale.setScalar(1 + Math.sin(time * 6) * .07);
+    if (d.phase === 'count') {
+      d.t -= dt;
+      const k = Math.ceil(d.t);
+      if (k < d.tick && k >= 1 && k <= DUEL_COUNT) { d.tick = k; toast(String(k), 'Приготовься!'); Snd.sfx.tock(false); }
+      if (d.t > 0) return;
+      d.phase = 'run'; d.runAt = now; toast('Марш!', d.laps > 1 ? d.laps + ' круга, финиш в первом кольце' : 'Все кольца до самого низа'); Snd.sfx.whistle();
+      return;
+    }
+    // back on the race's ride after a knock or a swim, as soon as it can be called
+    const floats = !!(RIDES[d.rideId] || {}).floats;
+    d.mountT -= dt;
+    if (!P.veh && d.mountT <= 0 && G.state === 'playing' && P.rideCd <= 0 && !P.pound && (floats ? P.onGround || P.swim : P.onGround && !P.swim)) { d.mountT = 1; duelMount(); }
+    if (G.state === 'playing' && nx && !d.fin.has(me)) {
+      const dx = nx.x - P.pos.x, dy = nx.y - (P.pos.y + PH * .5), dz = nx.z - P.pos.z;
+      if (dx * dx + dy * dy + dz * dz < 2.1 * 2.1) {
+        nx.m.material = MAT.ringDim; Snd.sfx.ring(d.next % d.lapLen); glow(nx.x, nx.y, nx.z, 0xffe07a, 20, 4, 0, 1, .5, .3); flashAt(nx.x, nx.y, nx.z, 0xfff3b0, 3, .25);
+        d.next++;
+        const nn = rings[d.seq[d.next]];
+        if (nn) {
+          nn.m.material = MAT.ring; duelSay({ t: 'ring', n: d.next });
+          if (d.next % d.lapLen === 0) { const lap = d.next / d.lapLen + 1; toast(lap === d.laps ? 'Последний круг!' : 'Круг ' + lap, lap === d.laps ? 'Финиш в первом кольце' : 'Из ' + d.laps); Snd.sfx.whistle(); }
+        } else { nx.m.visible = false; const ms = Math.max(1, Math.round(now - d.runAt)); duelSay({ t: 'fin', ms }); duelFinish(me, ms); }
+      }
+    }
+    if (d.fin.size >= d.players.length || (d.firstAt && now - d.firstAt > RACE_AFTER * 1000) || now - d.runAt > RACE_MAX * 1000) duelRaceOver('');
+  }
+  function duelFinish(id, ms) {
+    const d = duel;
+    if (d.fin.has(id)) return;
+    d.fin.set(id, ms); d.prog.set(id, d.seq.length);
+    const place = d.fin.size, first = !d.firstAt;
+    if (first) d.firstAt = performance.now();
+    if (id === duelMe()) {
+      toast(place === 1 ? 'Первое место!' : place + '-е место', 'Время ' + fmtT(ms));
+      P.happyT = 2; P.cheerT = 1.8; if (place === 1) Snd.sfx.starGet(); else Snd.sfx.deliver();
+    } else netNote(duelName(id) + ' на финише: ' + place + '-е место, ' + fmtT(ms));
+    if (first && d.fin.size < d.players.length) netNote('У остальных ' + RACE_AFTER + ' секунд до конца гонки');
+  }
+  function duelRaceOver(why) {
+    const d = duel, me = duelMe(), n = d.seq.length;
+    const rows = d.players.map((id) => ({ id, ms: d.fin.get(id) || 0, got: id === me ? d.next : d.prog.get(id) || 0 }));
+    rows.sort((a, b) => (!a.ms - !b.ms) || (a.ms ? a.ms - b.ms : b.got - a.got));
+    const k = rows.findIndex((r) => r.id === me), mine = rows[k], won = !why && k === 0 && !!mine.ms && rows.length > 1;
+    duelDone(why || (won ? 'Победа!' : mine.ms ? (k + 1) + '-е место' : 'Время вышло'),
+      rows.map((r, i) => [r.ms ? i + 1 + '.' : '–', duelName(r.id), r.ms ? fmtT(r.ms) : 'колец: ' + r.got + ' из ' + n, r.id === me]), won);
+  }
+
+  // ---------- hide and seek ----------
+  function duelHide(dt) {
+    const d = duel, me = duelMe(), seeker = d.seeker === me, before = d.t;
+    d.t -= dt; d.cuT -= dt;
+    if (d.phase === 'hide') {
+      if ((seeker || d.t < 5) && Math.ceil(d.t) !== Math.ceil(before)) Snd.sfx.tock(d.t < 5);
+      if (d.t > 0) return;
+      d.phase = 'seek'; d.t = SEEK_T; d.seekAt = performance.now();
+      const hid = d.players.filter((p) => p !== d.seeker).map(duelName).join(', ');
+      if (seeker) toast('Ищи!', 'Спрятались: ' + hid); else toast('Ищут!', duelName(d.seeker) + ' идёт искать');
+      Snd.sfx.whistle();
+      return;
+    }
+    for (const at of [60, 40, 20]) if (before > at && d.t <= at) duelCuckoo();
+    if (!seeker) { if (d.t < -5) duelHideOver([]); return; } // the seeker's word never came
+    // found: the seeker comes right up to one who is hiding
+    if (G.state === 'playing') {
+      for (const id of d.players) {
+        if (id === me || d.found.has(id)) continue;
+        const g = net.peers.get(id);
+        if (!g || !g.rig || !g.rig.root.visible) continue;
+        if (Math.hypot(g.px - P.pos.x, g.pz - P.pos.z) < FIND_R && Math.abs(g.py - P.pos.y) < 2.2) {
+          const ms = Math.round(performance.now() - d.seekAt); duelSay({ t: 'found', who: id, ms }); duelFound(id, ms);
+        }
+      }
+    }
+    if (d.t <= 0 || d.players.every((p) => p === d.seeker || d.found.has(p))) { const f = Array.from(d.found); duelSay({ t: 'end', f }); duelHideOver(f); }
+  }
+  // who was found and when, by the seeker's clock
+  function duelFound(id, ms) {
+    const d = duel;
+    if (id === d.seeker || !d.players.includes(id) || d.found.has(id)) return;
+    d.found.add(id); d.foundAt.set(id, ms > 0 ? ms : performance.now() - d.seekAt);
+    if (id === duelMe()) { toast('Тебя нашли!', 'Теперь можно смотреть, как ищут других'); Snd.sfx.drop(); return; }
+    const g = net.peers.get(id);
+    if (g && g.rig && g.rig.root.visible) {
+      popup('Туки-туки!', g.px, g.py + 2.4, g.pz, 'gold'); glow(g.px, g.py + 1.2, g.pz, 0xffe07a, 18, 3, 1, 2, .6, .3); Snd.at(g.px, g.py, g.pz).follow();
+    }
+    netNote('Туки-туки, ' + duelName(id) + '!');
+  }
+  // near the end the ones still hidden call out: heard from where they are, with their tags back on the seeker's screen
+  // for a moment
+  function duelCuckoo() {
+    const d = duel, me = duelMe();
+    d.cuT = CUCKOO_T;
+    for (const id of d.players) {
+      if (id === d.seeker || d.found.has(id)) continue;
+      if (id === me) { popup('Ку-ку!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold'); Snd.sfx.giggle(); netNote('Ку-ку! Водящий слышит, где ты'); continue; }
+      const g = net.peers.get(id);
+      if (g && g.rig && g.rig.root.visible) { popup('Ку-ку!', g.px, g.py + 2.6, g.pz, 'gold'); Snd.at(g.px, g.py + 1, g.pz).giggle(); }
+    }
+  }
+  // the name tags of everyone still in the game stay hidden for whoever is still playing: nobody sees through walls
+  function duelHidesTag(g) {
+    if (!duelHiding()) return false;
+    const d = duel, me = duelMe();
+    if (!d.players.includes(me) || d.found.has(me) || !d.players.includes(g.id) || d.found.has(g.id)) return false;
+    return !(d.cuT > 0 && me === d.seeker);
+  }
+  function duelHideOver(found) {
+    const d = duel, me = duelMe();
+    for (const f of found) if (f !== d.seeker && d.players.includes(f) && !d.found.has(f)) { d.found.add(f); d.foundAt.set(f, 0); }
+    const hiders = d.players.filter((p) => p !== d.seeker), all = hiders.every((p) => d.found.has(p));
+    const won = hiders.length > 0 && (d.seeker === me ? all : !d.found.has(me));
+    const big = d.seeker === me ? (all ? 'Все найдены!' : 'Не все найдены') : d.found.has(me) ? 'Тебя нашли' : 'Не нашли!';
+    const rows = [['🙈', duelName(d.seeker), 'водит', d.seeker === me]].concat(hiders.map((p) => [d.found.has(p) ? '✓' : '★', duelName(p),
+      d.found.has(p) ? (d.foundAt.get(p) ? 'нашли за ' + fmtT(d.foundAt.get(p)) : 'нашли') : 'не нашли', p === me]));
+    duelDone(big, rows, won);
+  }
+
+  // ---------- the end, leaving, a friend gone ----------
+  function duelDone(big, rows, won) {
+    duelTidy();
+    Object.assign(duel, { phase: 'done', t: 30, result: { big, rows } });
+    if (won) { SAVE.bank += DUEL_PAY; saveGame(); popup('+' + DUEL_PAY + ' значков', P.pos.x, P.pos.y + PH + 1.2, P.pos.z, 'gold'); Snd.sfx.starGet(); P.cheerT = 1.8; P.happyT = 2; }
+    duelUi();
+  }
+  // the race's rings go and the quest's come back (once: the quest's race may be on again by the time the results are
+  // closed); the blindfold comes off
+  function duelTidy() {
+    const d = duel; if (!d) return;
+    if (d.rings) {
+      for (const r of d.rings) L.group.remove(r.m);
+      d.rings = null;
+      if (ISL.race) { resetRace(); ISL.race.hold = true; }
+    }
+    blindEl.hidden = true;
+  }
+  function duelStop(text) {
+    duelTidy(); duel = null;
+    if (text) netNote(text);
+    duelUi();
+  }
+  // we leave: the others hear it, whatever the game was at
+  function duelQuit() {
+    const d = duel; if (!d) return;
+    if (d.phase === 'ask') netSend(duelAct(), { t: 'cancel', id: d.id }, { target: Array.from(d.asked.keys()) });
+    else if (d.phase === 'invited') netSend(duelAct(), { t: 'ans', id: d.id, yes: false }, { target: d.host });
+    else if (d.phase === 'wait') netSend(duelAct(), { t: 'quit', id: d.id }, { target: d.host });
+    else if (duelOn()) duelSay({ t: 'quit' });
+    duelStop('');
+  }
+  // a friend left the game or the room: an invite goes on without them, a game while it still makes sense
+  function duelGone(id) {
+    const d = duel; if (!d) return;
+    if (d.phase === 'ask') { if (d.asked.delete(id)) duelAskDone(false); return; }
+    if (duelPending()) { if (id === d.host) duelStop('Игру отменили'); return; }
+    if (!duelOn() || !d.players.includes(id)) return;
+    netNote(duelName(id) + ' больше не в игре');
+    d.players = d.players.filter((p) => p !== id);
+    if (d.kind === 'race') { d.prog.delete(id); d.fin.delete(id); if (d.players.length < 2) duelRaceOver('Соперники ушли'); return; }
+    if (id === d.seeker) duelStop('Водящий ушёл из игры');
+    else if (d.players.every((p) => p === d.seeker)) duelStop('Все, кто прятался, ушли');
+  }
+  function netOnDuel(d, from) {
+    if (!d || typeof d !== 'object' || typeof d.t !== 'string' || typeof d.id !== 'string' || !net.peers.has(from)) return;
+    if (d.t === 'inv') { duelInvited(d, from); return; }
+    if (!duel || duel.id !== d.id) return;
+    const pl = !!duel.players && duel.players.includes(from);
+    switch (d.t) {
+      case 'ans': if (duel.phase === 'ask' && duel.asked.has(from)) { duel.asked.set(from, !!d.yes); duelAskDone(false); } break;
+      case 'cancel': if (duelPending() && from === duel.host) duelStop(d.late ? 'Игра началась без тебя' : 'Игру отменили'); break;
+      case 'go': if (duel.phase === 'wait' && from === duel.host) duelBegin(d); break;
+      case 'ring': if (duelRacing() && pl) duel.prog.set(from, clamp(Math.floor(+d.n) || 0, 0, duel.seq.length)); break;
+      case 'fin': if (duelRacing() && pl && d.ms > 0) duelFinish(from, Math.floor(+d.ms)); break;
+      case 'found': if (duelHiding() && from === duel.seeker) duelFound(String(d.who), Math.floor(+d.ms) || 0); break;
+      case 'end': if (duelHiding() && from === duel.seeker) duelHideOver(Array.isArray(d.f) ? d.f.map(String) : []); break;
+      case 'quit': duelGone(from); break;
+    }
+  }
+
+  // ---------- each frame ----------
+  function duelUpdate(dt) {
+    const d = duel; if (!d) return;
+    // leaving the world (only possible through the pause card while a game is on) takes us out of it
+    if (d.phase !== 'done' && netLoc() !== d.loc) { const was = duelOn(); duelQuit(); if (was) netNote('Ты больше не в игре'); return; }
+    if (d.phase === 'ask') { d.t -= dt; if (d.t <= 0) duelAskDone(true); }
+    else if (d.phase === 'invited') { d.t -= dt; if (d.t <= 0) duelAnswer(false); }
+    else if (d.phase === 'wait') { d.t -= dt; if (d.t <= 0) duelStop('Игра так и не началась'); }
+    else if (duelRacing()) duelRace(dt);
+    else if (duelHiding()) duelHide(dt);
+    else if (d.phase === 'done') { d.t -= dt; if (d.t <= 0) duelStop(''); }
+    duelUi();
+  }
+  // the line under the buttons and the clock in the HUD
+  function duelTrack() {
+    const d = duel, me = duelMe();
+    if (duelRacing()) {
+      const mine = d.fin.has(me) ? d.seq.length : d.next;
+      let place = 1;
+      for (const id of d.players) {
+        if (id === me) continue;
+        const ahead = d.fin.has(id) ? !d.fin.has(me) || d.fin.get(id) < d.fin.get(me) : (d.prog.get(id) || 0) > mine;
+        if (ahead) place++;
+      }
+      const lap = Math.min(d.laps, Math.floor(d.next / d.lapLen) + 1), ring = 'кольцо ' + (d.next % d.lapLen + 1) + ' из ' + d.lapLen;
+      return ['Гонка · ' + place + '-е место', d.fin.has(me) ? 'Финиш! Ждём остальных' : d.laps > 1 ? 'Круг ' + lap + ' из ' + d.laps + ', ' + ring : ring[0].toUpperCase() + ring.slice(1)];
+    }
+    if (duelHiding()) {
+      const hiders = d.players.filter((p) => p !== d.seeker);
+      if (d.seeker === me) return ['Прятки · ты водишь', d.phase === 'hide' ? 'Считаешь…' : 'Найдено ' + hiders.filter((p) => d.found.has(p)).length + ' из ' + hiders.length];
+      return ['Прятки', d.phase === 'hide' ? 'Прячься! Водит ' + duelName(d.seeker) : d.found.has(me) ? 'Тебя нашли' : 'Тебя ищет ' + duelName(d.seeker)];
+    }
+    return null;
+  }
+  // the race counts up from the start, hide and seek counts down
+  function duelClock() {
+    if (duelRacing()) return duel.phase === 'run' ? (performance.now() - duel.runAt) / 1000 : null;
+    if (duelHiding()) return Math.max(0, duel.t);
+    return null;
+  }
+
+  // ---------- the panel: an invite, the wait for answers, the results; the seeker's blindfold ----------
+  const duelEl = $('duel'), blindEl = $('blind');
+  let duelKey = '';
+  function duelUi() {
+    const d = duel, me = d ? duelMe() : '';
+    const blind = !!d && d.phase === 'hide' && d.seeker === me;
+    if (blindEl.hidden === blind) {
+      blindEl.hidden = !blind;
+      const hid = d && d.players.filter((p) => p !== me);
+      if (blind) $('blindText').textContent = 'Считай до ' + HIDE_T + ' и не подглядывай! ' + hid.map(duelName).join(', ') + (hid.length > 1 ? ' прячутся.' : ' прячется.');
+    }
+    if (blind) { const n = String(Math.max(1, Math.ceil(d.t))); if ($('blindN').textContent !== n) $('blindN').textContent = n; }
+    let head = '', big = '', text = '', rows = null, yes = '', no = '', can = true;
+    if (d && d.phase === 'invited') {
+      head = DUEL_NAME[d.kind]; yes = 'Играю! · ' + Math.max(0, Math.ceil(d.t)); no = 'Нет';
+      text = duelName(d.host) + (d.kind === 'race' ? ' зовёт на гонку по кольцам. Транспорт дадут всем одинаковый.' : ' зовёт играть в прятки. Один водит, остальные прячутся.');
+    } else if (d && d.phase === 'ask') {
+      head = DUEL_NAME[d.kind]; yes = 'Начать'; no = 'Отмена';
+      text = 'Ждём ответа: ' + Array.from(d.asked).map(([id, v]) => duelName(id) + (v === null ? ' …' : v ? ' ✓' : ' ✗')).join(', ');
+      can = Array.from(d.asked.values()).some(Boolean);
+    } else if (d && d.phase === 'wait') {
+      head = DUEL_NAME[d.kind]; no = 'Выйти'; text = 'Ждём, когда начнёт ' + duelName(d.host) + '…';
+    } else if (d && d.phase === 'done') {
+      head = DUEL_NAME[d.kind] + ' · итоги'; big = d.result.big; rows = d.result.rows; yes = 'Ещё раз'; no = 'Закрыть';
+    }
+    const key = head && [head, big, text, yes, no, can, rows ? rows.map((r) => r.join('/')).join('|') : ''].join('#');
+    if (key === duelKey) return;
+    duelKey = key; duelEl.hidden = !head;
+    if (!head) return;
+    $('duelHead').textContent = head;
+    const bigEl = $('duelBig'); bigEl.hidden = !big; bigEl.textContent = big;
+    const tx = $('duelText'); tx.hidden = !text; tx.textContent = text;
+    const ol = $('duelList'); ol.hidden = !rows; ol.textContent = '';
+    for (const [mark, name, note, mine] of rows || []) {
+      const li = document.createElement('li'); if (mine) li.className = 'me';
+      const a = document.createElement('b'), b = document.createElement('span'), c = document.createElement('small');
+      a.textContent = mark; b.textContent = name; c.textContent = note; li.append(a, b, c); ol.append(li);
+    }
+    const by = $('duelYes'), bn = $('duelNo');
+    by.hidden = !yes; by.textContent = yes; by.disabled = !can; bn.textContent = no;
+    $('duelBtns').classList.toggle('one', !yes);
+  }
+  $('duelYes').addEventListener('click', (e) => {
+    Snd.init(); e.currentTarget.blur(); // a focused button would take the next Space as a click
+    const d = duel; if (!d) return;
+    if (d.phase === 'invited') duelAnswer(true);
+    else if (d.phase === 'ask') duelAskDone(true);
+    else if (d.phase === 'done') { const why = duelPropose(d.kind); if (why) netNote(why); }
+  });
+  $('duelNo').addEventListener('click', (e) => {
+    e.currentTarget.blur();
+    const d = duel; if (!d) return;
+    Snd.sfx.ui();
+    if (d.phase === 'invited') duelAnswer(false); else if (d.phase === 'done') duelStop(''); else duelQuit();
+  });
+  // the games part of the friends card
+  function renderNetGames() {
+    const busy = duelOn() || duelPending(), why = busy ? '' : duelWhyNot();
+    $('netGames').hidden = !net.code;
+    $('netGameBtns').hidden = busy; $('btnDuelQuit').hidden = !busy;
+    $('btnDuelRace').disabled = $('btnDuelHide').disabled = !!why;
+    $('netGameHint').textContent = busy ? 'Сейчас идёт игра: ' + DUEL_NAME[duel.kind].toLowerCase() + '.'
+      : why || 'Гонка: всем дают одинаковый транспорт, кто быстрее пролетит все кольца этого мира. Прятки: один водит, остальные прячутся.';
+  }
 
   // ================= resize & loop =================
   function resize() {

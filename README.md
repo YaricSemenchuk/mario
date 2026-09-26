@@ -83,11 +83,21 @@ sound is muffled.
   code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
   they run, jump, swim, ride and wave (G, or the hand button on a phone) on each other's screens, in their own costumes
   and hats, with a name over the head, or an arrow and the distance at the screen's edge when out of view. Everyone
-  keeps their own world, stars, quests and wallet; only the pose travels. The friends list says where each one is, and
-  "К другу" jumps into their open world right next to them (a race stops and a delivery drops, as after a fall). The
-  browsers talk directly over WebRTC (Trystero, loaded from jsDelivr only when a room is joined), meeting through
-  public Nostr relays, so there is still no server. Some mobile networks do not let two phones connect directly; Wi-Fi
-  usually does
+  keeps their own world, stars, quests and wallet; only the pose travels. While they play together, a world gate or a level
+  door open for one of them is open for all (the hello carries each player's stars and cleared levels). The friends list
+  says where each one is, and "К другу" jumps into their open world right next to them (a race stops and a delivery drops,
+  as after a fall). The browsers talk directly over WebRTC (Trystero, loaded from jsDelivr only when a room is joined),
+  meeting through public Nostr relays, so there is still no server. Some mobile networks do not let two phones connect
+  directly; Wi-Fi usually does
+- Games with friends, started from the friends card for everyone in the same open world (each one says yes or no):
+  - a ring race: everyone gets the same ride (a kart, the snowboard down the ice slalom, the jet ski on the lagoon, the
+    rover on the Moon) and races the rings of the world's own race quest (the factory has a course round its oven), two or
+    three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the racer back
+    at the last ring. The others have 25 seconds after the first finish
+  - hide and seek: one player seeks (never the same one twice running), blindfolded for 25 seconds while the others hide;
+    the name tags of everyone still hidden disappear, the seeker finds someone by running right up to them, and in the
+    last minute the hidden ones call out "Ку-ку!" with their tags back on the seeker's screen for a moment
+  - gates are shut until the game ends, rides are off in hide and seek, and a winner gets 20 badges
 - Fourteen levels: Green Hills, Sky Trail, King Chestnut (Green world); Sunny Dunes (Desert); Ice Peaks, Lava Fortress,
   Fire Shell (Ice Peaks); Candy Valley, Jelly Bridges, Grumble (Candy Land); Gear Works, Cloud Heights, Storm Tower,
   Megabot (Sky Factory)
