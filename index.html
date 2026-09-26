@@ -74,6 +74,10 @@
   }
   .icon-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
   @media (max-width: 520px) { .hud-world { display: none; } #hud { gap: 12px; } }
+  /* the island shows stars and the wallet; levels show score, world, time and lives; the island's timer only runs during a challenge */
+  #hud[data-mode="hub"] .lvl-only, #hud[data-mode="level"] .hub-only { display: none; }
+  #hud[data-mode="hub"]:not(.race) .hud-time { display: none; }
+  #hud.race #hTime { color: #ffe27a; }
 
   /* ---------- touch controls ---------- */
   #touch { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 5; pointer-events: none; }
@@ -142,6 +146,7 @@
   .pop.aqua { color: #8ff3ff; }
   #toast {
     position: fixed; left: 50%; top: 30%; z-index: 7; transform: translate(-50%, -50%) scale(.9);
+    width: max-content; max-width: 94vw;
     display: grid; justify-items: center; gap: 6px; text-align: center; pointer-events: none; opacity: 0;
     transition: opacity .35s, transform .35s;
   }
@@ -239,6 +244,29 @@
   .lvl:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   .lvl:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: 0 4px 0 var(--ink); }
   .lvl:focus-visible { outline: 3px solid var(--white); outline-offset: 3px; }
+  .lvl .got { color: var(--gold-deep); }
+
+  /* ---------- island: star list in the pause card, the shop, the world gates ---------- */
+  .quest-head { display: flex; justify-content: space-between; align-items: baseline; margin: 0; font: 800 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+  .quest-head b { font: 900 15px/1 var(--ui); letter-spacing: 0; color: var(--ink); }
+  .quests { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; text-align: left; max-height: min(46vh, 420px); overflow-y: auto; }
+  .quests li { display: grid; grid-template-columns: 22px 1fr; column-gap: 8px; align-items: baseline; font: 800 14px/1.25 var(--ui); }
+  .quests li i { grid-row: span 2; font-style: normal; font-size: 17px; line-height: 1; color: rgba(28, 30, 59, .3); }
+  .quests li.done i { color: var(--gold-deep); }
+  .quests li.done span { color: var(--ink-soft); }
+  .quests li small { font: 600 12px/1.35 var(--ui); color: var(--ink-soft); }
+  .shop-list { display: grid; gap: 8px; }
+  .shop-item {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; cursor: pointer;
+    color: var(--ink); background: var(--white); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 4px 0 var(--ink); font: 800 15px/1.2 var(--ui);
+  }
+  .shop-item:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  .shop-item:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: 0 4px 0 var(--ink); }
+  .shop-item:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+  .shop-item small { display: block; margin-top: 2px; font: 600 12px/1.3 var(--ui); color: var(--ink-soft); }
+  .shop-item b { flex: none; display: flex; align-items: center; gap: 4px; font: 900 15px/1 var(--ui); font-variant-numeric: tabular-nums; }
+  .swatch { display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px; border-radius: 50%; border: 2px solid var(--ink); }
+  .title-note { margin: 0; font: 800 13px/1.3 var(--ui); color: var(--white); text-shadow: var(--outline); letter-spacing: .04em; }
 
   #errBar {
     position: fixed; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 50;
@@ -265,12 +293,13 @@
 <div id="vignette"></div>
 <div id="flash"></div>
 
-<header id="hud" hidden>
-  <div class="hud-cell"><span class="hud-lbl">Очки</span><span class="hud-val" id="hScore">000000</span></div>
-  <div class="hud-cell"><span class="hud-lbl">Монеты</span><span class="hud-val"><svg viewBox="1.6 0.6 12.8 14.2" width="15" height="17" aria-hidden="true"><g fill="#4262FF" stroke="#1c1e3b" stroke-width="1.3" stroke-linejoin="round" paint-order="stroke"><path fill-rule="evenodd" d="M8.00009 12.2322C9.76563 12.2322 11.1969 10.8307 11.1969 9.10198C11.1969 7.37323 9.76563 5.9718 8.00009 5.9718C6.23456 5.9718 4.80331 7.37323 4.80331 9.10198C4.80331 10.8307 6.23456 12.2322 8.00009 12.2322ZM8.00009 13.9979C10.7616 13.9979 13.0002 11.8059 13.0002 9.10198C13.0002 6.39803 10.7616 4.20605 8.00009 4.20605C5.23862 4.20605 3 6.39803 3 9.10198C3 11.8059 5.23862 13.9979 8.00009 13.9979Z"/><path fill-rule="evenodd" d="M9.24972 2.6439C9.24972 3.27674 8.7367 3.78976 8.10386 3.78976C7.47102 3.78976 6.95801 3.27674 6.95801 2.6439C6.95801 2.01106 7.47102 1.49805 8.10386 1.49805C8.7367 1.49805 9.24972 2.01106 9.24972 2.6439Z"/><path fill-rule="evenodd" d="M9.24972 9.10191C9.24972 9.73475 8.7367 10.2478 8.10386 10.2478C7.47102 10.2478 6.95801 9.73475 6.95801 9.10191C6.95801 8.46907 7.47102 7.95605 8.10386 7.95605C8.7367 7.95605 9.24972 8.46907 9.24972 9.10191Z"/></g></svg>×<span id="hCoins">00</span></span></div>
-  <div class="hud-cell hud-world"><span class="hud-lbl">Мир</span><span class="hud-val" id="hWorld">1-1</span></div>
-  <div class="hud-cell"><span class="hud-lbl">Время</span><span class="hud-val" id="hTime">300</span></div>
-  <div class="hud-cell"><span class="hud-lbl">Жизни</span><span class="hud-val"><svg viewBox="0 0 18 16" width="17" height="15" aria-hidden="true"><path d="M9 14.6 2.2 8A4.1 4.1 0 0 1 9 2.9a4.1 4.1 0 0 1 6.8 5.1Z" fill="#f0503a" stroke="#1c1e3b" stroke-width="2" stroke-linejoin="round"/></svg>×<span id="hLives">3</span></span></div>
+<header id="hud" data-mode="level" hidden>
+  <div class="hud-cell hub-only"><span class="hud-lbl">Звёзды</span><span class="hud-val"><svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true"><path d="M10 1.8l2.5 5.4 5.9.7-4.4 4 1.2 5.8L10 14.8l-5.2 2.9 1.2-5.8-4.4-4 5.9-.7z" fill="#ffc53d" stroke="#1c1e3b" stroke-width="1.8" stroke-linejoin="round"/></svg><span id="hStars">0</span></span></div>
+  <div class="hud-cell lvl-only"><span class="hud-lbl">Очки</span><span class="hud-val" id="hScore">000000</span></div>
+  <div class="hud-cell"><span class="hud-lbl">Значки</span><span class="hud-val"><svg class="coin-ico" viewBox="1.6 0.6 12.8 14.2" width="15" height="17" aria-hidden="true"><g fill="#4262FF" stroke="#1c1e3b" stroke-width="1.3" stroke-linejoin="round" paint-order="stroke"><path fill-rule="evenodd" d="M8.00009 12.2322C9.76563 12.2322 11.1969 10.8307 11.1969 9.10198C11.1969 7.37323 9.76563 5.9718 8.00009 5.9718C6.23456 5.9718 4.80331 7.37323 4.80331 9.10198C4.80331 10.8307 6.23456 12.2322 8.00009 12.2322ZM8.00009 13.9979C10.7616 13.9979 13.0002 11.8059 13.0002 9.10198C13.0002 6.39803 10.7616 4.20605 8.00009 4.20605C5.23862 4.20605 3 6.39803 3 9.10198C3 11.8059 5.23862 13.9979 8.00009 13.9979Z"/><path fill-rule="evenodd" d="M9.24972 2.6439C9.24972 3.27674 8.7367 3.78976 8.10386 3.78976C7.47102 3.78976 6.95801 3.27674 6.95801 2.6439C6.95801 2.01106 7.47102 1.49805 8.10386 1.49805C8.7367 1.49805 9.24972 2.01106 9.24972 2.6439Z"/><path fill-rule="evenodd" d="M9.24972 9.10191C9.24972 9.73475 8.7367 10.2478 8.10386 10.2478C7.47102 10.2478 6.95801 9.73475 6.95801 9.10191C6.95801 8.46907 7.47102 7.95605 8.10386 7.95605C8.7367 7.95605 9.24972 8.46907 9.24972 9.10191Z"/></g></svg>×<span id="hCoins">00</span></span></div>
+  <div class="hud-cell hud-world lvl-only"><span class="hud-lbl">Мир</span><span class="hud-val" id="hWorld">1-1</span></div>
+  <div class="hud-cell hud-time"><span class="hud-lbl">Время</span><span class="hud-val" id="hTime">300</span></div>
+  <div class="hud-cell lvl-only"><span class="hud-lbl">Жизни</span><span class="hud-val"><svg viewBox="0 0 18 16" width="17" height="15" aria-hidden="true"><path d="M9 14.6 2.2 8A4.1 4.1 0 0 1 9 2.9a4.1 4.1 0 0 1 6.8 5.1Z" fill="#f0503a" stroke="#1c1e3b" stroke-width="2" stroke-linejoin="round"/></svg>×<span id="hLives">3</span></span></div>
   <div class="hud-btns">
     <button class="icon-btn" id="btnSound" type="button" aria-label="Выключить звук"></button>
     <button class="icon-btn" id="btnPause" type="button" aria-label="Пауза">
@@ -304,11 +333,12 @@
 <section class="screen screen-title" id="scrTitle">
   <div class="title-wrap">
     <h1 class="logo" aria-label="Super Hop 3D"><span class="logo-sm">SUPER</span><span class="logo-big">HOP<em>3D</em></span></h1>
-    <p class="tagline">Беги по парящим островам, топчи каштанчиков, выбивай монеты из блоков и дотянись до флага.</p>
+    <p class="tagline">Исследуй Промо-остров, помогай жителям, собирай звёзды и открывай врата в новые миры.</p>
     <div class="title-actions">
       <button class="btn btn-main" id="btnPlay" type="button">Играть</button>
     </div>
-    <div class="level-pick" id="levelPick" hidden></div>
+    <p class="title-note" id="saveInfo" hidden></p>
+    <button class="btn btn-ghost" id="btnReset" type="button" hidden>Новая игра</button>
     <p class="howto" id="howto"></p>
     <p class="rotate-hint">Поверни телефон горизонтально, так удобнее</p>
     <p class="best" id="best" hidden></p>
@@ -318,9 +348,15 @@
 <section class="screen" id="scrPause" hidden>
   <div class="card">
     <h2>Пауза</h2>
+    <div id="questBox" hidden>
+      <p class="quest-head">Звёзды острова <b id="questCount"></b></p>
+      <ul class="quests" id="questList"></ul>
+    </div>
     <div class="card-actions">
       <button class="btn btn-main" id="btnResume" type="button">Продолжить</button>
-      <button class="btn" id="btnRestart" type="button">Начать мир заново</button>
+      <button class="btn" id="btnRestart" type="button">Начать уровень заново</button>
+      <button class="btn" id="btnToIsland" type="button">На остров</button>
+      <button class="btn" id="btnToFlag" type="button">К последнему флажку</button>
       <button class="btn btn-ghost" id="btnMenu" type="button">В меню</button>
     </div>
   </div>
@@ -330,23 +366,27 @@
   <div class="card">
     <p class="eyebrow" id="clearWorld">Мир 1-1</p>
     <h2>Уровень пройден!</h2>
+    <p class="card-sub" id="clearStar" hidden></p>
     <dl class="stats">
-      <div><dt>Монеты за уровень</dt><dd id="stCoins">0</dd></div>
+      <div><dt>Значки за уровень</dt><dd id="stCoins">0</dd></div>
       <div><dt>Бонус за время</dt><dd id="stTime">0</dd></div>
       <div><dt>Всего очков</dt><dd id="stScore">0</dd></div>
     </dl>
-    <div class="card-actions"><button class="btn btn-main" id="btnNext" type="button">Дальше</button></div>
+    <div class="card-actions">
+      <button class="btn btn-main" id="btnNext" type="button">Дальше</button>
+      <button class="btn btn-ghost" id="btnClearIsland" type="button">На остров</button>
+    </div>
   </div>
 </section>
 
 <section class="screen" id="scrOver" hidden>
   <div class="card">
     <p class="eyebrow">Жизни закончились</p>
-    <h2>Игра окончена</h2>
+    <h2>Не вышло</h2>
     <p class="card-sub" id="overScore"></p>
     <div class="card-actions">
-      <button class="btn btn-main" id="btnAgain" type="button">Играть снова</button>
-      <button class="btn btn-ghost" id="btnOverMenu" type="button">В меню</button>
+      <button class="btn btn-main" id="btnAgain" type="button">Ещё раз</button>
+      <button class="btn btn-ghost" id="btnOverIsland" type="button">На остров</button>
     </div>
   </div>
 </section>
@@ -357,9 +397,29 @@
     <h2>Победа!</h2>
     <p class="card-sub" id="winScore"></p>
     <div class="card-actions">
-      <button class="btn btn-main" id="btnWinAgain" type="button">Сыграть ещё</button>
+      <button class="btn btn-main" id="btnWinIsland" type="button">На остров</button>
       <button class="btn btn-ghost" id="btnWinMenu" type="button">В меню</button>
     </div>
+  </div>
+</section>
+
+<section class="screen" id="scrWorld" hidden>
+  <div class="card">
+    <p class="eyebrow" id="worldEyebrow">Врата миров</p>
+    <h2 id="worldName"></h2>
+    <p class="card-sub" id="worldSub"></p>
+    <div class="level-pick" id="worldLevels"></div>
+    <div class="card-actions"><button class="btn btn-ghost" id="btnWorldClose" type="button">Назад на остров</button></div>
+  </div>
+</section>
+
+<section class="screen" id="scrShop" hidden>
+  <div class="card">
+    <p class="eyebrow">Лавка кота Мурра</p>
+    <h2>Что возьмёшь?</h2>
+    <p class="card-sub" id="shopBank"></p>
+    <div class="shop-list" id="shopList"></div>
+    <div class="card-actions"><button class="btn btn-ghost" id="btnShopClose" type="button">Уйти</button></div>
   </div>
 </section>
 
@@ -588,6 +648,65 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (let i = 0; i < 9; i++) { g.fillRect(6 + i, 8 + i, 3, 3); g.fillRect(s - 9 - i, 8 + i, 3, 3); }
     g.fillStyle = '#4a4f66'; for (let y = 1; y < s; y += 8) g.fillRect(3, y, s - 6, 1);
   });
+  // the island: water with little wave crests, a waterfall of falling streaks, cobbled paths
+  TX.water = makeTex(64, (g, s) => {
+    const r = rng(17);
+    g.fillStyle = '#3fb4e8'; g.fillRect(0, 0, s, s);
+    speckle(g, s, null, ['#48bdef', '#37a9de', '#52c4f2'], 260, r);
+    for (let i = 0; i < 22; i++) {
+      const x = (r() * s) | 0, y = (r() * s) | 0, w = 4 + ((r() * 7) | 0);
+      g.fillStyle = r() < .6 ? '#b8ecff' : '#e6f8ff';
+      g.fillRect(x, y, w, 1); g.fillRect(x + 1, y - 1, w - 2, 1);
+    }
+  });
+  TX.fall = makeTex(32, (g, s) => {
+    const r = rng(19);
+    g.fillStyle = '#8fdcff'; g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 26; i++) { g.fillStyle = r() < .5 ? '#ffffff' : '#c9f0ff'; g.fillRect((r() * s) | 0, (r() * s) | 0, 1 + ((r() * 2) | 0), 4 + ((r() * 10) | 0)); }
+  });
+  TX.path = makeTex(32, (g, s) => {
+    const r = rng(23);
+    g.fillStyle = '#b9a88c'; g.fillRect(0, 0, s, s);
+    for (let y = 0; y < s; y += 8) for (let x = (y / 8) % 2 ? -4 : 0; x < s; x += 8) {
+      g.fillStyle = ['#e2d5bb', '#d6c7aa', '#eadfc8'][(r() * 3) | 0]; g.fillRect(x + 1, y + 1, 6, 6);
+      g.fillStyle = '#f4ecdb'; g.fillRect(x + 1, y + 1, 6, 1);
+    }
+  });
+  // text on a wooden board: signposts and the plates over the world gates
+  function signTex(lines, w = 256, h = 96) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.fillStyle = '#c98d52'; g.fillRect(0, 0, w, h);
+    for (let y = 0; y < h; y += 16) { g.fillStyle = (y / 16) % 2 ? '#bf844a' : '#d0955a'; g.fillRect(0, y, w, 15); g.fillStyle = '#9a6536'; g.fillRect(0, y + 15, w, 1); }
+    g.strokeStyle = '#6b4222'; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8);
+    g.fillStyle = '#3b2414'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const fs = lines.length > 1 ? h * .3 : h * .42;
+    g.font = `900 ${fs}px Rubik, system-ui, sans-serif`;
+    lines.forEach((ln, i) => g.fillText(ln, w / 2, h / 2 + (i - (lines.length - 1) / 2) * fs * 1.12, w - 24));
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = maxAniso; return t;
+  }
+  // the swirl inside a world gate
+  const SWIRL_TEX = (() => {
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.35, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,.25)');
+    g.fillStyle = gr; g.beginPath(); g.arc(64, 64, 64, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 5; g.lineCap = 'round';
+    for (let arm = 0; arm < 4; arm++) {
+      g.beginPath();
+      for (let i = 0; i <= 40; i++) { const k = i / 40, a = arm * Math.PI / 2 + k * 4.2, rr = 6 + k * 54; const x = 64 + Math.cos(a) * rr, y = 64 + Math.sin(a) * rr; if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+      g.stroke();
+    }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  })();
+  // a soft vertical fade for the light beams over stars that are waiting to be picked up
+  const BEAM_TEX = (() => {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 64;
+    const g = c.getContext('2d'), gr = g.createLinearGradient(0, 64, 0, 0);
+    gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(.25, 'rgba(255,255,255,.4)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 64);
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+  })();
   // themed ground: grass lip on top of a body block, same layout for every theme
   function groundSet(seed, p) {
     const r = rng(seed);
@@ -693,6 +812,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   MAT.lava = std({ color: 0x000000, emissive: 0xffffff, emissiveMap: TX.lava, emissiveIntensity: 1.25, roughness: 1 });
   MAT.fire = std({ color: 0xff8a2a, emissive: 0xff4a00, emissiveIntensity: 1.3, roughness: 1 });
   TX.lava.repeat.set(150, 150);
+  // the island
+  MAT.water = std({ map: TX.water, transparent: true, opacity: .8, roughness: .12, metalness: .05 });
+  MAT.fall = std({ map: TX.fall, transparent: true, opacity: .82, roughness: .3, emissive: 0x5fb8e0, emissiveIntensity: .35, side: T.DoubleSide, depthWrite: false });
+  MAT.path = std({ map: TX.path, roughness: .92 });
+  MAT.crystal = std({ color: 0x8ff3ff, emissive: 0x3fd4ff, emissiveIntensity: 1.8, roughness: .2 });
+  MAT.redCoin = addRim(std({ color: 0xf0503a, emissive: 0xc0201a, emissiveIntensity: .45, roughness: .28, metalness: .15 }), .6);
+  MAT.star = addRim(std({ color: 0xffd23f, emissive: 0xffa800, emissiveIntensity: 1.5, roughness: .22, metalness: .3 }), .7);
+  MAT.beam = new T.MeshBasicMaterial({ map: BEAM_TEX, color: 0xffd35a, transparent: true, opacity: .3, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
+  MAT.ghost = std({ color: 0x5ab4ff, emissive: 0x1a78ff, emissiveIntensity: .3, transparent: true, opacity: .16, depthWrite: false, roughness: .3 });
+  MAT.magic = std({ color: 0x5ab4ff, emissive: 0x1a8cff, emissiveIntensity: .8, transparent: true, opacity: .92, roughness: .25 });
+  MAT.ring = std({ color: 0xffd23f, emissive: 0xffb000, emissiveIntensity: 1.6, roughness: .3, metalness: .3 });
+  MAT.ringDim = std({ color: 0xfff1c2, emissive: 0xffe0a0, emissiveIntensity: .25, transparent: true, opacity: .22, roughness: .5, depthWrite: false });
+  MAT.xmark = std({ color: 0xd8302a, roughness: .9 });
+  MAT.lightBeam = new T.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: .06, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide });
 
   const GROUND = {
     grass: { lip: MAT.groundLip, body: MAT.dirt },
@@ -702,6 +835,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     metal: groundSet(81, { top: '#9aa3b5', topDots: ['#8c95a8', '#a8b1c2', '#b5bdcc', '#7f889b'], grout: '#6b7385', body: '#4a5165', bodyDots: ['#3f4658', '#565d72'], drip: ['#ffc53d', '#2b2f4a'], stripes: ['#ffc53d', '#2b2f4a'], bricks: '#383e50' }),
     cloud: groundSet(91, { top: '#ffffff', topDots: ['#f1f5ff', '#e6edfb', '#ffffff', '#dfe8fa'], body: '#c9d4f2', bodyDots: ['#bcc8ea', '#d6dff6', '#e4c8f0'], drip: ['#ffffff', '#f1f5ff'] }),
     stone: groundSet(51, { top: '#8e8aa0', topDots: ['#7f7b92', '#a19db2', '#8a869c'], grout: '#5f5b70', body: '#534f63', bodyDots: ['#47435a', '#615d74'], drip: ['#8e8aa0', '#7f7b92'], bricks: '#3d394d' }),
+    // the island's cliffs: grass on top of grey rock with layers
+    cliff: groundSet(71, { top: '#5cbf45', topDots: ['#4eaa3a', '#6fd257', '#52b33f', '#7ad962'], body: '#8f8a9e', bodyDots: ['#7f7a90', '#a29db0', '#868199', '#9b96aa'], drip: ['#4eaa3a', '#5cbf45'], strata: '#737087' }),
   };
   // per-theme decor: which tree, ground litter, bush and pipe colours
   const THEMES = {
@@ -805,6 +940,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const m = new Merger(false);
     for (const [geo, color, mat] of parts) m.add(geo, color, mat);
     return shared(m.build(MAT.vc).geometry);
+  }
+  // the same, split into square chunks of the world, so the camera and the shadow pass skip the chunks out of view
+  class ChunkMerger {
+    constructor(useUV, size = 32) { this.uv = useUV; this.size = size; this.map = new Map(); }
+    add(geo, color, m) {
+      const e = m.elements, k = Math.floor(e[12] / this.size) + ',' + Math.floor(e[14] / this.size);
+      let mg = this.map.get(k);
+      if (!mg) { mg = new Merger(this.uv); this.map.set(k, mg); }
+      mg.add(geo, color, m);
+    }
+    build(mat) { const out = []; for (const mg of this.map.values()) { const m = mg.build(mat); if (m) out.push(m); } return out; }
   }
 
   // ================= enemy models =================
@@ -1152,7 +1298,117 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     [BOX, INK, M4(.38, 1.42, .95, .34, .07, .08, 0, 0, .35)],
     [TORUS_ARC, INK, M4(0, .72, 1.02, .22, .16, .2)],
   ]);
-  const NPC_H = { robot: 2.05, frog: 1.05, penguin: 1.2 };
+  // island folk: Foma the hedgehog farmer in a straw hat, Murr the shop cat in an apron, Captain Claw the crab
+  GEO.hedgehog = (() => {
+    const parts = [
+      [SPH_HI, 0x7a4f2c, M4(-.17, .07, .1, .13, .07, .18)], [SPH_HI, 0x7a4f2c, M4(.17, .07, .1, .13, .07, .18)],
+      [SPH_HI, 0xb07a4a, M4(0, .5, 0, .46, .44, .44)],
+      [SPH_HI, 0xf6e2c0, M4(0, .47, .2, .32, .34, .28)],
+      [SPH_HI, 0xf6e2c0, M4(0, .5, .42, .15, .12, .16)],
+      [SPH_HI, INK, M4(0, .54, .57, .05, .045, .04)],
+      [SPH_HI, 0xffffff, M4(-.12, .66, .36, .07, .09, .05)], [SPH_HI, 0xffffff, M4(.12, .66, .36, .07, .09, .05)],
+      [SPH_HI, INK, M4(-.115, .65, .405, .038, .055, .025)], [SPH_HI, INK, M4(.115, .65, .405, .038, .055, .025)],
+      [SPH_HI, 0xffffff, M4(-.128, .672, .425, .013, .016, .007)], [SPH_HI, 0xffffff, M4(.102, .672, .425, .013, .016, .007)],
+      [SPH_HI, 0xff9aa8, M4(-.24, .5, .33, .06, .04, .03)], [SPH_HI, 0xff9aa8, M4(.24, .5, .33, .06, .04, .03)],
+      [TORUS_ARC, 0x7a3a2a, M4(0, .43, .41, .05, .045, .05, 0, 0, Math.PI)],
+      [SPH_HI, 0xb07a4a, M4(-.42, .42, .12, .08, .16, .08, 0, 0, .5)], [SPH_HI, 0xb07a4a, M4(.42, .42, .12, .08, .16, .08, 0, 0, -.5)],
+      [CYL, 0xf2d27a, M4(0, .92, 0, .52, .03, .52)],
+      [CYL, 0xf2d27a, M4(0, 1.02, 0, .27, .2, .27)],
+      [CYL, 0xf0503a, M4(0, .96, 0, .28, .06, .28)],
+      [CONE, 0x3faa48, M4(.3, 1.02, -.05, .05, .16, .05, 0, 0, -.5)],
+    ];
+    const up = new T.Vector3(0, 1, 0);
+    for (let i = 0; i < 16; i++) {
+      const a = -Math.PI * .95 + (i % 8) / 7 * Math.PI * .9 - Math.PI * .05, row = i < 8 ? .25 : .7;
+      const d = new T.Vector3(Math.cos(a) * Math.cos(row), Math.sin(row) + .1, Math.sin(a) * Math.cos(row)).normalize();
+      if (d.z > .1) continue;
+      parts.push([CONE, 0x5a3a22, new T.Matrix4().compose(d.clone().multiplyScalar(.43).add(new T.Vector3(0, .5, 0)), new T.Quaternion().setFromUnitVectors(up, d), new T.Vector3(.09, .32, .09))]);
+    }
+    return mergedGeo(parts);
+  })();
+  GEO.cat = mergedGeo([
+    [CYL, 0xff9a3c, M4(-.13, .16, .02, .08, .32, .08)], [CYL, 0xff9a3c, M4(.13, .16, .02, .08, .32, .08)],
+    [SPH_HI, 0xffffff, M4(-.13, .03, .07, .1, .06, .14)], [SPH_HI, 0xffffff, M4(.13, .03, .07, .1, .06, .14)],
+    [SPH_HI, 0xff9a3c, M4(0, .55, 0, .34, .36, .3)],
+    [BOX, 0xffffff, M4(0, .5, .25, .42, .44, .04)],
+    [BOX, 0x4262ff, M4(0, .47, .275, .12, .12, .02)],
+    [SPH_HI, 0xff9a3c, M4(-.33, .62, .05, .08, .2, .08, 0, 0, .4)], [SPH_HI, 0xff9a3c, M4(.33, .62, .05, .08, .2, .08, 0, 0, -.4)],
+    [SPH_HI, 0xff9a3c, M4(0, 1.05, 0, .36, .32, .32)],
+    [BOX, 0xe0782a, M4(0, 1.3, .05, .06, .1, .16)], [BOX, 0xe0782a, M4(-.1, 1.28, .03, .05, .08, .14, 0, 0, .2)], [BOX, 0xe0782a, M4(.1, 1.28, .03, .05, .08, .14, 0, 0, -.2)],
+    [CONE, 0xff9a3c, M4(-.21, 1.33, 0, .12, .22, .09, 0, 0, .35)], [CONE, 0xff9a3c, M4(.21, 1.33, 0, .12, .22, .09, 0, 0, -.35)],
+    [CONE, 0xffb1bd, M4(-.2, 1.32, .04, .06, .14, .04, 0, 0, .35)], [CONE, 0xffb1bd, M4(.2, 1.32, .04, .06, .14, .04, 0, 0, -.35)],
+    [SPH_HI, 0xffffff, M4(0, .97, .26, .17, .11, .1)],
+    [SPH_HI, 0xff8fa3, M4(0, 1.01, .35, .04, .03, .03)],
+    [BOX, INK, M4(-.2, .98, .3, .16, .012, .012, 0, .2, .1)], [BOX, INK, M4(.2, .98, .3, .16, .012, .012, 0, -.2, -.1)],
+    [SPH_HI, 0xffffff, M4(-.12, 1.1, .26, .07, .09, .05)], [SPH_HI, 0xffffff, M4(.12, 1.1, .26, .07, .09, .05)],
+    [SPH_HI, 0x3aa84a, M4(-.115, 1.095, .3, .045, .065, .025)], [SPH_HI, 0x3aa84a, M4(.115, 1.095, .3, .045, .065, .025)],
+    [SPH_HI, INK, M4(-.113, 1.093, .318, .018, .045, .012)], [SPH_HI, INK, M4(.113, 1.093, .318, .018, .045, .012)],
+    [SPH_HI, 0xffffff, M4(-.128, 1.12, .325, .012, .015, .006)], [SPH_HI, 0xffffff, M4(.1, 1.12, .325, .012, .015, .006)],
+    [TORUS_ARC, 0x7a3a2a, M4(-.035, .92, .33, .035, .03, .035, 0, 0, Math.PI)], [TORUS_ARC, 0x7a3a2a, M4(.035, .92, .33, .035, .03, .035, 0, 0, Math.PI)],
+    [CYL, 0xff9a3c, M4(.08, .35, -.36, .06, .4, .06, .9, 0, 0)],
+    [CYL, 0xff9a3c, M4(.08, .62, -.55, .06, .4, .06, .1, 0, 0)],
+    [SPH_HI, 0xffffff, M4(.08, .83, -.56, .07, .07, .07)],
+  ]);
+  GEO.crab = (() => {
+    const parts = [
+      [SPH_HI, 0xf0503a, M4(0, .45, 0, .55, .3, .42)],
+      [SPH_HI, 0xff8a6a, M4(0, .38, .14, .4, .18, .3)],
+      [SPH_HI, 0xffd1a6, M4(0, .4, .33, .2, .1, .08)],
+      [CYL, 0xf0503a, M4(-.14, .78, .18, .035, .3, .035)], [CYL, 0xf0503a, M4(.14, .78, .18, .035, .3, .035)],
+      [SPH_HI, 0xffffff, M4(-.14, .96, .2, .1, .11, .1)], [SPH_HI, 0xffffff, M4(.14, .96, .2, .1, .11, .1)],
+      [SPH_HI, INK, M4(-.14, .96, .29, .05, .065, .03)], [SPH_HI, INK, M4(.14, .96, .29, .05, .065, .03)],
+      [SPH_HI, 0xffffff, M4(-.152, .985, .31, .015, .018, .008)], [SPH_HI, 0xffffff, M4(.128, .985, .31, .015, .018, .008)],
+      [TORUS_ARC, 0x7a1f2c, M4(0, .5, .41, .07, .05, .06, 0, 0, Math.PI)],
+      // pirate hat with a gold band
+      [HEMI, 0x2b2f4a, M4(0, .7, 0, .34, .2, .3)], [BOX, 0x2b2f4a, M4(0, .72, 0, .8, .06, .34)],
+      [BOX, 0xffd23f, M4(0, .76, .16, .5, .05, .02)], [SPH_HI, 0xffffff, M4(0, .86, .26, .06, .06, .02)],
+    ];
+    for (const s of [-1, 1]) {
+      parts.push([CYL, 0xf0503a, M4(s * .52, .5, .2, .06, .3, .06, 0, 0, s * 1.1)]);
+      parts.push([SPH_HI, 0xf0503a, M4(s * .7, .62, .32, .2, .17, .16)]);
+      parts.push([CONE, 0xf0503a, M4(s * .78, .78, .38, .07, .22, .07, -.3, 0, -s * .3)]);
+      parts.push([CONE, 0xff8a6a, M4(s * .64, .76, .42, .06, .18, .06, -.2, 0, s * .2)]);
+      for (let i = 0; i < 3; i++) parts.push([CYL, 0xd8402a, M4(s * .5, .2, -.18 + i * .16, .035, .42, .035, 0, 0, s * .9)]);
+    }
+    return mergedGeo(parts);
+  })();
+  // treasure chest; the lid is its own mesh so it can open
+  GEO.chest = mergedGeo([
+    [BOX, 0x8a5230, M4(0, .35, 0, 1.2, .7, .8)],
+    [BOX, 0xffd23f, M4(0, .35, 0, 1.24, .12, .84)],
+    [BOX, 0xffd23f, M4(-.45, .35, 0, .1, .72, .84)], [BOX, 0xffd23f, M4(.45, .35, 0, .1, .72, .84)],
+    [BOX, 0x3b2414, M4(0, .55, .41, .18, .22, .04)],
+  ]);
+  GEO.chestLid = mergedGeo([
+    [BOX, 0x9a6038, M4(0, .12, .4, 1.2, .24, .8)],
+    [BOX, 0xffd23f, M4(-.45, .12, .4, .1, .26, .84)], [BOX, 0xffd23f, M4(.45, .12, .4, .1, .26, .84)],
+  ]);
+  // windmill sails: four lattice arms with cloth, turning around z
+  GEO.mill = mergedGeo([[CYL, 0x7a4f2c, M4(0, 0, 0, .35, .5, .35, Math.PI / 2)]].concat(...[0, 1, 2, 3].map((i) => {
+    const a = i * Math.PI / 2, c = Math.cos(a), s = Math.sin(a);
+    return [[BOX, 0x7a4f2c, M4(c * 1.9, s * 1.9, .12, 3.6, .14, .1, 0, 0, a)], [BOX, 0xf4ecdc, M4(c * 2.2 - s * .45, s * 2.2 + c * .45, .16, 2.6, .8, .04, 0, 0, a)]];
+  })));
+  // the leafy pad of an updraft; its petals spin like fan blades
+  GEO.flowerPad = mergedGeo([
+    [CYL, 0x3d9e3c, M4(0, .12, 0, 1.05, .24, 1.05)], [CYL, 0x52b84a, M4(0, .26, 0, .9, .05, .9)], [SPH_HI, 0xffd23f, M4(0, .3, 0, .28, .12, .28)],
+  ]);
+  GEO.petals = mergedGeo([0, 1, 2, 3, 4, 5].map((i) => [SPH_HI, i % 2 ? 0xff9ad1 : 0xffffff, M4(Math.cos(i * Math.PI / 3) * .55, 0, Math.sin(i * Math.PI / 3) * .55, .42, .05, .2, 0, -i * Math.PI / 3, .25)]));
+  const CAP_GEO = {};
+  // giant mushroom caps with white spots, one geometry per colour; the stem is scenery
+  function capGeo(col) {
+    if (CAP_GEO[col]) return CAP_GEO[col];
+    const parts = [[HEMI_HI, col, M4(0, 0, 0, 1.4, .85, 1.4)], [CYL, 0xfff1dc, M4(0, .01, 0, 1.36, .04, 1.36)]];
+    for (const [a, h, sz] of [[0, .6, .26], [1.3, .45, .2], [2.4, .55, .24], [3.6, .4, .18], [4.8, .6, .22], [5.6, .3, .16]]) {
+      const n = new T.Vector3(Math.cos(a) * Math.sqrt(1 - h * h), h, Math.sin(a) * Math.sqrt(1 - h * h));
+      parts.push([SPH_HI, 0xffffff, new T.Matrix4().compose(new T.Vector3(n.x * 1.4, n.y * .85, n.z * 1.4), new T.Quaternion().setFromUnitVectors(new T.Vector3(0, 1, 0), n), new T.Vector3(sz, .05, sz))]);
+    }
+    parts.push([SPH_HI, 0xffffff, M4(0, .84, 0, .3, .04, .3)]);
+    return (CAP_GEO[col] = mergedGeo(parts));
+  }
+  // triangular prism for gable roofs, ridge along z, flat-shaded
+  const PRISM = (() => { let g = new T.CylinderGeometry(1, 1, 1, 3); g.rotateX(-Math.PI / 2); g = g.toNonIndexed(); g.computeVertexNormals(); return shared(g); })();
+  const SIGN_GEO = shared(new T.BoxGeometry(1.9, .72, .1));
+  const NPC_H = { robot: 2.05, frog: 1.05, penguin: 1.2, hedgehog: 1.15, cat: 1.4, crab: 1.05 };
   const PYR = shared(new T.ConeGeometry(.75, 1, 4)); PYR.rotateY(Math.PI / 4);
 
   // ================= hero =================
@@ -1693,9 +1949,26 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       blip: () => { tone('sine', 1320, 0, .06, .05); tone('sine', 1760, 0, .08, .04, .05); },
       rumble: () => { noise(1.8, .3, 0, 380); tone('sine', 55, 32, 1.4, .25); },
       zzz: () => tone('sine', 330, 250, .5, .03),
+      // the island
+      splash: (k = 1) => { noise(.45, .35 * k, 0, 1400, 'lowpass', 380, .8); noise(.22, .16 * k, .03, 5000, 'highpass'); tone('sine', 420, 140, .2, .1 * k); },
+      stroke: () => noise(.24, .08, 0, 900, 'bandpass', 480, .9),
+      starGet: () => {
+        seq('pulse', [72, 76, 79, 84, 0, 79, 84, 88, 91], .11, .12, .085); seq('triangle', [60, 64, 67, 72, 0, 67, 72, 76, 79], .13, .28, .085);
+        tone('sine', 2093, 0, .9, .03, .75);
+      },
+      starAppear: () => { seq('triangle', [79, 84, 88, 91, 96], .12, .22, .07); swoosh(.8, .22, 600, 4000); },
+      ring: (i) => { const m = 72 + Math.min(i, 14) * 2; tone('pulse', mtof(m), 0, .12, .1); tone('pulse', mtof(m + 7), 0, .18, .08, .07); tone('sine', mtof(m + 19), 0, .3, .03, .07); },
+      press: () => { tone('square', 300, 120, .1, .12); tone('sine', 880, 1320, .15, .12, .06); },
+      tock: (hi) => tone('square', hi ? 1500 : 1000, 0, .05, .06),
+      chest: () => { tone('triangle', 200, 320, .25, .25); seq('pulse', [79, 83, 86, 91], .1, .1, .08); },
+      ribbit: () => { tone('square', 180, 140, .08, .06); tone('square', 220, 170, .1, .06, .1); },
+      portal: () => { swoosh(.9, .35, 300, 3000); seq('triangle', [67, 74, 79, 86], .14, .18, .1); },
+      locked: () => { tone('square', 220, 160, .14, .08); tone('square', 180, 130, .18, .08, .15); },
+      buy: () => { tone('pulse', 1568, 0, .08, .1); tone('pulse', 2093, 0, .25, .1, .08); noise(.1, .08, 0, 6000, 'highpass'); },
+      follow: () => seq('pulse', [79, 84, 88], .06, .09, .05),
     };
     // pitch-varied sounds, so frequent ones do not sound mechanical
-    const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush']);
+    const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush', 'splash', 'stroke', 'ribbit']);
     function spotNode(p) {
       _sv.set(p[0], p[1], p[2]);
       const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
@@ -1771,6 +2044,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         lead: [77, 0, 81, 84, 81, 0, 77, 0, 76, 0, 72, 76, 81, 0, 0, 0, 77, 0, 74, 77, 81, 84, 81, 77, 74, 0, 70, 74, 77, 0, 0, 0,
           77, 81, 84, 89, 88, 84, 81, 0, 81, 0, 79, 0, 76, 0, 72, 0, 74, 77, 82, 81, 77, 0, 74, 0, 76, 0, 79, 0, 77, 0, 0, 0],
       },
+      // the island: an easy, sunny tune with a shuffle
+      island: {
+        bpm: 124, drums: 'shuffle', chords: [48, 45, 41, 43, 48, 45, 50, 43],
+        lead: [76, 0, 79, 0, 84, 0, 83, 81, 79, 0, 76, 0, 72, 0, 76, 79, 77, 0, 81, 0, 84, 0, 86, 84, 83, 0, 79, 0, 74, 0, 0, 0,
+          76, 79, 84, 79, 76, 79, 84, 88, 86, 84, 81, 0, 76, 0, 79, 0, 77, 81, 86, 84, 81, 77, 74, 77, 79, 0, 83, 0, 86, 0, 0, 0],
+      },
       boss: {
         bpm: 172, drums: 'boss', chords: [45, 45, 46, 46, 45, 45, 43, 44],
         lead: [69, 0, 69, 72, 69, 0, 75, 74, 70, 0, 70, 74, 70, 0, 77, 76, 69, 0, 69, 72, 69, 0, 75, 74, 76, 75, 74, 73, 72, 71, 70, 68,
@@ -1838,6 +2117,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       candy: { f: 2400, q: .3, vol: .012, ev: 'chime', rate: .35 },
       factory: { f: 140, q: 1.4, vol: .07, ev: 'clank', rate: .6 },
       storm: { f: 420, q: .5, vol: .075, ev: null, rate: 0 },
+      sea: { f: 380, q: .45, vol: .05, ev: 'chirp', rate: .3 },
     };
     function ambGain(on) { if (amb) amb.g.gain.setTargetAtTime(on ? amb.a.vol : 0, ctx.currentTime, on ? .6 : .1); }
     function setAmbient(kind) {
@@ -1882,22 +2162,24 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return s;
   }
   function makeBuilder(seed) {
-    const near = new Merger(false), far = new Merger(false), stone = new Merger(true), sky = new Merger(false), lit = new Merger(false);
+    const near = new ChunkMerger(false), far = new ChunkMerger(false), stone = new ChunkMerger(true), sky = new Merger(false), lit = new Merger(false);
+    const paths = new ChunkMerger(true), gems = new Merger(false);
     const R = rng(seed);
     const add = (o) => { L.group.add(o); return o; };
     const TREE_GREENS = [[0x3faa48, 0x55c25a], [0x37a04a, 0x4cc05e], [0x4bb143, 0x69cf52]];
     const B = {
       R,
       start(x, y, d) { L.start = { x, y, z: -d }; },
-      ground(x0, x1, d0, d1, top = 0, depth = 10) {
-        const w = x1 - x0, dd = d1 - d0, cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2, lip = .5, set = GROUND[L.theme.ground];
+      // `kind` picks another ground than the theme's (the island mixes grass, sand and stone); `bare` leaves it without flowers
+      ground(x0, x1, d0, d1, top = 0, depth = 10, kind, bare) {
+        const w = x1 - x0, dd = d1 - d0, cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2, lip = .5, surf = kind || L.theme.ground, set = GROUND[surf];
         const lipM = new T.Mesh(boxGeo(w + .12, lip, dd + .12, 2, .5, true), set.lip);
         lipM.position.set(cx, top - lip / 2, cz); lipM.receiveShadow = true; add(lipM);
         const bh = depth - lip;
         const body = new T.Mesh(boxGeo(w, bh, dd, 2), set.body);
-        body.position.set(cx, top - lip - bh / 2, cz); add(body);
-        addSolid(x0, top - depth, -d1, x1, top, -d0, 'ground');
-        L.grounds.push({ x0, x1, d0, d1, top });
+        body.position.set(cx, top - lip - bh / 2, cz); body.receiveShadow = true; add(body);
+        addSolid(x0, top - depth, -d1, x1, top, -d0, 'ground', { surf });
+        L.grounds.push({ x0, x1, d0, d1, top, surf, bare: !!bare });
       },
       island(x0, x1, d0, d1, top = 0, depth = 3) {
         this.ground(x0, x1, d0, d1, top, depth);
@@ -1955,7 +2237,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       coinRow(x, y, d0, d1, step = 1.5) { for (let d = d0; d <= d1 + 1e-6; d += step) this.coin(x, y, d); },
       coinArc(x, y, d0, d1, n, h = 1.5) { for (let i = 0; i < n; i++) { const t = i / (n - 1); this.coin(x, y + Math.sin(t * Math.PI) * h, d0 + (d1 - d0) * t); } },
       coinCol(x, y0, y1, d, step = 1.5) { for (let y = y0; y <= y1 + 1e-6; y += step) this.coin(x, y, d); },
-      enemy(type, x, y, d, axis = 'x', range = 3, speed = 1.5, phase = 0) { spawnEnemy(type, x, y, -d, axis, range, speed, phase); },
+      enemy(type, x, y, d, axis = 'x', range = 3, speed = 1.5, phase = 0) { return spawnEnemy(type, x, y, -d, axis, range, speed, phase); },
       // cannon turret: turns to face the hero and fires cannonballs along the ground
       cannon(x, top, d, period = 3, phase = 0) {
         const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
@@ -2128,7 +2410,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           const lid = new T.Mesh(SPH_HI, MAT.dinoLid); lid.position.set(sd * .15, 1.56, .905); lid.scale.set(.108, .138, .078); lid.visible = false; g.add(lid); return lid;
         });
         const bub = makeBubble('Дино');
-        L.dinos.push({ g, legs, tail, lids, seed: R() * 5, x, y: top, z, vx: 0, vy: 0, vz: 0, state: 'idle', t: 0, cool: 0, walk: 0, talked: false, el: bub.el, span: bub.span,
+        L.dinos.push({ g, legs, tail, lids, seed: R() * 5, x, y: top, z, hx: x, hy: top, hz: z, vx: 0, vy: 0, vz: 0, state: 'idle', t: 0, cool: 0, walk: 0, talked: false, el: bub.el, span: bub.span,
           talking: false, idx: 0, lt: 0, h: 1.9, lines: ['Я Дино! Садись: побегу быстрее, прыгну выше и в прыжке оттолкнусь ещё раз.', 'Со мной можно топтать даже колючек!'] });
       },
       npc(kind, x, top, d, name, lines, opt = {}) {
@@ -2139,8 +2421,22 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const b = document.createElement('b'); b.textContent = name;
         const span = document.createElement('span');
         el.append(b, span); bubblesEl.append(el);
-        L.npcs.push({ kind, x, y: top, z, h, mesh, el, span, lines, talking: false, idx: 0, t: 0, yaw: opt.yaw || 0,
-          gift: opt.gift || null, giftKey: L.def.id + ':' + L.npcs.length, giftT: 0, seed: R() * 6 });
+        const n = { kind, x, y: top, z, h, mesh, el, span, lines, cur: null, talking: false, idx: 0, t: 0, yaw: opt.yaw || 0,
+          gift: opt.gift || null, giftKey: L.def.id + ':' + L.npcs.length, giftT: 0, seed: R() * 6 };
+        L.npcs.push(n);
+        return n;
+      },
+      // any small piece of scenery: a lily pad, a parasol top, a bench plank
+      decor(geo, color, x, y, d, sx, sy, sz, rx = 0, ry = 0, rz = 0) { near.add(geo, color, M4(x, y, -d, sx, sy, sz, rx, ry, rz)); },
+      scarecrow(x, top, d) {
+        const z = -d;
+        near.add(CYL, 0x8a5a33, M4(x, top + 1.1, z, .09, 2.2, .09));
+        near.add(CYL, 0x8a5a33, M4(x, top + 1.55, z, .07, 1.8, .07, 0, 0, Math.PI / 2));
+        near.add(BOX, 0x4262ff, M4(x, top + 1.3, z, .6, .7, .32));
+        near.add(SPH, 0xff9a3c, M4(x, top + 2.15, z, .32, .3, .32));
+        near.add(CYL, 0xf2d27a, M4(x, top + 2.4, z, .5, .04, .5)); near.add(CYL, 0xf2d27a, M4(x, top + 2.52, z, .26, .22, .26));
+        for (const s of [-1, 1]) near.add(SPH, 0xf2d27a, M4(x + s * .9, top + 1.55, z, .14, .1, .1));
+        addSolid(x - .15, top, z - .15, x + .15, top + 2.2, z + .15, 'hard');
       },
       checkpoint(x, top, d) {
         const z = -d;
@@ -2177,8 +2473,24 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         addSolid(x - 4.5, top, z - 3, x + 4.5, top + 5, z + 3, 'castle');
         if (L.goal) L.goal.door = { x, z: z + 3.3 };
       },
-      tree(x, top, d, s = 1) {
-        const z = -d, kind = L.theme.tree;
+      tree(x, top, d, s = 1, type) {
+        const z = -d, kind = type || L.theme.tree;
+        if (kind === 'palm') { // a curved trunk, drooping fronds and coconuts
+          const a0 = R() * Math.PI * 2, bx = Math.cos(a0) * (.3 + R() * .3), bz = Math.sin(a0) * (.3 + R() * .3);
+          let tx = x, tz = z;
+          for (let i = 0; i < 6; i++) {
+            const k = i / 5; tx = x + bx * k * k * 2 * s; tz = z + bz * k * k * 2 * s;
+            near.add(CYL, i % 2 ? 0x9a6a3c : 0xb07f4e, M4(tx, top + (i + .5) * .72 * s, tz, (.22 - i * .018) * s, .76 * s, (.22 - i * .018) * s, bz * .7 * k, 0, -bx * .7 * k));
+          }
+          const ty = top + 4.3 * s;
+          for (let i = 0; i < 7; i++) {
+            const a = i / 7 * Math.PI * 2 + R() * .3;
+            near.add(SPH, i % 2 ? 0x3faa48 : 0x55c25a, M4(tx + Math.cos(a) * 1.15 * s, ty - .2 * s, tz + Math.sin(a) * 1.15 * s, 1.4 * s, .1 * s, .4 * s, 0, -a, -.38));
+          }
+          for (let i = 0; i < 3; i++) near.add(SPH, 0x6b4226, M4(tx + Math.cos(i * 2.1) * .25 * s, ty - .35 * s, tz + Math.sin(i * 2.1) * .25 * s, .2 * s, .2 * s, .2 * s));
+          addSolid(x - .3, top, z - .3, x + .3, top + 3.2 * s, z + .3, 'tree');
+          return;
+        }
         if (kind === 'cactus') {
           const c1 = 0x4f9e3f, c2 = 0x468f37;
           near.add(CYL, c1, M4(x, top + 1.2 * s, z, .26 * s, 2.4 * s, .26 * s));
@@ -2278,16 +2590,295 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         far.add(SPH, 0x5cbf45, M4(x, y, z, r * 1.02, r * .22, r * 1.02));
         far.add(ICO, 0x3faa48, M4(x + r * .3, y + r * .45, z, r * .3, r * .3, r * .3));
       },
+      // ---------- the island ----------
+      // sloped ground: the height runs from y0 to y1 along the depth (axis 'd', d0 -> d1) or along x (axis 'x', x0 -> x1)
+      ramp(x0, x1, d0, d1, y0, y1, axis = 'd', kind, depth = 4) {
+        const w = x1 - x0, dd = d1 - d0, cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2, lip = .5, surf = kind || L.theme.ground, set = GROUND[surf];
+        const lo = Math.min(y0, y1) - depth;
+        const hAt = (lx, lz) => lerp(y0, y1, clamp(axis === 'x' ? .5 + lx / w : .5 - lz / dd, 0, 1));
+        const shape = (geo, fn) => {
+          const p = geo.attributes.position;
+          for (let i = 0; i < p.count; i++) p.setY(i, fn(p.getX(i), p.getY(i), p.getZ(i)));
+          geo.computeVertexNormals(); return geo;
+        };
+        const lipM = new T.Mesh(shape(boxGeo(w + .12, lip, dd + .12, 2, .5, true), (lx, ly, lz) => hAt(lx, lz) + ly - lip / 2), set.lip);
+        lipM.position.set(cx, 0, cz); lipM.receiveShadow = true; add(lipM);
+        const body = new T.Mesh(shape(boxGeo(w, 1, dd, 2), (lx, ly, lz) => (ly > 0 ? hAt(lx, lz) - lip : lo)), set.body);
+        body.position.set(cx, 0, cz); body.receiveShadow = true; add(body);
+        addSolid(x0, lo, -d1, x1, Math.max(y0, y1), -d0, 'ground', { surf,
+          ramp: axis === 'x' ? { axis: 'x', a0: x0, a1: x1, y0, y1 } : { axis: 'z', a0: -d0, a1: -d1, y0, y1 } });
+      },
+      // water you can swim in; the first water registered wins where two overlap (lakes before the sea)
+      water(x0, x1, d0, d1, y) {
+        const w = x1 - x0, dd = d1 - d0, g = new T.PlaneGeometry(w, dd); g.rotateX(-Math.PI / 2);
+        const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 7, uv.getY(i) * dd / 7);
+        const m = new T.Mesh(g, MAT.water); m.position.set((x0 + x1) / 2, y, -(d0 + d1) / 2); m.receiveShadow = true; add(m);
+        L.waters.push({ x0, x1, z0: -d1, z1: -d0, y });
+      },
+      // a curtain of water pouring down a cliff face that looks east (+x); it can be walked through
+      waterfall(x, d, w, top, bottom) {
+        const h = top - bottom, g = new T.PlaneGeometry(w, h); g.rotateY(Math.PI / 2);
+        const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 3, uv.getY(i) * h / 3);
+        const m = new T.Mesh(g, MAT.fall); m.position.set(x, bottom + h / 2, -d); m.renderOrder = 1; add(m);
+        near.add(BOX, 0xe6f8ff, M4(x - .25, top - .12, -d, .7, .3, w + .3));
+        L.falls.push({ x: x + .3, y: bottom, z: -d, w });
+      },
+      // a cottage: walls, timber corners, a gable roof you can stand on, a door on side `door` (n/s/e/w), windows, a smoking chimney
+      house(x, d, w, dd, h, wall, roof, door = 's', top = 0) {
+        const z = -d, ridgeZ = dd >= w, rh = Math.min(w, dd) * .42 + .6;
+        near.add(BOX, 0x8e8aa0, M4(x, top + .15, z, w + .24, .3, dd + .24));
+        near.add(BOX, wall, M4(x, top + h / 2, z, w, h, dd));
+        for (const [cx, cz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) near.add(BOX, 0x7a4f2c, M4(x + cx * w / 2, top + h / 2, z + cz * dd / 2, .26, h, .26));
+        near.add(BOX, 0x7a4f2c, M4(x, top + h - .1, z, w + .1, .2, dd + .1));
+        const span = (ridgeZ ? w : dd) / 2 + .45, len = (ridgeZ ? dd : w) + .7;
+        near.add(PRISM, roof, M4(x, top + h + rh / 3, z, span / .866, rh / 1.5, len, 0, ridgeZ ? 0 : Math.PI / 2, 0));
+        near.add(BOX, new T.Color(roof).multiplyScalar(.75).getHex(), M4(x, top + h + rh + .02, z, ridgeZ ? .3 : len + .05, .18, ridgeZ ? len + .05 : .3));
+        const [fx, fz] = { s: [0, 1], n: [0, -1], e: [1, 0], w: [-1, 0] }[door];
+        const dx = x + fx * (w / 2 + .04), dz = z + fz * (dd / 2 + .04);
+        near.add(BOX, 0x7a4524, M4(dx, top + 1.05, dz, fx ? .08 : 1.2, 2.1, fz ? .08 : 1.2));
+        near.add(BOX, 0x5a3218, M4(dx + fx * .02, top + 2.15, dz + fz * .02, fx ? .1 : 1.45, .16, fz ? .1 : 1.45));
+        near.add(SPH, 0xffd23f, M4(dx + fx * .07 + (fz ? .38 : 0), top + 1.05, dz + fz * .07 + (fx ? .38 : 0), .07, .07, .07));
+        for (const [ffx, ffz] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+          const lf = ffx ? dd : w; if (lf < 3.6) continue;
+          for (const sd of [-1, 1]) {
+            const o = sd * lf * .28, wx = x + ffx * (w / 2 + .04) + (ffz ? o : 0), wz = z + ffz * (dd / 2 + .04) + (ffx ? o : 0), wy = top + h * .58;
+            near.add(BOX, 0xffffff, M4(wx, wy, wz, ffx ? .08 : 1, 1, ffz ? .08 : 1));
+            near.add(BOX, 0x9fd8ff, M4(wx + ffx * .03, wy, wz + ffz * .03, ffx ? .08 : .78, .78, ffz ? .08 : .78));
+            near.add(BOX, 0xffffff, M4(wx + ffx * .06, wy, wz + ffz * .06, ffx ? .05 : .08, .78, ffz ? .05 : .08));
+            near.add(BOX, 0xffffff, M4(wx + ffx * .06, wy, wz + ffz * .06, ffx ? .05 : .78, .08, ffz ? .05 : .78));
+          }
+        }
+        const chx = x + (ridgeZ ? w * .2 : w * .3), chz = z + (ridgeZ ? dd * .3 : dd * .2), chTop = top + h + rh * .95 + .5;
+        near.add(BOX, 0x9a4a3a, M4(chx, chTop - .9, chz, .7, 1.8, .7));
+        near.add(BOX, 0x7a3a2a, M4(chx, chTop + .05, chz, .85, .2, .85));
+        L.smokers.push({ x: chx, y: chTop + .4, z: chz });
+        addSolid(x - w / 2, top, z - dd / 2, x + w / 2, top + h, z + dd / 2, 'hard');
+        for (let i = 0; i < 3; i++) { // the roof in three steps, so it can be climbed and stood on
+          const k = 1 - (i + .5) / 3, hw = ridgeZ ? (w / 2 + .45) * k : w / 2 + .35, hd = ridgeZ ? dd / 2 + .35 : (dd / 2 + .45) * k;
+          addSolid(x - hw, top + h + i * rh / 3, z - hd, x + hw, top + h + (i + 1) * rh / 3, z + hd, 'hard');
+        }
+      },
+      // a picket fence from one point to another along x or along the depth; low enough to hop over
+      fence(x0, d0, x1, d1, top = 0) {
+        const alongX = Math.abs(x1 - x0) > Math.abs(d1 - d0), len = alongX ? Math.abs(x1 - x0) : Math.abs(d1 - d0), n = Math.max(1, Math.round(len / 1.6));
+        for (let i = 0; i <= n; i++) {
+          const t = i / n, px = lerp(x0, x1, t), pz = -lerp(d0, d1, t);
+          near.add(BOX, 0xf4ecdc, M4(px, top + .5, pz, .16, 1, .16));
+          near.add(BOX, 0xf4ecdc, M4(px, top + 1.02, pz, .11, .11, .11, 0, Math.PI / 4, Math.PI / 4));
+        }
+        const cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2;
+        for (const y of [.36, .74]) near.add(BOX, 0xe9dcc4, M4(cx, top + y, cz, alongX ? len : .09, .12, alongX ? .09 : len));
+        const t = .14;
+        addSolid(Math.min(x0, x1) - t, top, Math.min(-d0, -d1) - t, Math.max(x0, x1) + t, top + .9, Math.max(-d0, -d1) + t, 'hard');
+      },
+      // a cobbled path laid on the ground
+      path(x0, x1, d0, d1, top = 0) {
+        const w = x1 - x0, dd = d1 - d0, g = new T.PlaneGeometry(w, dd); g.rotateX(-Math.PI / 2);
+        const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 2, uv.getY(i) * dd / 2);
+        paths.add(g, 0xffffff, M4((x0 + x1) / 2, top + .02, -(d0 + d1) / 2)); g.dispose();
+        L.paths.push({ x0: x0 - .3, x1: x1 + .3, z0: -d1 - .3, z1: -d0 + .3 });
+      },
+      rock(x, top, d, s = 1, col = 0x9a96ac) {
+        const z = -d;
+        near.add(ICO, col, M4(x, top + .42 * s, z, 1.1 * s, .82 * s, s, R() * .4, R() * 3, R() * .3));
+        near.add(ICO, new T.Color(col).multiplyScalar(.85).getHex(), M4(x + .7 * s, top + .25 * s, z + .35 * s, .55 * s, .45 * s, .55 * s, 0, R() * 3, 0));
+        addSolid(x - .85 * s, top, z - .8 * s, x + .85 * s, top + 1.05 * s, z + .8 * s, 'hard');
+      },
+      // square stone basin with a spouting column; the water in it is only ankle deep
+      fountain(x, d, top = 0) {
+        const z = -d, c = 0xd6d0e2;
+        for (const [px, pz, sx, sz] of [[0, -2.5, 5.5, .5], [0, 2.5, 5.5, .5], [-2.5, 0, .5, 4.5], [2.5, 0, .5, 4.5]]) {
+          near.add(BOX, c, M4(x + px, top + .35, z + pz, sx, .7, sz));
+          near.add(BOX, 0xe8e3f0, M4(x + px, top + .73, z + pz, sx + .06, .08, sz + .06));
+          addSolid(x + px - sx / 2, top, z + pz - sz / 2, x + px + sx / 2, top + .76, z + pz + sz / 2, 'hard');
+        }
+        near.add(BOX, 0x9fb8c8, M4(x, top + .05, z, 4.6, .1, 4.6));
+        near.add(CYL, c, M4(x, top + 1.1, z, .42, 2.2, .42));
+        near.add(CYL, c, M4(x, top + 2.25, z, 1.15, .22, 1.15));
+        near.add(SPH, 0x4262ff, M4(x, top + 2.55, z, .34, .34, .34));
+        addSolid(x - .45, top, z - .45, x + .45, top + 2.2, z + .45, 'hard');
+        addSolid(x - 1.1, top + 2.14, z - 1.1, x + 1.1, top + 2.36, z + 1.1, 'hard');
+        const wg = new T.PlaneGeometry(4.5, 4.5); wg.rotateX(-Math.PI / 2);
+        const pool = new T.Mesh(wg, MAT.water); pool.position.set(x, top + .5, z); add(pool);
+        const bowl = new T.Mesh(DISC_GEO, MAT.water); bowl.rotation.x = -Math.PI / 2; bowl.scale.setScalar(1.05); bowl.position.set(x, top + 2.37, z); add(bowl);
+        L.fountains.push({ x, y: top + 2.6, z, pool: top + .55 });
+      },
+      windmill(x, d, top = 0) {
+        const z = -d;
+        near.add(BOX, 0xf4ecdc, M4(x, top + 3, z, 3.2, 6, 3.2));
+        for (const [cx, cz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) near.add(BOX, 0x7a4f2c, M4(x + cx * 1.6, top + 3, z + cz * 1.6, .24, 6, .24));
+        near.add(BOX, 0x7a4f2c, M4(x, top + 6.1, z, 3.6, .25, 3.6));
+        near.add(CONE, 0xd8452b, M4(x, top + 7.3, z, 2.7, 2.4, 2.7, 0, Math.PI / 10, 0));
+        near.add(BOX, 0x7a4524, M4(x, top + 1.05, z + 1.63, 1.1, 2.1, .08));
+        near.add(BOX, 0x9fd8ff, M4(x, top + 4, z + 1.63, .8, .8, .08));
+        const blades = new T.Mesh(GEO.mill, MAT.vc); blades.position.set(x, top + 5.3, z + 1.95); blades.castShadow = true; add(blades);
+        L.spinners.push({ m: blades, axis: 'z', spd: .7 });
+        addSolid(x - 1.6, top, z - 1.6, x + 1.6, top + 6, z + 1.6, 'hard');
+        addSolid(x - 1.8, top + 6, z - 1.8, x + 1.8, top + 6.25, z + 1.8, 'hard');
+        addSolid(x - 1, top + 6.25, z - 1, x + 1, top + 7.6, z + 1, 'hard');
+      },
+      // a striped lighthouse with a walkable balcony at the top and a turning beam of light
+      lighthouse(x, d, top, h = 16) {
+        const z = -d, r = 2.4;
+        for (let i = 0; i < 8; i++) near.add(CYL, i % 2 ? 0xffffff : 0xf0503a, M4(x, top + (i + .5) * h / 8, z, r - i * .07, h / 8 + .01, r - i * .07));
+        near.add(CYL, 0x3b3f63, M4(x, top + h + .15, z, r + 1.3, .3, r + 1.3));
+        near.add(RING_GEO, 0xffd23f, M4(x, top + h + .32, z, r + 1.25, r + 1.25, r + 1.25, Math.PI / 2, 0, 0));
+        near.add(BOX, 0x7a4524, M4(x, top + 1.05, z + r - .02, 1.2, 2.1, .3));
+        for (let i = 0; i < 3; i++) near.add(BOX, 0x9fd8ff, M4(x, top + 4 + i * 4, z + r - .2 - i * .2, .7, .9, .3));
+        lit.add(CYL, 0xffffff, M4(x, top + h + 1.3, z, 1.25, 2, 1.25));
+        for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; near.add(BOX, 0x3b3f63, M4(x + Math.cos(a) * 1.28, top + h + 1.3, z + Math.sin(a) * 1.28, .12, 2, .12)); }
+        near.add(CYL, 0x3b3f63, M4(x, top + h + 2.4, z, 1.5, .2, 1.5));
+        near.add(CONE, 0xf0503a, M4(x, top + h + 3.3, z, 1.6, 1.6, 1.6));
+        near.add(SPH, 0xffd23f, M4(x, top + h + 4.2, z, .25, .25, .25));
+        const beam = new T.Group(); beam.position.set(x, top + h + 1.3, z); add(beam);
+        for (const s of [1, -1]) { const c = new T.Mesh(CONE, MAT.lightBeam); c.scale.set(2, 18, 2); c.rotation.z = s * Math.PI / 2; c.position.x = s * 9; beam.add(c); }
+        L.spinners.push({ m: beam, axis: 'y', spd: .8 });
+        addSolid(x - r * .82, top, z - r * .82, x + r * .82, top + h, z + r * .82, 'hard');
+        addSolid(x - r - 1.2, top + h, z - r - 1.2, x + r + 1.2, top + h + .3, z + r + 1.2, 'hard');
+        addSolid(x - 1.3, top + h + .3, z - 1.3, x + 1.3, top + h + 2.5, z + 1.3, 'hard');
+      },
+      // a world gate: stone arch, swirl, a plate with the world's number and the stars it needs, bars while it is shut
+      portal(x, d, top, wi) {
+        const z = -d, W = WORLDS[wi], c = W.col;
+        near.add(BOX, 0xcfc9dc, M4(x, top + .15, z, 6.8, .3, 1.8));
+        for (const s of [-1, 1]) {
+          near.add(BOX, c, M4(x + s * 2.65, top + 1.75, z, .9, 3.2, .9));
+          near.add(BOX, 0xe8e3f0, M4(x + s * 2.65, top + .3, z, 1.1, .3, 1.1));
+          near.add(BOX, 0xe8e3f0, M4(x + s * 2.65, top + 3.3, z, 1.05, .2, 1.05));
+          addSolid(x + s * 2.65 - .45, top, z - .45, x + s * 2.65 + .45, top + 3.4, z + .45, 'hard');
+          const fl = new T.Mesh(SPH, MAT.fire); fl.scale.set(.2, .28, .2); fl.position.set(x + s * 2.65, top + 3.7, z + .1); add(fl);
+          L.torches.push({ x: x + s * 2.65, y: top + 3.7, z: z + .1, mesh: fl });
+        }
+        near.add(TORUS_ARC, c, M4(x, top + 3.3, z, 2.65, 2.65, 2.6));
+        near.add(BOX, 0xffd23f, M4(x, top + 6.05, z, .7, .7, .75, 0, 0, Math.PI / 4));
+        addSolid(x - 3.1, top + 5.3, z - .45, x + 3.1, top + 6.3, z + .45, 'hard');
+        const sw = new T.Mesh(DISC_GEO, new T.MeshBasicMaterial({ map: SWIRL_TEX, color: c, transparent: true, opacity: .9, side: T.DoubleSide, depthWrite: false }));
+        sw.scale.set(2.2, 2.45, 1); sw.position.set(x, top + 2.85, z); add(sw);
+        const bars = new T.Group(); bars.position.set(x, top, z + .1); add(bars);
+        for (let i = -2; i <= 2; i++) { const b = new T.Mesh(CYL, MAT.rod); b.scale.set(.07, 5, .07); b.position.set(i * .85, 2.5, 0); bars.add(b); }
+        for (const y of [1.2, 3.8]) { const b = new T.Mesh(BOX, MAT.rod); b.scale.set(4.4, .12, .1); b.position.set(0, y, 0); bars.add(b); }
+        const plateMat = std({ roughness: .8 }), plate = new T.Mesh(SIGN_GEO, plateMat);
+        plate.scale.set(1.3, 1.3, 1); plate.position.set(x, top + 7.3, z); plate.castShadow = true; add(plate);
+        near.add(BOX, 0x7a4f2c, M4(x, top + 6.6, z, .14, .6, .14));
+        L.portals.push({ wi, x, z, top, sw, bars, plateMat, open: null, armed: true });
+      },
+      sign(x, d, top, lines, yaw = 0) {
+        const z = -d, m = new T.Mesh(SIGN_GEO, std({ map: signTex(lines), roughness: .8 }));
+        near.add(BOX, 0x7a4f2c, M4(x, top + .7, z, .16, 1.4, .16));
+        m.position.set(x, top + 1.55, z); m.rotation.y = yaw; m.castShadow = true; add(m);
+        addSolid(x - .12, top, z - .12, x + .12, top + 1.2, z + .12, 'hard');
+      },
+      // a giant mushroom; its cap throws the hero up like jelly
+      mushroom(x, top, d, s = 1, col = 0xf0503a) {
+        const z = -d, capY = top + 1.7 * s;
+        near.add(CYL, 0xfff1dc, M4(x, top + .85 * s, z, .42 * s, 1.7 * s, .42 * s));
+        const g = new T.Group(); g.position.set(x, capY, z); g.scale.setScalar(s); add(g);
+        const cap = new T.Mesh(capGeo(col), MAT.vc); cap.castShadow = cap.receiveShadow = true; g.add(cap);
+        L.jellies.push(addSolid(x - 1.25 * s, capY, z - 1.25 * s, x + 1.25 * s, capY + .85 * s, z + 1.25 * s, 'jelly', { mesh: cap, wob: 0 }));
+      },
+      // a big flower whose spinning petals blow a column of air upwards, like a fan
+      updraft(x, top, d, h = 9) {
+        const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
+        const base = new T.Mesh(GEO.flowerPad, MAT.vc); base.receiveShadow = true; g.add(base);
+        const blades = new T.Mesh(GEO.petals, MAT.vc); blades.position.y = .34; g.add(blades);
+        addSolid(x - 1, top, z - 1, x + 1, top + .3, z + 1, 'hard');
+        L.fans.push({ x, y: top + .3, z, h, r: 1.3, blades, leafy: true });
+      },
+      // a big blue button; stepping on it makes the blue blocks solid for a while
+      button(x, top, d) {
+        const z = -d;
+        near.add(CYL, 0xcfc9dc, M4(x, top + .2, z, 1.1, .4, 1.1));
+        const cap = new T.Mesh(CYL, MAT.magic); cap.scale.set(.8, .3, .8); cap.position.set(x, top + .55, z); cap.castShadow = true; add(cap);
+        L.buttons.push(addSolid(x - .8, top, z - .8, x + .8, top + .7, z + .8, 'button', { cap, base: top, t: 0 }));
+      },
+      magicBlock(x, top, d, w = 2, dd = 2, th = .6) {
+        const m = new T.Mesh(boxGeo(w, th, dd, 2), MAT.ghost); m.position.set(x, top - th / 2, -d); add(m);
+        const s = addSolid(x - w / 2, top - th, -d - dd / 2, x + w / 2, top, -d + dd / 2, 'magic', { mesh: m });
+        s.active = false; L.magic.push(s);
+      },
+      // an X on the ground where treasure is buried: a ground pound digs it up
+      xmark(x, top, d) {
+        const z = -d, g = new T.Group(); g.position.set(x, top + .03, z); add(g);
+        for (const a of [Math.PI / 4, -Math.PI / 4]) { const b = new T.Mesh(BOX, MAT.xmark); b.scale.set(1.9, .04, .36); b.rotation.y = a; g.add(b); }
+        L.digs.push({ x, y: top, z, g, dug: false, chest: null, lid: null, t: 0 });
+      },
+      // plank decking: piers, bridges, the shop floor
+      planks(x0, x1, d0, d1, top, postDepth = 0) {
+        const w = x1 - x0, dd = d1 - d0, cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2;
+        const m = new T.Mesh(boxGeo(w, .35, dd, 2), MAT.plank); m.position.set(cx, top - .175, cz); m.castShadow = m.receiveShadow = true; add(m);
+        if (postDepth > 0) {
+          const alongX = w > dd, n = Math.max(1, Math.round((alongX ? w : dd) / 3));
+          for (let i = 0; i <= n; i++) for (const s of [-1, 1]) {
+            const px = alongX ? lerp(x0 + .3, x1 - .3, i / n) : cx + s * (w / 2 - .3), pd = alongX ? -cz + s * (dd / 2 - .3) : lerp(d0 + .3, d1 - .3, i / n);
+            near.add(CYL, 0x6b4a2c, M4(px, top - .35 - postDepth / 2, -pd, .17, postDepth, .17));
+          }
+        }
+        addSolid(x0, top - .35, -d1, x1, top, -d0, 'ground', { surf: 'wood' });
+      },
+      // the market stall: a counter that faces west (-x) under a striped awning
+      stall(x, d, top = 0) {
+        const z = -d;
+        near.add(BOX, 0xc98d52, M4(x, top + .55, z, 1.2, 1.1, 5));
+        near.add(BOX, 0xf4ecdc, M4(x - .02, top + 1.14, z, 1.35, .08, 5.2));
+        for (const [px, pz] of [[-.55, -2.5], [-.55, 2.5], [1.9, -2.5], [1.9, 2.5]]) near.add(CYL, 0x7a4f2c, M4(x + px, top + 1.6, z + pz, .08, 3.2, .08));
+        for (let i = 0; i < 6; i++) near.add(BOX, i % 2 ? 0xffffff : 0xf0503a, M4(x + .7, top + 3.25, z - 2.5 + (i + .5) * 5 / 6, 3.2, .1, 5 / 6 + .01, 0, 0, -.22));
+        const goods = [0xf0503a, 0xffd23f, 0x4262ff, 0x7ddf6a, 0xff9ad1];
+        for (let i = 0; i < 7; i++) near.add(i % 2 ? SPH : BOX, goods[i % goods.length], M4(x - .1, top + 1.3, z - 2 + i * .66, .22, .22, .22));
+        addSolid(x - .6, top, z - 2.6, x + .6, top + 1.18, z + 2.6, 'hard');
+      },
+      crate(x, top, d, s = 1) {
+        const z = -d;
+        near.add(BOX, 0xc98d52, M4(x, top + s / 2, z, s, s, s, 0, R() * .3, 0));
+        near.add(BOX, 0x8a5a33, M4(x, top + s / 2, z, s * 1.03, s * .16, s * 1.03, 0, 0, 0));
+        addSolid(x - s / 2, top, z - s / 2, x + s / 2, top + s, z + s / 2, 'hard');
+      },
+      barrel(x, top, d) {
+        const z = -d;
+        near.add(CYL, 0x9a6038, M4(x, top + .55, z, .45, 1.1, .45));
+        for (const y of [.25, .85]) near.add(CYL, 0x5a5f70, M4(x, top + y, z, .47, .07, .47));
+        addSolid(x - .45, top, z - .45, x + .45, top + 1.1, z + .45, 'hard');
+      },
+      // a vegetable bed: soil with rows of cabbages, carrots or pumpkins
+      bed(x0, x1, d0, d1, crop) {
+        const w = x1 - x0, dd = d1 - d0, cx = (x0 + x1) / 2, cz = -(d0 + d1) / 2;
+        near.add(BOX, 0x6b4226, M4(cx, .09, cz, w, .18, dd));
+        for (let px = x0 + .6; px < x1 - .3; px += 1.1) for (let pd = d0 + .6; pd < d1 - .3; pd += 1.1) {
+          const z = -pd;
+          if (crop === 'cabbage') { near.add(SPH, 0x7ddf6a, M4(px, .38, z, .34, .28, .34)); near.add(SPH, 0x5cbf45, M4(px, .44, z, .22, .2, .22)); }
+          else if (crop === 'carrot') { near.add(CONE, 0xff8a2a, M4(px, .24, z, .12, .22, .12)); for (let k = -1; k <= 1; k++) near.add(CONE, 0x3faa48, M4(px + k * .06, .48, z, .04, .32, .04, 0, 0, k * .35)); }
+          else { near.add(SPH, 0xff9a3c, M4(px, .38, z, .36, .26, .36)); near.add(CYL, 0x3d7a2c, M4(px, .66, z, .04, .14, .04)); }
+        }
+      },
+      // glowing crystals for the cave
+      crystal(x, top, d, s = 1) {
+        const z = -d;
+        for (let i = 0; i < 4; i++) {
+          const a = i * 1.7 + R(), l = .3 + R() * .4;
+          gems.add(CONE, 0xffffff, M4(x + Math.cos(a) * .25 * s, top + l * s * .8, z + Math.sin(a) * .25 * s, .16 * s, l * 2 * s, .16 * s, Math.sin(a) * .4, 0, Math.cos(a) * .4));
+        }
+      },
+      // quest things: a star, a lost froglet, a red coin, a ring for the race, a pad that opens a card when stepped on
+      star(id, x, y, d, hidden) { addStar(id, x, y, -d, hidden); },
+      froglet(i, x, top, d) { addFroglet(i, x, top, -d); },
+      redCoin(i, x, y, d) { addRedCoin(i, x, y, -d); },
+      ring(i, x, y, d, yaw = 0) { addRing(i, x, y, -d, yaw); },
+      pad(kind, x, top, d, data) {
+        const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: 0xffd23f, emissiveIntensity: .8, roughness: .6 }));
+        m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
+        L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
+      },
       finish() {
         // scatter grass tufts, flowers and bushes where nothing stands
         const blocked = (x, z, top) => L.solids.some((s) => s.kind !== 'ground' && s.min.y <= top + .05 && s.max.y > top + .05 &&
           x > s.min.x - .5 && x < s.max.x + .5 && z > s.min.z - .5 && z < s.max.z + .5);
-        const FLOWERS = [0xffffff, 0xffe45c, 0xff7aa8, 0xff9a3c], th = L.theme;
+        const onPath = (x, z) => L.paths.some((p) => x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1);
+        const FLOWERS = [0xffffff, 0xffe45c, 0xff7aa8, 0xff9a3c], every = L.def.scatter || 9;
         for (const gr of L.grounds) {
-          const area = (gr.x1 - gr.x0) * (gr.d1 - gr.d0);
-          for (let i = 0; i < area / 9; i++) {
+          if (gr.bare) continue;
+          const th = THEMES[gr.surf] || L.theme, area = (gr.x1 - gr.x0) * (gr.d1 - gr.d0);
+          for (let i = 0; i < area / every; i++) {
             const x = lerp(gr.x0 + .3, gr.x1 - .3, R()), d = lerp(gr.d0 + .3, gr.d1 - .3, R());
-            if (blocked(x, -d, gr.top)) continue;
+            if (blocked(x, -d, gr.top) || onPath(x, -d)) continue;
             if (th.tuft && R() < .62) {
               for (let k = 0; k < 3; k++) far.add(CONE, th.tuft[k === 1 ? 0 : 1], M4(x + (k - 1) * .09, gr.top + .1, -d + (R() - .5) * .08, .05, .24 + R() * .1, .05, 0, 0, (k - 1) * .35));
             } else if (!th.litter) {
@@ -2298,17 +2889,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
               far.add(th.ground === 'snow' ? SPH : ICO, th.litter[(R() * th.litter.length) | 0], M4(x, gr.top + .03, -d, s, s * .55, s * 1.2, 0, R() * 3, 0));
             }
           }
+          if (L.def.hub) continue; // the island places its bushes by hand
           const edges = Math.floor((gr.d1 - gr.d0) / 6);
           for (let i = 0; i < edges; i++) {
             const side = R() < .5 ? -1 : 1, x = side < 0 ? gr.x0 + .7 : gr.x1 - .7, d = lerp(gr.d0 + 1, gr.d1 - 1, R());
             if (!blocked(x, -d, gr.top)) this.bush(x, gr.top, d, .7 + R() * .5);
           }
         }
-        const a = near.build(MAT.vc); if (a) { a.castShadow = a.receiveShadow = true; add(a); }
-        const b = far.build(MAT.vcFar); if (b) add(b);
-        const c = stone.build(MAT.castle); if (c) { c.castShadow = c.receiveShadow = true; add(c); }
+        for (const a of near.build(MAT.vc)) { a.castShadow = a.receiveShadow = true; add(a); }
+        for (const b of far.build(MAT.vcFar)) add(b);
+        for (const c of stone.build(MAT.castle)) { c.castShadow = c.receiveShadow = true; add(c); }
+        for (const p of paths.build(MAT.path)) { p.receiveShadow = true; add(p); }
         const d = sky.build(MAT.cloud); if (d) add(d);
         const e = lit.build(MAT.bulb); if (e) add(e);
+        const f = gems.build(MAT.crystal); if (f) add(f);
       },
     };
     return B;
@@ -3033,6 +3627,264 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sceneryFactory(B, 30, -120);
   }
 
+  // ---------- Promo Island ----------
+  // An open island around a village: the beach and pier to the south, a lake under a waterfall cliff to the west (a cave
+  // behind the water), Foma's garden to the east, a lighthouse on a plateau to the north-east, the world gates on a stone
+  // square to the north and a forest on terraces behind them, with a sky island above. Coordinates are x and depth d (z = -d).
+  function sceneryIsland(B) {
+    const R = B.R, greens = [0x5fbf52, 0x4aa844, 0x74cc5c];
+    for (let i = 0; i < 18; i++) {
+      const a = i / 18 * Math.PI * 2 + R() * .25, r = 175 + R() * 30;
+      B.hill(Math.cos(a) * r, -16, Math.sin(a) * r - 30, 26 + R() * 22, greens[i % 3]);
+    }
+    for (let i = 0; i < 10; i++) { const a = R() * Math.PI * 2, r = 110 + R() * 45; B.farIsland(Math.cos(a) * r, 8 + R() * 14, Math.sin(a) * r - 30, 4 + R() * 4); }
+    for (let i = 0; i < 44; i++) B.cloud(-190 + R() * 380, 24 + R() * 22, -210 + R() * 360, 1 + R() * 1.4);
+  }
+  function buildHub(B) {
+    const R = B.R;
+    resetIsland();
+    B.start(0, 0, 3);
+    L.titleCam = { x: 0, y: 2, z: -26, r: 34, h: 13 };
+
+    // --- land and water (the lake before the sea: the first water wins) ---
+    B.water(-49, -30, 8, 32, -.4);
+    B.water(-260, 260, -220, 300, -1.2);
+    B.ground(-260, 260, -220, 300, -9, 3, 'sand', true);
+    B.ground(-30, 46, -4, 44, 0, 12);
+    B.ground(-52, -30, -4, 8, 0, 12, 'cliff');
+    B.ground(-52, -30, 32, 44, 0, 12, 'cliff');
+    B.ground(-52, -49, 8, 32, 0, 12, 'cliff');
+    B.ground(-49, -30, 8, 32, -3.5, 8.5, 'sand', true);
+    B.ground(-52, 20, 44, 94, 0, 12);
+    B.ground(-68, 46, -14, -4, 0, 12, 'sand');
+    B.ramp(-68, 46, -24, -14, -3.2, 0, 'd', 'sand');
+    // the cliff over the lake, with a tunnel behind the waterfall and a cave room at its end
+    B.ground(-68, -52, -4, 14, 9, 21, 'cliff');
+    B.ground(-68, -52, 26, 44, 9, 21, 'cliff');
+    B.ground(-60, -52, 14, 18.5, 9, 21, 'cliff');
+    B.ground(-60, -52, 21.5, 26, 9, 21, 'cliff');
+    B.ground(-60, -52, 18.5, 21.5, 9, 5.8, 'cliff');
+    B.ground(-68, -66, 14, 26, 9, 21, 'cliff');
+    B.ground(-66, -60, 14, 26, 9, 4.5, 'cliff');
+    B.ground(-66, -52, 14, 26, 0, 12, 'stone', true);
+    B.ramp(-52, -36, 40, 44, 9, 0, 'x', 'cliff');
+    // the lighthouse plateau, the gate square with its steps, the forest terraces
+    B.ground(20, 46, 44, 84, 4, 16, 'cliff');
+    B.ramp(30, 34, 36, 44, 0, 4);
+    B.ground(-14, 14, 45, 62, 1.5, 13.5, 'stone');
+    B.ground(-4, 4, 43, 44, .5, 12.5, 'stone', true);
+    B.ground(-4, 4, 44, 45, 1, 13, 'stone', true);
+    B.ground(-52, -24, 64, 94, 2, 14, 'cliff');
+    B.ground(-52, -34, 74, 94, 4, 16, 'cliff');
+    B.ground(-52, -42, 82, 94, 6, 18, 'cliff');
+    B.ramp(-30, -26, 58, 64, 0, 2);
+    B.ramp(-40, -36, 68, 74, 2, 4);
+    B.ramp(-48, -44, 78, 82, 4, 6);
+    B.ground(-22, -18, 36, 40, 11, 11, 'cliff');
+    B.ground(-41.5, -38.5, 18.5, 21.5, .3, 4, 'stone', true);
+    L.paths.push({ x0: 22, x1: 42, z0: -24, z1: -4 }); // no flowers in the garden beds
+
+    // --- paths ---
+    B.path(-5, 5, 15, 25);
+    B.path(-1.5, 1.5, -4, 15);
+    B.path(-1.5, 1.5, 25, 43);
+    B.path(5, 22, 18.5, 21.5);
+    B.path(-28, -5, 18.5, 21.5);
+    B.path(14.5, 17.5, 21.5, 31); B.path(14.5, 33.5, 31, 34); B.path(30.5, 33.5, 34, 36);
+    B.path(-27, -1.5, 40, 43); B.path(-29.5, -26.5, 43, 58);
+
+    // --- the village ---
+    B.fountain(0, 20);
+    B.house(-10, 10, 6, 5, 3.2, 0xfff1dc, 0xd8452b, 'e');
+    B.house(10, 10, 6, 5, 3.2, 0xffe9c2, 0x4262ff, 'w');
+    B.house(-11, 30, 6, 6, 3.2, 0xf4ecdc, 0x7b52d6, 'e');
+    B.house(-20, 28, 5, 6, 3, 0xffe0cc, 0x3faa48, 's');
+    B.crate(-7.3, 0, 29.2, 1.2); B.barrel(-7.4, 0, 31.2); B.crate(-7.3, 1.2, 29.2, .9);
+    B.windmill(-20, 3);
+    B.stall(11, 30);
+    B.pad('shop', 8.6, 0, 30);
+    B.crate(12.8, 0, 26.6, .9); B.barrel(12.9, 0, 33.6);
+    for (const [x, d] of [[2.6, 7], [-2.6, 3], [2.6, 30], [-2.6, 37]]) B.tree(x, 0, d, 1, 'lamp');
+    // the dino's paddock, open to the path
+    B.fence(-23, 8, -15, 8); B.fence(-23, 8, -23, 15.5); B.fence(-15, 8, -15, 15.5); B.fence(-23, 15.5, -20.5, 15.5); B.fence(-17.5, 15.5, -15, 15.5);
+    B.dino(-19, 0, 11.5);
+    // benches and flower pots round the square
+    for (const [x, d, ry] of [[-6.2, 17, 0], [6.2, 23, 0], [-6.2, 23, 0], [6.2, 17, 0]]) {
+      B.decor(BOX, 0xb67c45, x, .45, d, .5, .08, 1.8, 0, ry, 0);
+      B.decor(BOX, 0xb67c45, x + (x < 0 ? -.22 : .22), .75, d, .08, .5, 1.8);
+      for (const o of [-.7, .7]) B.decor(BOX, 0x5a5f70, x, .22, d + o, .45, .44, .08);
+    }
+    for (const [x, d] of [[-5.6, 14.4], [5.6, 14.4], [-5.6, 25.6], [5.6, 25.6]]) {
+      B.decor(CYL, 0xc98d52, x, .3, d, .45, .6, .45);
+      B.bush(x, .55, d, .55);
+    }
+    B.coinArc(0, 3.2, 15.5, 24.5, 7, 1.6);
+    B.coinRow(0, 1.2, 5, 13, 2);
+    for (let x = -12; x <= -8; x += 1.3) B.coin(x, 6.8, 10);
+    for (let x = 8; x <= 12; x += 1.3) B.coin(x, 6.8, 10);
+    for (let d = 27.5; d <= 32.5; d += 1.25) B.coin(-11, 7.2, d);
+    for (let x = -26; x <= -8; x += 3) B.coin(x, 1.2, 20);
+    for (let x = 7; x <= 19; x += 3) B.coin(x, 1.2, 20);
+
+    B.npc('robot', 3.6, 0, 16.4, 'Промобот', () => {
+      const n = starCount(), next = WORLDS.find((w) => w.need > n);
+      return [
+        'Добро пожаловать на Промо-остров! Здесь нет таймера: гуляй, где хочешь.',
+        'Помогай жителям и ищи тайники: за это дают звёзды. Список звёзд в паузе.',
+        'Звёзды открывают Врата миров. Они на севере, за фонтаном.',
+        next ? 'У тебя ' + n + ' ★. Врата мира ' + next.n + ' откроются при ' + next.need + ' ★.' : 'У тебя ' + n + ' ★. Все врата уже открыты!',
+      ];
+    });
+    ISL.kvak = B.npc('frog', -27.5, 0, 13, 'Квак', () => {
+      const n = SAVE.frogs.length;
+      if (hasStar('frogs')) return ['Спасибо, что вернул малышей! В озере снова весело.', 'Говорят, за водопадом спрятан тайник.'];
+      if (n >= FROG_N) return ['Все дома! Звезда твоя, забирай!'];
+      return ['Мои лягушата разбежались по острову! Найди их и приведи ко мне. Дома уже ' + n + ' из ' + FROG_N + '.',
+        'Один сидит на камне посреди озера. Другой залез на фиолетовую крышу… Остальные где-то далеко.',
+        'Подойди к малышу, и он поскачет за тобой.'];
+    }, { yaw: -Math.PI / 2 });
+    B.npc('frog', -12, 0, 37.2, 'Квакуша', () => (hasStar('switch')
+      ? ['Ты успел наверх! Вот это прыжки!']
+      : ['Прыгни на синюю кнопку, и появятся волшебные блоки. Но всего на ' + MAGIC_T + ' секунд!', 'Наверху скалы что-то блестит…']));
+    B.sign(2.8, 0, 6, ['Промо-остров']);
+    B.sign(-25, 0, 22.8, ['Озеро'], Math.PI / 2);
+    B.sign(3, 0, 41.5, ['Врата', 'миров']);
+
+    // --- the shop cat ---
+    B.npc('cat', 12.4, 0, 30, 'Кот Мурр', ['Мурр! Заходи в лавку: встань на золотой коврик.', 'Кепки, щиты, перец… Есть даже звезда, но она недешёвая.'], { yaw: -Math.PI / 2 });
+    B.sign(8, 0, 33.8, ['Лавка', 'Мурра']);
+
+    // --- the blue button and the rock ---
+    B.button(-14.5, 0, 35);
+    for (const [x, top, d] of [[-15.5, 2.2, 39], [-15.8, 4.4, 42.8], [-19.8, 6.6, 44.2], [-23.8, 8.8, 42.5], [-24.6, 10.2, 38.6]]) B.magicBlock(x, top, d);
+    B.star('switch', -20, 12.4, 38);
+
+    // --- Foma's garden ---
+    B.fence(22, 4, 42, 4); B.fence(22, 24, 42, 24); B.fence(42, 4, 42, 24); B.fence(22, 4, 22, 18.5); B.fence(22, 21.5, 22, 24);
+    B.bed(24, 30, 6, 11, 'cabbage'); B.bed(33, 40, 6, 11, 'carrot'); B.bed(24, 30, 15, 22, 'pumpkin'); B.bed(33, 40, 15, 22, 'cabbage');
+    B.scarecrow(31.5, 0, 13);
+    ISL.foma = B.npc('hedgehog', 20.3, 0, 16.2, 'Ёжик Фома', () => {
+      if (hasStar('garden')) return ['Огород спасён! Приходи за морковкой.', 'Кот Мурр продаёт отличные кепки. Загляни!'];
+      if (questDone('garden')) return ['Спасибо! Звезда твоя, забирай!'];
+      return ['Караул! Каштаны топчут мой огород! Прогони их всех!', 'Прыгай им на макушку или крутись вихрем.' + (ISL.gardenLeft > 0 ? ' Осталось ' + ISL.gardenLeft + '.' : '')];
+    }, { yaw: -Math.PI / 2 });
+    B.sign(20, 0, 23, ['Огород'], -Math.PI / 2);
+    if (!questDone('garden')) {
+      for (const [x, d, ax, rg, sp, ph] of [[27, 13, 'x', 2.5, 1.2, 0], [36.5, 13, 'x', 2.5, 1.3, .5], [31, 8.5, 'x', 5, 1.1, .2], [31, 18.5, 'x', 5, 1.2, .7], [26, 18, 'z', 3, 1, .3], [38, 9, 'z', 3, 1.1, .6]]) {
+        B.enemy('walker', x, 0, d, ax, rg, sp, ph).quest = 'garden';
+      }
+    }
+    B.star('garden', 32, 1.7, 16.5, !questDone('garden'));
+
+    // --- the beach, the pier, the race, the treasure ---
+    for (const [x, d, s] of [[-46, -7, 1], [-41, -11, 1.1], [-47.5, -12, .95], [-30, -10, 1], [-14, -12, 1.1], [21, -8, 1], [30, -11, 1.15], [40, -7, .95], [-58, -9, 1], [-62, -12, 1.1]]) B.tree(x, 0, d, s, 'palm');
+    for (const [x, d, c] of [[-8, -9, 0xf0503a], [26, -6, 0x4262ff]]) { // parasols
+      B.decor(CYL, 0xf4ecdc, x, 1.2, d, .06, 2.4, .06);
+      B.decor(CONE, c, x, 2.5, d, 1.6, .6, 1.6);
+      B.decor(CONE, 0xffffff, x, 2.52, d, .9, .38, .9);
+    }
+    for (const [x, d] of [[-35, -12], [34, -12.5], [-55, -6]]) B.rock(x, 0, d, .9);
+    B.planks(8.5, 11.5, -32, -12, .3, 8);
+    B.barrel(9.2, .3, -31); B.tree(11, .3, -29, 1, 'lamp');
+    B.coinRow(10, 1.4, -28, -15, 2);
+    for (let x = -30; x <= 30; x += 4) B.coin(x, 1.2, -9);
+    B.sign(4, 0, -5, ['Пляж'], Math.PI);
+    ISL.ping = B.npc('penguin', 14, 0, -7, 'Пинг', () => (questDone('race')
+      ? [hasStar('race') ? 'Ты быстрее ветра! Звезда твоя по праву.' : 'Звезда ждёт тебя у пирса, забирай!', 'На пирсе, кстати, сидит чей-то лягушонок.']
+      : ['Спорим, не пролетишь через все кольца за ' + RACE_LIMIT + ' секунд? Старт у первого кольца, рядом со мной!',
+        'Кольца загораются по очереди. Одно висит высоко: прыгай!']));
+    const RINGS = [[16, 1.9, -10], [2, 2, -9], [-12, 2, -8], [-24, 2, 0], [-25, 2.2, 13], [-14, 2.2, 23], [0, 3.6, 30], [13, 2.2, 25], [18, 2.2, 12], [9, 2, 3], [12, 2.2, -5]];
+    RINGS.forEach(([x, y, d], i) => {
+      const a = RINGS[Math.max(0, i - 1)], b = RINGS[Math.min(RINGS.length - 1, i + 1)];
+      B.ring(i, x, y, d, Math.atan2(b[0] - a[0], -(b[2] - a[2])));
+    });
+    B.star('race', 16, 1.8, -4, !questDone('race'));
+    ISL.crab = B.npc('crab', -37, 0, -6, 'Капитан Клешня', () => (questDone('dig')
+      ? [hasStar('dig') ? 'Клад нашёлся! Ты настоящий пират, юнга.' : 'Звезда из сундука ждёт у пальм, бери!']
+      : ['Йо-хо! Я зарыл клад у трёх пальм и забыл, где именно. Ищи крестик на песке!', 'Встань на крестик, подпрыгни и ударь с неба. Клад сам выскочит!']), { yaw: Math.PI / 2 });
+    if (!questDone('dig')) B.xmark(-44.5, 0, -9.5);
+    B.star('dig', -44.5, 1.9, -9.5, !questDone('dig'));
+
+    // --- the lake, the waterfall and the cave behind it ---
+    B.waterfall(-51.8, 20, 4.4, 9, -.4);
+    for (const [x, d] of [[-45, 12], [-35, 27], [-33, 12.5], [-46, 28]]) B.decor(CYL, 0x52b84a, x, -.37, d, .7, .03, .7);
+    B.npc('frog', -50.6, 0, 11.5, 'Квакша', ['Слышишь, как шумит водопад? А что за ним, никто не знает…', 'Я туда не пойду: промокну!'], { yaw: Math.PI / 2 });
+    for (let x = -53.5; x >= -59.5; x -= 1.5) B.coin(x, 1.1, 20);
+    for (const [x, d] of [[-65, 15], [-65, 25], [-61, 14.6], [-61, 25.4], [-65.3, 20]]) B.crystal(x, 0, d, 1.1);
+    B.star('cave', -63, 1.5, 20);
+    L.caves = [{ x0: -66, x1: -51.6, z0: -26, z1: -14, y1: 4.5 }];
+    for (const [x, d] of [[-56, 34], [-60, 38], [-64, 34], [-60, 30]]) B.coinArc(x, 10.2, d - 1.5, d + 1.5, 3, .8);
+    B.sign(-55, 9, 41, ['Смотровая']);
+
+    // --- the lighthouse plateau: a spiral of planks up to the balcony ---
+    B.lighthouse(36, 66, 4, 16);
+    for (let i = 0; i < 11; i++) {
+      const a = -Math.PI / 2 + i * .72, x = 36 + Math.cos(a) * 5.4, d = 66 + Math.sin(a) * 5.4, top = 5.4 + i * 1.3;
+      B.platform(x, top, d, 2.2, 2.2, i === 7 ? { fall: true } : {});
+      if (i !== 4) B.coin(x, top + 1.2, d);
+    }
+    B.star('tower', 36, 21.4, 62.8);
+    B.sign(28.5, 0, 35.5, ['Маяк']);
+    B.npc('penguin', 26.5, 4, 50, 'Пинга', ['Маяк! Говорят, на самом верху лежит звезда.', 'Ступеньки вьются вокруг башни. Одна из них хрупкая: не стой на ней!']);
+    B.enemy('walker', 27, 4, 56, 'x', 3, 1.4);
+    B.enemy('walker', 42, 4, 76, 'z', 3, 1.5, .5);
+    B.enemy('spiky', 28, 4, 77, 'x', 3, 1.8);
+    B.cannon(43, 4, 50, 3.4);
+    for (const [x, d] of [[23, 60], [44, 58], [24, 80], [44, 82], [30, 82]]) B.tree(x, 4, d, .95 + R() * .3);
+
+    // --- the world gates ---
+    WORLDS.forEach((w, i) => B.portal(-10.5 + i * 7, 58, 1.5, i));
+    B.npc('robot', 0, 1.5, 49.5, 'Страж врат', ['Это Врата миров. Каждые врата открываются, когда у тебя хватает звёзд.', 'За каждый пройденный уровень тоже дают звезду.']);
+    B.tree(-12.6, 1.5, 47, 1, 'pillar'); B.tree(12.6, 1.5, 47, 1, 'pillar');
+
+    // --- the forest on the terraces, the updraft and the sky island ---
+    const terrain = (x, d) => (x >= -52 && x <= -42 && d >= 82 ? 6 : x >= -52 && x <= -34 && d >= 74 ? 4 : x >= -52 && x <= -24 && d >= 64 ? 2 : 0);
+    const keepOut = [[-16, 16, 42, 64], [-31.5, -24.5, 56, 65], [-41.5, -34.5, 66, 75], [-49.5, -42.5, 76, 83], [-50, -44, 85, 91], [-31, -25, 42, 58],
+      [-20, -16, 70, 74], [-8, -4, 78, 82], [-7, -1, 67, 73], [-26, -14, 33, 46]];
+    // spots trees must not cover: red badges, coin arcs, the forest ranger, the flag, the sign
+    const clear = [[-20, 61], [-36, 66], [-49, 70], [-43, 79], [-49, 91], [-12, 90], [12, 74], [-40, 78], [-30, 70], [-10, 60], [6, 66], [8, 88], [-17, 60], [-22, 57], [-24.5, 56.5], [-28, 54]];
+    for (let i = 0, n = 0; i < 160 && n < 46; i++) {
+      const x = -50 + R() * 68, d = 46 + R() * 46;
+      if (keepOut.some(([x0, x1, d0, d1]) => x > x0 && x < x1 && d > d0 && d < d1) || clear.some(([cx, cd]) => Math.hypot(x - cx, d - cd) < 3)) continue;
+      const top = terrain(x, d);
+      if (Math.abs(x + 52) < 1 || (top !== terrain(x + 1.5, d) || top !== terrain(x - 1.5, d) || top !== terrain(x, d + 1.5) || top !== terrain(x, d - 1.5))) continue;
+      if (R() < .2) B.rock(x, top, d, .7 + R() * .4); else if (R() < .3) B.bush(x, top, d, .8 + R() * .5); else { B.tree(x, top, d, .85 + R() * .45); n++; }
+    }
+    B.mushroom(-18, 0, 72, 1.1, 0xf0503a); B.mushroom(-6, 0, 80, 1, 0x4262ff); B.mushroom(-30, 2, 86, 1, 0xff9a3c);
+    B.updraft(-47, 6, 88, 10);
+    B.platform(-43.5, 15, 88.5, 2.5, 2.5); B.platform(-40.2, 16.3, 91, 2.2, 2.2);
+    B.island(-38, -26, 84, 96, 17.5, 3);
+    B.star('sky', -31, 18.9, 90);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; B.coin(-31 + Math.cos(a) * 3.2, 18.7, 90 + Math.sin(a) * 3.2); }
+    B.tree(-35.5, 17.5, 94.5, .9); B.tree(-27, 17.5, 85.5, .8);
+    B.npc('penguin', -17, 0, 60, 'Лесник Пинго', () => (hasStar('red') && hasStar('sky')
+      ? ['Лес спокоен. Спасибо, что заглянул!']
+      : ['В лесу спрятаны восемь красных значков. Собери все, и появится звезда!', 'Цветок на верхней террасе дует так, что улетишь к самым облакам.']));
+    B.sign(-24.5, 0, 56.5, ['Лес']);
+    for (const [x, y, d, i] of [[-20, 1.2, 61, 0], [-36, 3.2, 66, 1], [-49, 3.2, 70, 2], [-43, 5.2, 79, 3], [-49, 7.2, 91, 4], [-12, 1.2, 90, 5], [-6, 5.6, 80, 6], [12, 1.2, 74, 7]]) B.redCoin(i, x, y, d);
+    B.star('red', -4, 1.8, 70, SAVE.red.length < RED_N);
+    B.enemy('walker', -38, 2, 69, 'x', 5, 1.4);
+    B.enemy('hopper', -8, 0, 86, 'z', 3, 1.3);
+    B.enemy('flyer', -20, 0, 82, 'x', 3, 1);
+    B.enemy('spiky', -14, 0, 90, 'x', 4, 1.6);
+    B.enemy('walker', -44, 4, 88, 'z', 3, 1.3, .5);
+    B.enemy('hopper', -22, 0, -9, 'x', 4, 1.3);
+    B.coinArc(-28, 1.2, 50, 58, 5, 1.2);
+    for (const [x, d] of [[-40, 78], [-30, 70], [-10, 60], [6, 66], [8, 88]]) B.coinArc(x, 1.2 + terrain(x, d), d - 2, d + 2, 3, .9);
+
+    // --- the lost froglets ---
+    for (const [i, x, top, d] of [[0, -11, 6.4, 30], [1, -40, .3, 20], [2, -50, 6, 85], [3, 10, .3, -30.5], [4, 36 + Math.cos(-Math.PI / 2 + 4 * .72) * 5.4, 10.6, 66 + Math.sin(-Math.PI / 2 + 4 * .72) * 5.4]]) {
+      if (!hasStar('frogs')) B.froglet(i, x, top, d);
+    }
+    B.star('frogs', -26.5, 1.8, 9, SAVE.frogs.length < FROG_N);
+
+    // --- flags to come back to ---
+    for (const [x, top, d] of [[-3.5, 0, 3], [6, 0, -8], [-27, 0, 36], [-22, 0, 57], [24, 4, 48], [-8, 1.5, 48], [-58, 9, 38]]) B.checkpoint(x, top, d);
+    for (const [x, d] of [[-26, -2], [16, 40], [-8, 40], [28, 26], [-28, 30], [44, 36], [44, 2], [-40, 38], [-44, 2]]) B.tree(x, 0, d, .9 + R() * .3);
+    for (const [x, d] of [[-24, 7], [5.5, 36.5], [-5.5, 33], [19, 28], [24, 36], [-32, 41], [36, 30], [38, 38]]) B.bush(x, 0, d, .8 + R() * .4);
+    sceneryIsland(B);
+  }
+
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
       sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc, glow: [0xfff6d8, .45] },
@@ -3067,6 +3919,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       sky: [[0, '#1a1026'], [.55, '#4b2a4a'], [1, '#c0603a']], fog: [0x4a2a3a, 40, 130], hemi: [0xffd2c0, 0x6a3a4a, .82], sun: 0xffc8a8, sunI: .7, glow: [0xff7a4a, .55], stars: true },
   ];
 
+  // the gates on the island: the levels each one leads to, the stars it needs, its colour
+  const WORLDS = [
+    { n: 1, name: 'Зелёный край', need: 0, levels: [0, 1, 2], col: 0x5cbf45 },
+    { n: 2, name: 'Пески, лёд и лава', need: 3, levels: [3, 4, 5, 6], col: 0xff9a3c },
+    { n: 3, name: 'Конфетная страна', need: 8, levels: [7, 8, 9], col: 0xff7ab6 },
+    { n: 4, name: 'Небесный завод', need: 15, levels: [10, 11, 12, 13], col: 0x8a92a4 },
+  ];
+  const worldOf = (li) => WORLDS.findIndex((w) => w.levels.includes(li));
+  // Promo Island: the open world between the levels
+  const HUB = { id: 'hub', name: 'Промо-остров', hub: true, seed: 101, killY: -30, music: 'island', theme: 'grass', build: buildHub, scatter: 13, amb: 'sea',
+    sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 90, 235], hemi: [0xeaf7ff, 0x6b8f4a, .8], sun: 0xfff3dc, glow: [0xfff6d8, .45] };
+
   function spawnEnemy(type, x, y, z, axis = 'x', range = 3, speed = 1.5, phase = 0) {
     let mesh, wings = null;
     if (type === 'flyer') {
@@ -3093,14 +3957,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     mech: { name: 'Мегабот', r: 1.6, h: 3.2 },
   };
   function disposeGroup(g) { g.traverse((o) => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); }); }
-  function loadLevel(i) {
+  function loadLevel(def) {
     if (L) { scene.remove(L.group); disposeGroup(L.group); }
-    const def = LEVELS[i];
     bubblesEl.textContent = '';
     fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
       orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [], dinos: [], jellies: [], rings: [], shots: [], boss: null, arena: null, gate: null,
       cannons: [], balls: [], fireballs: [], crushers: [], blinkers: [], blinkPh: -1, fans: [], gears: [], smokers: [], stormT: 4,
+      // the island
+      waters: [], falls: [], fountains: [], spinners: [], portals: [], pads: [], stars: [], frogs: [], redCoins: [], raceRings: [], buttons: [], magic: [], digs: [], paths: [],
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     const B = makeBuilder(def.seed);
@@ -3151,25 +4016,33 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     state: 'title', li: 0, lives: 3, score: 0, coins: 0, time: 300, cpIndex: -1, levelCoins: 0, timeBonus: 0,
     stateT: 0, dieKind: null, dieJump: false, goalPhase: null, warned: false, fw: [], gifts: new Set(), emberT: 0, star: false, starCharge: false, shake: 0,
     hitStop: 0, chain: 0, chainT: 0, flash: 0, flashCol: '#fff', kick: 0,
-    best: store.get('best', 0), unlocked: store.get('unlocked', 1),
+    best: store.get('best', 0),
   };
   const P = { pos: new T.Vector3(), vel: new T.Vector3(), prevY: 0, onGround: false, wasGround: false, ground: null, coyote: 0, jumpBuf: 0,
     facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1, riding: null, airJumps: 0, lastSafe: null, happyT: 0, hurtT: 0, jumpFaceT: 0, landT: 0, landK: 0,
     fire: false, spinT: 0, spinCd: 0, spinAir: false, spinHit: new Set(), pound: null, poundT: 0, poundJT: 0, flipT: 0, fireCd: 0, throwT: 0, stepT: 0,
-    flipDur: .5, flipAxis: 'x', flipDir: 1, jumpN: 0, landedT: 1, skidT: 0, wallN: new T.Vector3(), wallT: 0, wallLock: 0, wallSlide: false, wallKickT: 0, inFan: false };
-  const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null };
+    flipDur: .5, flipAxis: 'x', flipDir: 1, jumpN: 0, landedT: 1, skidT: 0, wallN: new T.Vector3(), wallT: 0, wallLock: 0, wallSlide: false, wallKickT: 0, inFan: false,
+    swim: false, swimT: 0, swimK: 0, dashCd: 0, cheerT: 0 };
+  const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null, tight: false };
   let time = 0;
 
   // ================= collision =================
+  // the top of a solid at a point: flat for boxes, sloped for ramps (clamped to the ramp's ends)
+  function topOf(s, x, z) {
+    const r = s.ramp; if (!r) return s.max.y;
+    return lerp(r.y0, r.y1, clamp(((r.axis === 'x' ? x : z) - r.a0) / (r.a1 - r.a0), 0, 1));
+  }
   function overlapP(s, x, y, z) {
-    return x - HW < s.max.x - EPS && x + HW > s.min.x + EPS && y < s.max.y - EPS && y + PH > s.min.y + EPS && z - HW < s.max.z - EPS && z + HW > s.min.z + EPS;
+    return x - HW < s.max.x - EPS && x + HW > s.min.x + EPS && y < topOf(s, x, z) - EPS && y + PH > s.min.y + EPS && z - HW < s.max.z - EPS && z + HW > s.min.z + EPS;
   }
   function freeAt(x, y, z) { for (const s of L.solids) if (s.active && overlapP(s, x, y, z)) return false; return true; }
+  let groundHit = null; // the solid groundAt found last
   function groundAt(x, z, fromY, r = 0) {
-    let best = -Infinity;
+    let best = -Infinity; groundHit = null;
     for (const s of L.solids) {
       if (!s.active || x + r <= s.min.x || x - r >= s.max.x || z + r <= s.min.z || z - r >= s.max.z) continue;
-      if (s.max.y <= fromY + .05 && s.max.y > best) best = s.max.y;
+      const top = s.ramp ? topOf(s, clamp(x, s.min.x, s.max.x), clamp(z, s.min.z, s.max.z)) : s.max.y;
+      if (top <= fromY + .05 && top > best) { best = top; groundHit = s; }
     }
     return best;
   }
@@ -3178,14 +4051,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const p = P.pos; p[axis] += amt;
     for (const s of L.solids) {
       if (!s.active || !overlapP(s, p.x, p.y, p.z)) continue;
-      const step = s.max.y - p.y;
-      // walk up small ledges; in the air, pull up onto a ledge the feet only just missed
-      const reach = P.wasGround ? .5 : (P.vel.y > -6 ? .6 : 0);
-      if (isPlayerMove && step > 0 && step <= reach && freeAt(p.x, s.max.y + EPS, p.z)) {
-        p.y = s.max.y;
+      const top = topOf(s, p.x, p.z), step = top - p.y;
+      // walk up small ledges and slopes; in the air or in the water, pull up onto a ledge the feet only just missed
+      const reach = s.ramp ? .6 : P.wasGround ? .5 : (P.vel.y > -6 ? .6 : 0);
+      if (isPlayerMove && step > 0 && step <= reach && freeAt(p.x, top + EPS, p.z)) {
+        p.y = top;
         if (!P.wasGround) onLand(s);
         continue;
       }
+      // a slope too steep to climb here (its high side) stops the step instead of pushing out to the ramp's far edge
+      if (s.ramp) { p[axis] -= amt; if (isPlayerMove) P.vel[axis] = 0; continue; }
       p[axis] = amt > 0 ? s.min[axis] - HW : s.max[axis] + HW;
       if (isPlayerMove) {
         P.vel[axis] = 0;
@@ -3210,10 +4085,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       let land = null;
       for (const s of L.solids) {
         if (!s.active || !overlapP(s, p.x, p.y, p.z)) continue;
-        if (prev >= s.max.y - .3) {
+        const top = topOf(s, p.x, p.z);
+        if (prev >= top - .3) {
           // the big hero's ground pound goes straight through bricks
           if (P.pound === 'drop' && P.big && s.kind === 'block' && s.type === 'brick') { smashBrick(s); G.shake = Math.max(G.shake, .25); continue; }
-          p.y = s.max.y; land = s;
+          p.y = top; land = s;
         } else if (prev + PH <= s.min.y + .3) p.y = s.min.y - PH;
       }
       if (land) onLand(land);
@@ -3244,13 +4120,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ================= gameplay events =================
   function addScore(n) { G.score += n; }
+  // every badge goes to the wallet the shop takes; in the levels a hundred of them also make a life
   function addCoin() {
-    G.coins++; G.levelCoins++; addScore(100); Snd.sfx.coin(); P.happyT = Math.max(P.happyT, .45);
+    SAVE.bank++; saveGame(); Snd.sfx.coin(); P.happyT = Math.max(P.happyT, .45);
+    if (L.def.hub) return;
+    G.coins++; G.levelCoins++; addScore(100);
     if (G.coins >= 100) { G.coins -= 100; oneUp(); }
   }
   function oneUp() { P.happyT = .9; G.lives++; Snd.sfx.oneUp(); popup('+1 ЖИЗНЬ', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); }
   function jumpHeld() { return JUMP_KEYS.some((k) => keys.has(k)) || touchJump.held; }
-  const dustColor = () => THEME_FX[L.theme.ground].dust;
+  const dustColor = () => (THEME_FX[P.ground && P.ground.surf] || THEME_FX[L.theme.ground]).dust;
 
   function onLand(s) {
     const pounded = P.pound === 'drop';
@@ -3281,6 +4160,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       }
     }
     P.vel.y = 0; P.onGround = true; P.ground = s; P.combo = 0; P.noCut = false;
+    if (s.kind === 'button') pressButton(s);
     if (pounded) poundImpact(s);
     if (s.kind !== 'platform' && s.kind !== 'spring') P.lastSafe = { x: P.pos.x, y: P.pos.y, z: P.pos.z };
     if (s.fall && !s.falling && s.respawn <= 0 && s.standT === 0) s.standT = pounded ? .45 : 1e-4;
@@ -3381,7 +4261,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // Fire pepper: red cap and cream overalls; the action button throws fireballs
   function setFire(on) {
     P.fire = on;
-    hero.m.cap.color.setHex(on ? 0xf0503a : 0x16a39c); hero.m.capDark.color.setHex(on ? 0xc0341f : 0x0f7f79);
+    const cap = capDef();
+    hero.m.cap.color.setHex(on ? 0xf0503a : cap.col); hero.m.capDark.color.setHex(on ? 0xc0341f : cap.dark);
     hero.m.over.color.setHex(on ? 0xfff1dc : 0x2c3f93);
     btnAct.classList.toggle('fire', on); actLbl.textContent = on ? 'ОГОНЬ' : 'УДАР';
     btnAct.setAttribute('aria-label', on ? 'Огонь' : 'Удар');
@@ -3395,7 +4276,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function itemBlocked(x, y, z) {
     for (const s of L.solids) {
-      if (!s.active || s.max.y <= y + .06 || s.min.y >= y + .6) continue;
+      if (!s.active || topOf(s, x, z) <= y + .06 || s.min.y >= y + .6) continue;
       if (x + .28 > s.min.x && x - .28 < s.max.x && z + .28 > s.min.z && z - .28 < s.max.z) return true;
     }
     return false;
@@ -3412,7 +4293,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         it.vy -= 30 * dt;
         const ny = it.y + it.vy * dt, gy = groundAt(it.x, it.z, it.y + .05, .2);
         if (ny <= gy) { it.y = gy; it.vy = 0; } else it.y = ny;
-        if (it.y < L.killY || (L.lavaY !== null && it.y < L.lavaY)) { L.group.remove(it.m); L.items.splice(i, 1); continue; }
+        const iw = L.waters.length ? waterAt(it.x, it.z) : null;
+        if (it.y < L.killY || (L.lavaY !== null && it.y < L.lavaY) || (iw !== null && it.y < iw - .3)) { L.group.remove(it.m); L.items.splice(i, 1); continue; }
       }
       if (it.kind === 'pepper') {
         // the pepper stays on its block, bobbing, spinning and giving off sparks
@@ -3467,6 +4349,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- action button: spin on the ground, ground pound in the air, fireballs with the pepper ----------
   function action() {
     if (P.pound || G.state !== 'playing') return;
+    if (P.swim) { swimDash(); return; }
     if (P.fire) { throwFire(); return; }
     if (P.onGround || P.coyote > 0) { spin(); return; }
     const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, HW * .8);
@@ -3522,13 +4405,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (const b of L.balls) if (Math.hypot(b.x - x, b.z - z) < R && Math.abs(b.y - y) < 1.8) popBall(b, 200);
     // pounding a "?" block from above knocks its prize out
     if (s.kind === 'block' && s.type !== 'brick' && !s.used) hitBlock(s);
+    // and an X on the sand digs up what is buried under it
+    for (const dg of L.digs) if (!dg.dug && Math.hypot(dg.x - x, dg.z - z) < 1.7 && Math.abs(dg.y - y) < 1) digUp(dg);
   }
 
   // ---------- fireballs: bounce along the ground, auto-aim at the nearest enemy ahead ----------
   function pointHits(x, y, z, r, skip) {
     for (const s of L.solids) {
       if (!s.active || s === skip) continue;
-      if (x + r > s.min.x && x - r < s.max.x && y + r > s.min.y && y - r < s.max.y && z + r > s.min.z && z - r < s.max.z) return s;
+      if (x + r > s.min.x && x - r < s.max.x && y + r > s.min.y && y - r < topOf(s, x, z) && z + r > s.min.z && z - r < s.max.z) return s;
     }
     return null;
   }
@@ -3564,6 +4449,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (f.vy < 0 && ny - .2 <= gy) { f.y = gy + .21; f.vy = 7.5; f.bounces++; }
       else f.y = ny;
       if (f.y < L.killY || (L.lavaY !== null && f.y < L.lavaY + .1)) { killFireball(i, true); continue; }
+      if (L.waters.length) { const fw = waterAt(f.x, f.z); if (fw !== null && f.y < fw) { killFireball(i, true); continue; } }
       f.m.position.set(f.x, f.y, f.z);
       f.m.scale.setScalar(.22 + Math.sin(time * 40) * .03);
       glow(f.x, f.y, f.z, Math.random() < .5 ? 0xff8a2a : 0xffd35a, 1, .6, .6, 0, .28, .3);
@@ -3691,9 +4577,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function surfaceOf(s) {
     if (!s) return 'grass';
     if (s.ice) return 'ice';
-    if (s.kind === 'platform') return 'wood';
+    if (s.kind === 'platform' || s.surf === 'wood') return 'wood';
     if (s.kind === 'jelly') return 'candy';
-    if (s.kind === 'ground') return L.theme.ground;
+    if (s.kind === 'ground') return s.surf || L.theme.ground;
     return 'stone';
   }
   function footstep() {
@@ -3846,8 +4732,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const wx = cy * inp.x - sy * inp.y, wz = -sy * inp.x - cy * inp.y;
     const mag = Math.min(1, Math.hypot(inp.x, inp.y));
     const spd0 = Math.hypot(P.vel.x, P.vel.z);
+    // water: more than about a metre deep and the hero swims; on the shallow bottom he wades out
+    const wy = L.waters.length ? waterAt(P.pos.x, P.pos.z) : null, wsc = P.big ? BIG_SCALE : 1;
+    if (!P.swim && wy !== null && P.pos.y < wy - 1.1 * wsc) enterWater(wy);
+    else if (P.swim && (wy === null || (P.onGround && P.pos.y > wy - 1.1 * wsc))) P.swim = false;
     // skid: reversing hard at speed digs the heels in; a jump out of it becomes a side flip
-    if (P.onGround && !P.riding && !P.pound && P.skidT <= 0 && mag > .6 && spd0 > 5.5 && (wx * P.vel.x + wz * P.vel.z) / (spd0 * mag) < -.6) {
+    if (P.onGround && !P.swim && !P.riding && !P.pound && P.skidT <= 0 && mag > .6 && spd0 > 5.5 && (wx * P.vel.x + wz * P.vel.z) / (spd0 * mag) < -.6) {
       P.skidT = .34; Snd.sfx.skid();
     }
     if (P.skidT > 0 && (!P.onGround || spd0 < 1)) P.skidT = 0;
@@ -3860,7 +4750,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       let acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
       if (P.skidT > 0) acc = 26;
       if (P.wallLock > 0) acc *= .2; // right after a wall kick the hero flies away from the wall
-      const spdMax = P.riding ? RIDE_SPD : MAX_SPD;
+      if (P.swim) acc = mag > .01 ? 14 : 5;
+      const spdMax = P.swim ? SWIM_SPD : P.riding ? RIDE_SPD : MAX_SPD;
       let dvx = wx * spdMax - P.vel.x, dvz = wz * spdMax - P.vel.z;
       const dl = Math.hypot(dvx, dvz), md = acc * dt;
       if (dl > md) { dvx *= md / dl; dvz *= md / dl; }
@@ -3873,7 +4764,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (P.jumpBuf > 0) P.jumpBuf -= dt;
     P.coyote = P.onGround ? .11 : P.coyote - dt;
     if (P.pound) P.jumpBuf = 0;
-    if (P.jumpBuf > 0 && P.coyote > 0) {
+    if (P.swim) {
+      if (P.jumpBuf > 0 && P.pos.y > wy - 1.35 * wsc) { // a kick off the surface throws the hero out of the water
+        P.swim = false; P.vel.y = JUMP_V * .95; P.jumpBuf = 0; P.noCut = false; P.squash = 1.2; P.jumpFaceT = .3;
+        Snd.sfx.jump(); Snd.at(P.pos.x, wy, P.pos.z).splash(.5);
+        emit(P.pos.x, wy + .1, P.pos.z, 0xe6f8ff, 12, 3, 3.5, 12, .6, .18); wave(P.pos.x, wy - .05, P.pos.z, 0xffffff, 1.8, .5, false);
+      }
+    } else if (P.jumpBuf > 0 && P.coyote > 0) {
       const spdH = Math.hypot(P.vel.x, P.vel.z);
       // jumps landed back to back while running build up: double, then a triple jump with a flip
       P.jumpN = !P.riding && P.landedT < .2 && spdH > 4.5 && P.jumpN > 0 && P.jumpN < 3 ? P.jumpN + 1 : 1;
@@ -3913,6 +4810,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else if (P.pound === 'drop') {
       P.vel.y = POUND_V;
       if (Math.random() < dt * 40) glow(P.pos.x + (Math.random() - .5) * .5, P.pos.y + PH, P.pos.z + (Math.random() - .5) * .5, 0xffffff, 1, .5, 3, 0, .25, .3);
+    } else if (P.swim) {
+      // float with the head above the surface; swimming lies the body flat, so it floats higher
+      const target = wy - (mag > .1 ? .62 : 1.0) * wsc;
+      P.vel.y = damp(P.vel.y, clamp((target - P.pos.y) * 5, -6, 6), 6, dt);
+      swimFx(dt, wy, mag > .1);
     } else {
       let grav = GRAV;
       if (P.vel.y > 0 && !jumpHeld() && !P.noCut) grav *= 2.3;
@@ -3928,6 +4830,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     moveH('x', P.vel.x * dt, true);
     moveH('z', P.vel.z * dt, true);
     moveV(P.vel.y * dt);
+    // walking down a slope keeps the feet on it instead of hopping down in little falls
+    if (P.wasGround && !P.onGround && !P.swim && !P.pound && P.vel.y <= 0) {
+      const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, 0);
+      if (groundHit && gy > P.pos.y - .45) { P.pos.y = gy; onLand(groundHit); }
+    }
     if (P.spinT > 0) spinHits();
     if (P.skidT > 0 && Math.random() < dt * 30) puff(P.pos.x, P.pos.y + .1, P.pos.z, dustColor(), 1, 1, .3, .35, .55);
     // footsteps while riding follow the dino's stride; on foot they come from the run cycle in animateHero
@@ -3938,7 +4845,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else P.stepT = .7;
     if (P.fire && Math.random() < dt * 5) glow(P.pos.x + Math.sin(P.facing) * .3, P.pos.y + PH * .45, P.pos.z + Math.cos(P.facing) * .3, 0xff8a2a, 1, .3, 1.2, -.3, .5, .15);
     const inLava = L.lavaY !== null && P.pos.y < L.lavaY + .05;
-    const lost = inLava || P.pos.y < L.killY || (P.lastSafe && P.pos.y < P.lastSafe.y - 9.5);
+    // on the island a long drop is just a drop (into the sea at worst), so Iskra does not snatch the hero back
+    const lost = inLava || P.pos.y < L.killY || (!L.def.hub && P.lastSafe && P.pos.y < P.lastSafe.y - 9.5);
     if (lost && G.star && G.starCharge && P.lastSafe) { P.pound = null; starRescue(); }
     else if (inLava) {
       glow(P.pos.x, L.lavaY + .3, P.pos.z, 0xffa12e, 24, 5, 3, 6, .7, .35); puff(P.pos.x, L.lavaY + .5, P.pos.z, 0x5a4a50, 8, 2, 1.5, 1, 1.2);
@@ -3956,6 +4864,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
   }
   function checkTriggers() {
+    if (L.def.hub) { // flags on the island are wherever you touch them, in any order
+      for (const c of L.checkpoints) {
+        if (ISL.cp === c || Math.hypot(P.pos.x - c.x, P.pos.z - c.z) > 2 || Math.abs(P.pos.y - c.y) > 2.5) continue;
+        ISL.cp = c;
+        if (c.reached) continue;
+        markCheckpoint(c); Snd.sfx.cp(); popup('ФЛАЖОК', c.x, c.y + 3.2, c.z, 'gold'); P.happyT = .7;
+        emit(c.x + .5, c.y + 2.3, c.z, 0x6ff28a, 16, 4, 1, 5, .6); wave(c.x, c.y, c.z, 0x6ff28a, 2.2, .45);
+      }
+      return;
+    }
     if (L.boss && !L.boss.active && !L.boss.dead && P.pos.z < L.arena.z1 - 1.5 && P.pos.y > L.arena.top - 1) activateBoss();
     for (let i = 0; i < L.checkpoints.length; i++) {
       const c = L.checkpoints[i];
@@ -4166,17 +5084,26 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       n.mesh.position.y = n.y + (n.kind === 'frog' ? Math.max(0, Math.sin(time * 2.4 + n.seed)) * .14 : Math.abs(Math.sin(time * 2 + n.seed)) * .04);
       const inRange = playing && dist < 3.8 && Math.abs(P.pos.y - n.y) < 3;
       if (inRange && !n.talking) {
-        n.talking = true; n.idx = 0; n.t = 0; n.span.textContent = n.lines[0]; n.el.classList.add('show'); Snd.sfx.talk();
+        n.talking = true; n.idx = 0; n.t = 0; n.cur = npcLines(n); n.span.textContent = n.cur[0]; n.el.classList.add('show'); Snd.sfx.talk();
         if (n.gift && !G.gifts.has(n.giftKey)) { G.gifts.add(n.giftKey); n.giftT = .8; }
-      } else if (n.talking && !inRange && G.state !== 'paused') {
+      } else if (n.talking && !inRange && !(n.hold > 0 && dist < 16) && G.state !== 'paused' && G.state !== 'menu') {
         n.talking = false; n.el.classList.remove('show');
       }
-      if (n.talking && n.lines.length > 1) {
+      if (n.hold > 0) n.hold -= dt;
+      if (n.talking) {
         n.t += dt;
-        if (n.t > 2.4 + n.lines[n.idx].length * .045) { n.t = 0; n.idx = (n.idx + 1) % n.lines.length; n.span.textContent = n.lines[n.idx]; }
+        // lines can depend on how a quest is going, so they are asked for again each time the bubble turns over
+        if (n.t > 2.4 + n.cur[n.idx].length * .045) { n.t = 0; n.cur = npcLines(n); n.idx = (n.idx + 1) % n.cur.length; n.span.textContent = n.cur[n.idx]; }
       }
       if (n.giftT > 0) { n.giftT -= dt; if (n.giftT <= 0 && playing) giveGift(n); }
     }
+  }
+  const npcLines = (n) => (typeof n.lines === 'function' ? n.lines() : n.lines);
+  // an NPC reacts right away (a quest step done), then goes back to its usual lines
+  function npcSay(n, text) {
+    if (!n) return;
+    n.cur = [text].concat(npcLines(n)); n.idx = 0; n.t = 0; n.talking = true;
+    n.span.textContent = text; n.el.classList.add('show'); n.hold = 4; Snd.sfx.talk();
   }
   function makeBubble(name) {
     const el = document.createElement('div'); el.className = 'bubble';
@@ -4203,7 +5130,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- Dino: stands and waits, carries the hero, runs off when hit ----------
   function dinoBlocked(x, y, z) {
     for (const s of L.solids) {
-      if (!s.active || s.max.y <= y + .3 || s.min.y >= y + 1.2) continue;
+      if (!s.active || topOf(s, x, z) <= y + .3 || s.min.y >= y + 1.2) continue;
       if (x + .45 > s.min.x && x - .45 < s.max.x && z + .45 > s.min.z && z - .45 < s.max.z) return true;
     }
     return false;
@@ -4241,6 +5168,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         d.walk += dt * 14;
         if (d.t > 1.3) { const k = Math.exp(-dt * 4); d.vx *= k; d.vz *= k; if (Math.hypot(d.vx, d.vz) < .3) d.state = 'idle'; }
         if (d.y < L.killY || (L.lavaY !== null && d.y < L.lavaY)) { d.state = 'gone'; d.g.visible = false; d.el.classList.remove('show'); continue; }
+        const dw = L.waters.length ? waterAt(d.x, d.z) : null;
+        if (dw !== null && d.y < dw - .8) { // Dino does not swim: he scrambles out and trots home
+          puff(d.x, dw + .2, d.z, 0xffffff, 5, 1.5, .8, .6, 1); d.state = 'idle'; d.x = d.hx; d.y = d.hy; d.z = d.hz; d.vx = d.vy = d.vz = 0;
+        }
         if (Math.hypot(d.vx, d.vz) > .1) d.g.rotation.y = Math.atan2(d.vx, d.vz);
       } else {
         const dx = P.pos.x - d.x, dz = P.pos.z - d.z, dist = Math.hypot(dx, dz);
@@ -4399,6 +5330,446 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       t.mesh.scale.set(.22, .3 + Math.sin(time * 14 + t.x) * .05, .22);
       if (Math.random() < dt * 5) glow(t.x, t.y + .2, t.z, Math.random() < .5 ? 0xffb03a : 0xff6a1a, 1, .4, 1.2, -.5, .9, .28);
     }
+    // the island's moving scenery: windmill sails, the lighthouse beam, water, spray from the fountain and the waterfall
+    for (const s of L.spinners) s.m.rotation[s.axis] += s.spd * dt;
+    if (L.waters.length || L.falls.length) {
+      TX.water.offset.set((time * .012) % 1, Math.sin(time * .35) * .03);
+      TX.fall.offset.y = (time * 1.5) % 1;
+      MAT.fall.opacity = damp(MAT.fall.opacity, cam.tight ? .28 : .82, 4, dt); // see through it from inside the cave
+    }
+    const near = (x, z, r) => Math.abs(x - P.pos.x) < r && Math.abs(z - P.pos.z) < r;
+    for (const f of L.falls) {
+      if (!near(f.x, f.z, 45)) continue;
+      if (Math.random() < dt * 14) puff(f.x + Math.random() * .8, f.y + .3, f.z + (Math.random() - .5) * f.w, 0xffffff, 1, 1.3, 1.2, .7, 1.3);
+      if (Math.random() < dt * 10) emit(f.x + .2, f.y + .3, f.z + (Math.random() - .5) * f.w, 0xe6f8ff, 2, 2.5, 2.5, 10, .5, .14);
+    }
+    for (const f of L.fountains) {
+      if (!near(f.x, f.z, 45)) continue;
+      if (Math.random() < dt * 40) emit(f.x, f.y, f.z, Math.random() < .5 ? 0xbfeaff : 0xffffff, 1, 1.6, 3.2, 9, .8, .15);
+      if (Math.random() < dt * 3) wave(f.x + (Math.random() - .5) * 3, f.pool - .1, f.z + (Math.random() - .5) * 3, 0xffffff, .8, .8, false);
+    }
+  }
+
+  // ================= the island =================
+  // Progress is saved: stars (island ones by name, level ones as 'l:<level id>'), the wallet of badges, the red badges
+  // and froglets already found, the caps bought and the one worn.
+  const SAVE_NEW = () => ({ stars: [], bank: 0, red: [], frogs: [], done: [], caps: ['classic'], cap: 'classic' });
+  const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
+  // players from before the island keep the levels they had opened
+  for (let i = 0; i < store.get('unlocked', 1) - 1 && i < LEVELS.length; i++) if (!SAVE.stars.includes('l:' + LEVELS[i].id)) SAVE.stars.push('l:' + LEVELS[i].id);
+  const saveGame = () => store.set('save', SAVE);
+  const hasStar = (id) => SAVE.stars.includes(id);
+  // a quest whose star has come out stays done even if the star is not picked up before leaving the island
+  const questDone = (id) => hasStar(id) || SAVE.done.includes(id);
+  const starCount = () => SAVE.stars.length;
+  const HUB_STARS = [
+    { id: 'tower', name: 'Вершина маяка', hint: 'Поднимись по ступенькам, что вьются вокруг маяка на северо-востоке.' },
+    { id: 'frogs', name: 'Потерянные лягушата', hint: 'Квак у озера ищет пятерых лягушат. Подойди к малышу, и он пойдёт за тобой.' },
+    { id: 'red', name: 'Красные значки', hint: 'В северном лесу спрятаны восемь красных значков.' },
+    { id: 'garden', name: 'Нашествие каштанов', hint: 'Ёжик Фома просит прогнать каштанов с огорода.' },
+    { id: 'race', name: 'Кольца Пинга', hint: 'Пролети через все кольца, пока не вышло время. Старт у пирса.' },
+    { id: 'switch', name: 'Синяя кнопка', hint: 'Прыгни на синюю кнопку у скалы и успей наверх по волшебным блокам.' },
+    { id: 'dig', name: 'Клад капитана', hint: 'Краб на пляже зарыл клад. Найди крестик и ударь по нему с неба.' },
+    { id: 'cave', name: 'Тайник за водопадом', hint: 'Водопад на западе что-то скрывает.' },
+    { id: 'sky', name: 'Небесный остров', hint: 'Цветок на верхней террасе леса поднимает к облакам.' },
+    { id: 'shop', name: 'Звезда из лавки', hint: 'Кот Мурр продаёт звезду за 100 значков.' },
+  ];
+  const TOTAL_STARS = HUB_STARS.length + LEVELS.length;
+  const RED_N = 8, FROG_N = 5, RACE_LIMIT = 32, MAGIC_T = 12, SWIM_SPD = 4.8;
+  const starName = (id) => (HUB_STARS.find((h) => h.id === id) || { name: '' }).name;
+  const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
+  // what is going on during one visit to the island: who follows the hero, how the challenges are doing
+  const ISL = {};
+  function resetIsland() {
+    Object.assign(ISL, { kvak: null, foma: null, ping: null, crab: null, trail: [], gardenLeft: -1, race: { on: false, t: 0, next: 0 }, magicT: 0, cp: null });
+  }
+  resetIsland();
+  function awardStar(id) {
+    if (hasStar(id)) return false;
+    SAVE.stars.push(id); saveGame(); return true;
+  }
+
+  // ---------- stars: spin and glow under a beam of light until picked up; some wait hidden until a quest is done ----------
+  const BEAM_GEO = (() => { const g = new T.CylinderGeometry(.5, .5, 40, 12, 1, true); g.translate(0, 20, 0); return shared(g); })();
+  function addStar(id, x, y, z, hidden) {
+    if (hasStar(id)) return;
+    const g = new T.Group(); g.position.set(x, y, z); L.group.add(g);
+    const m = new T.Mesh(STAR_GEO, MAT.star); m.scale.setScalar(2.2); m.castShadow = true; g.add(m);
+    const beam = new T.Mesh(BEAM_GEO, MAT.beam); beam.position.y = -.5; g.add(beam);
+    g.visible = !hidden;
+    L.stars.push({ id, x, y, z, g, m, state: hidden ? 'hidden' : 'idle', t: 0, from: null });
+  }
+  // a hidden star flies out of a place (an NPC, a chest) to where it will wait
+  function revealStar(id, fx, fy, fz) {
+    const st = L.stars.find((s) => s.id === id);
+    if (!st || st.state !== 'hidden') return;
+    st.state = 'fly'; st.t = 0; st.from = { x: fx, y: fy, z: fz }; st.g.visible = true; st.g.position.set(fx, fy, fz); st.revealed = true;
+    if (!SAVE.done.includes(id)) { SAVE.done.push(id); saveGame(); }
+    Snd.at(fx, fy, fz).starAppear(); toast('Звезда!', 'Появилась: ' + starName(id));
+  }
+  function celebrateStar(name, x, y, z) {
+    Snd.sfx.starGet(); P.happyT = 2.4; P.cheerT = 1.8; G.flash = .35; G.flashCol = '#fff3b0'; G.hitStop = Math.max(G.hitStop, .08); G.kick = 1;
+    glow(x, y, z, 0xffe07a, 40, 7, 1, 2, 1, .4); emit(x, y, z, 0xffffff, 24, 6, 2, 8, 1, .18);
+    wave(P.pos.x, P.pos.y, P.pos.z, 0xffe07a, 3, .6);
+    toast('★ ' + starCount() + ' / ' + TOTAL_STARS, name);
+  }
+  function updateStars(dt) {
+    MAT.beam.opacity = .24 + Math.sin(time * 2.2) * .06;
+    for (const st of L.stars) {
+      if (st.state === 'hidden' || st.state === 'taken') continue;
+      st.t += dt;
+      const p = st.g.position;
+      if (st.state === 'fly') {
+        const k = Math.min(1, st.t / 1.3), e = k * k * (3 - 2 * k), f = st.from;
+        p.set(lerp(f.x, st.x, e), lerp(f.y, st.y, e) + Math.sin(k * Math.PI) * 3, lerp(f.z, st.z, e));
+        if (Math.random() < dt * 30) glow(p.x, p.y, p.z, 0xffe07a, 1, .5, 0, 0, .5, .3);
+        if (k >= 1) { st.state = 'idle'; st.t = 0; }
+      } else p.set(st.x, st.y + Math.sin(st.t * 2) * .18, st.z);
+      st.m.rotation.y += dt * 2.4;
+      if (Math.random() < dt * 4) glow(p.x + (Math.random() - .5) * 1.2, p.y + (Math.random() - .5) * 1.2, p.z, 0xfff3b0, 1, .2, .3, 0, .6, .25);
+      if (st.state !== 'idle' || G.state !== 'playing') continue;
+      const dx = p.x - P.pos.x, dy = p.y - (P.pos.y + PH * .5), dz = p.z - P.pos.z;
+      if (dx * dx + dy * dy + dz * dz < 2.2) {
+        st.state = 'taken'; L.group.remove(st.g);
+        awardStar(st.id); celebrateStar(starName(st.id), p.x, p.y, p.z);
+      }
+    }
+  }
+
+  // ---------- lost froglets: each waits somewhere, follows the hero once found and hops home to Kvak ----------
+  const frogHome = (i) => ({ x: -28.6 + i * .95, z: -(10.4 + (i % 2) * .9) });
+  function addFroglet(i, x, top, z) {
+    const home = SAVE.frogs.includes(i), h = frogHome(i);
+    const m = new T.Mesh(GEO.frog, MAT.char); m.scale.setScalar(.45); m.castShadow = true; L.group.add(m);
+    const f = { i, x: home ? h.x : x, y: home ? 0 : top, z: home ? h.z : z, m, state: home ? 'home' : 'lost', k: 0, t: Math.random() * 6, face: 0 };
+    m.position.set(f.x, f.y, f.z); L.frogs.push(f);
+  }
+  function updateFrogs(dt) {
+    if (!L.frogs.length) return;
+    // breadcrumbs of where the hero went, for the followers to hop along
+    const tr = ISL.trail, last = tr[tr.length - 1];
+    if (G.state === 'playing' && (!last || Math.hypot(P.pos.x - last.x, P.pos.z - last.z) > .35 || Math.abs(P.pos.y - last.y) > .6)) {
+      tr.push({ x: P.pos.x, y: P.pos.y, z: P.pos.z }); if (tr.length > 90) tr.shift();
+    }
+    let followers = 0;
+    for (const f of L.frogs) if (f.state === 'follow') followers++;
+    for (const f of L.frogs) {
+      f.t += dt;
+      let tx = f.x, ty = f.y, tz = f.z;
+      if (f.state === 'lost') {
+        const d = Math.hypot(P.pos.x - f.x, P.pos.z - f.z);
+        if (d < 10) f.face = angleDamp(f.face, Math.atan2(P.pos.x - f.x, P.pos.z - f.z), 4, dt);
+        if (G.state === 'playing' && d < 1.5 && Math.abs(P.pos.y - f.y) < 1.8) {
+          f.state = 'follow'; f.k = followers++;
+          Snd.sfx.follow(); Snd.sfx.ribbit(); P.happyT = .8;
+          popup('Лягушонок с тобой!', f.x, f.y + 1.3, f.z, 'gold'); glow(f.x, f.y + .4, f.z, 0x9dff7a, 12, 3, 1, 3, .5, .25);
+        } else if (d < 9 && Math.random() < dt * .4) Snd.at(f.x, f.y, f.z).ribbit();
+      } else if (f.state === 'follow') {
+        const p = tr[Math.max(0, tr.length - 1 - (f.k + 1) * 4)] || P.pos;
+        tx = p.x; ty = p.y; tz = p.z;
+        const w = waterAt(tx, tz); if (w !== null && ty < w - .25) ty = w - .25; // they paddle along on the surface
+      } else if (f.state === 'going' || f.state === 'home') {
+        const h = frogHome(f.i); tx = h.x; ty = 0; tz = h.z;
+        if (f.state === 'going' && Math.hypot(tx - f.x, tz - f.z) < .2) f.state = 'home';
+      }
+      const dx = tx - f.x, dz = tz - f.z, moving = Math.hypot(dx, dz) > .12;
+      if (f.state !== 'lost') {
+        const k = f.state === 'going' ? 4 : 7;
+        f.x = damp(f.x, tx, k, dt); f.y = damp(f.y, ty, 10, dt); f.z = damp(f.z, tz, k, dt);
+        if (moving) f.face = angleDamp(f.face, Math.atan2(dx, dz), 10, dt);
+        else if (f.state === 'home' && ISL.kvak) f.face = angleDamp(f.face, Math.atan2(P.pos.x - f.x, P.pos.z - f.z), 3, dt);
+      }
+      const hop = moving ? Math.abs(Math.sin(f.t * 10)) * .3 : Math.max(0, Math.sin(f.t * 2.6) - .85) * 2;
+      f.m.position.set(f.x, f.y + hop, f.z); f.m.rotation.y = f.face;
+    }
+    // bring them to Kvak
+    const kv = ISL.kvak;
+    if (!kv || !followers || G.state !== 'playing' || Math.hypot(P.pos.x - kv.x, P.pos.z - kv.z) > 4.5) return;
+    let n = 0;
+    for (const f of L.frogs) if (f.state === 'follow') { f.state = 'going'; SAVE.frogs.push(f.i); n++; }
+    saveGame();
+    const got = SAVE.frogs.length;
+    Snd.sfx.ribbit(); Snd.sfx.follow();
+    if (got >= FROG_N) { npcSay(kv, 'Все дома! Спасибо, герой! Держи звезду!'); revealStar('frogs', kv.x, kv.y + 1.6, kv.z); }
+    else npcSay(kv, (n === 1 ? 'Малыш вернулся! ' : 'Малыши вернулись! ') + 'Дома ' + got + ' из ' + FROG_N + '.');
+  }
+
+  // ---------- red badges in the forest: all eight bring out a star ----------
+  function addRedCoin(i, x, y, z) {
+    if (SAVE.red.includes(i) || hasStar('red')) return;
+    const m = new T.Mesh(COIN_GEO, MAT.redCoin); m.scale.setScalar(1.3); m.castShadow = true; m.position.set(x, y, z); L.group.add(m);
+    L.redCoins.push({ i, x, y, z, m, taken: false });
+  }
+  function updateRedCoins(dt) {
+    for (const c of L.redCoins) {
+      if (c.taken) continue;
+      c.m.rotation.y = time * 2.6 + c.i; c.m.position.y = c.y + Math.sin(time * 2 + c.i) * .1;
+      if (Math.random() < dt * 3) glow(c.x + (Math.random() - .5) * .6, c.y + (Math.random() - .5) * .7, c.z, 0xffb0a0, 1, .1, 0, 0, .4, .3);
+      if (G.state !== 'playing') continue;
+      const dx = c.x - P.pos.x, dz = c.z - P.pos.z, dy = c.y - (P.pos.y + PH / 2);
+      if (dx * dx + dz * dz > .9 || Math.abs(dy) > 1.2) continue;
+      c.taken = true; L.group.remove(c.m); SAVE.red.push(c.i); saveGame();
+      const n = SAVE.red.length;
+      Snd.sfx.ring(n); P.happyT = Math.max(P.happyT, .6);
+      popup('Красный значок ' + n + '/' + RED_N, c.x, c.y + 1, c.z, 'gold'); glow(c.x, c.y, c.z, 0xff6a5a, 14, 4, 1, 4, .5, .28);
+      if (n >= RED_N) revealStar('red', c.x, c.y, c.z);
+    }
+  }
+
+  // ---------- Ping's ring race: the first ring starts the clock, the rings light up one after another ----------
+  const RACE_RING_GEO = shared(new T.TorusGeometry(1.6, .16, 10, 36));
+  function addRing(i, x, y, z, yaw) {
+    if (questDone('race')) return;
+    const m = new T.Mesh(RACE_RING_GEO, i ? MAT.ringDim : MAT.ring); m.position.set(x, y, z); m.rotation.y = yaw; L.group.add(m);
+    L.raceRings.push({ i, x, y, z, m });
+  }
+  function resetRace() {
+    const R = ISL.race; R.on = false; R.next = 0;
+    for (const r of L.raceRings) { r.m.visible = true; r.m.material = r.i ? MAT.ringDim : MAT.ring; r.m.scale.setScalar(1); }
+  }
+  function updateRace(dt) {
+    const rings = L.raceRings, R = ISL.race;
+    if (!rings.length) return;
+    const nx = rings[R.next];
+    if (nx) nx.m.scale.setScalar(1 + Math.sin(time * 6) * .07);
+    if (G.state !== 'playing') return;
+    if (R.on) {
+      const before = R.t; R.t -= dt;
+      if (R.t <= 0) {
+        resetRace(); Snd.sfx.locked(); toast('Время вышло!', 'Пинг ждёт у первого кольца'); npcSay(ISL.ping, 'Почти получилось! Попробуй ещё раз.');
+        return;
+      }
+      if (R.t < 6 && Math.ceil(R.t) !== Math.ceil(before)) Snd.sfx.tock(true);
+    }
+    if (!nx) return;
+    const dx = nx.x - P.pos.x, dy = nx.y - (P.pos.y + PH * .5), dz = nx.z - P.pos.z;
+    if (dx * dx + dy * dy + dz * dz > 2.1 * 2.1) return;
+    nx.m.visible = false; Snd.sfx.ring(R.next); glow(nx.x, nx.y, nx.z, 0xffe07a, 20, 4, 0, 1, .5, .3); flashAt(nx.x, nx.y, nx.z, 0xfff3b0, 3, .25);
+    if (R.next === 0) { R.on = true; R.t = RACE_LIMIT; toast('Вперёд!', 'Все кольца за ' + RACE_LIMIT + ' ' + plural(RACE_LIMIT, 'секунду', 'секунды', 'секунд')); }
+    R.next++;
+    const nn = rings[R.next];
+    if (nn) { nn.m.material = MAT.ring; return; }
+    R.on = false;
+    toast('Успел!', 'В запасе ' + Math.ceil(R.t) + ' с'); npcSay(ISL.ping, 'Ого! Ты быстрее ветра! Звезда твоя!');
+    revealStar('race', nx.x, nx.y, nx.z);
+  }
+
+  // ---------- the blue button: its blocks stay solid for a few seconds, ticking faster at the end ----------
+  function pressButton(s) {
+    if (ISL.magicT > 0) return;
+    ISL.magicT = MAGIC_T; s.cap.position.y = s.base + .38; s.max.y = s.base + .5;
+    Snd.sfx.press(); popup(MAGIC_T + ' секунд!', s.cap.position.x, s.base + 1.8, s.cap.position.z, 'aqua');
+    for (const m of L.magic) {
+      m.active = true; m.mesh.material = MAT.magic;
+      glow((m.min.x + m.max.x) / 2, m.max.y, (m.min.z + m.max.z) / 2, 0x8fd0ff, 8, 2, 1, 1, .5, .25);
+      if (G.state === 'playing' && overlapP(m, P.pos.x, P.pos.y, P.pos.z)) pushOut(m);
+    }
+  }
+  function updateMagic(dt) {
+    if (ISL.magicT <= 0) return;
+    const before = ISL.magicT; ISL.magicT -= dt;
+    const left = ISL.magicT;
+    if (left < 4 ? Math.ceil(left * 2) !== Math.ceil(before * 2) : Math.ceil(left) !== Math.ceil(before)) Snd.sfx.tock(left < 4);
+    const flick = left < 2.5 && Math.floor(time * 10) % 2 === 0;
+    for (const m of L.magic) m.mesh.visible = !flick;
+    if (left > 0) return;
+    for (const m of L.magic) { m.active = false; m.mesh.material = MAT.ghost; m.mesh.visible = true; }
+    for (const b of L.buttons) { b.cap.position.y = b.base + .55; b.max.y = b.base + .7; }
+    Snd.sfx.shrink();
+  }
+
+  // ---------- the captain's treasure: a ground pound on the X digs up a chest with a star in it ----------
+  function digUp(dg) {
+    dg.dug = true; dg.t = 0; dg.g.visible = false;
+    const chest = new T.Group(); chest.position.set(dg.x, dg.y - .9, dg.z); chest.rotation.y = .3; L.group.add(chest);
+    const body = new T.Mesh(GEO.chest, MAT.char); body.castShadow = true; chest.add(body);
+    const lid = new T.Group(); lid.position.set(0, .7, -.4); chest.add(lid);
+    const lm = new T.Mesh(GEO.chestLid, MAT.char); lm.castShadow = true; lid.add(lm);
+    dg.chest = chest; dg.lid = lid;
+    Snd.at(dg.x, dg.y, dg.z).chest(); G.shake = Math.max(G.shake, .3);
+    P.vel.set(-Math.sin(P.facing) * 4, 11, -Math.cos(P.facing) * 4); P.onGround = false; P.noCut = true; // the chest bumps the hero off the spot
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; puff(dg.x + Math.cos(a), dg.y + .2, dg.z + Math.sin(a), 0xf0d08a, 1, 1.5, .8, .7, 1); }
+  }
+  function updateDigs(dt) {
+    for (const dg of L.digs) {
+      if (!dg.chest) continue;
+      dg.t += dt;
+      dg.chest.position.y = Math.min(dg.y, dg.y - .9 + dg.t * 1.8);
+      if (dg.t > .7) dg.lid.rotation.x = -Math.min(1.9, (dg.t - .7) * 5);
+      if (dg.t > 1 && !dg.shown) {
+        dg.shown = true; revealStar('dig', dg.x, dg.y + 1, dg.z); npcSay(ISL.crab, 'Мой клад! Бери звезду, юнга!');
+        glow(dg.x, dg.y + .8, dg.z, 0xffe07a, 30, 4, 2, 2, .8, .35);
+      }
+    }
+  }
+
+  // ---------- Foma's garden: every chestnut in it has to go ----------
+  function updateGarden() {
+    if (!ISL.foma || questDone('garden') || ISL.gardenLeft === 0) return;
+    let n = 0;
+    for (const e of L.enemies) if (e.quest === 'garden' && e.alive) n++;
+    if (ISL.gardenLeft > 0 && n < ISL.gardenLeft) {
+      if (n === 0) { npcSay(ISL.foma, 'Огород спасён! Вот тебе звезда!'); revealStar('garden', ISL.foma.x, ISL.foma.y + 1.4, ISL.foma.z); }
+      else popup('Каштанов осталось: ' + n, P.pos.x, P.pos.y + PH + 1, P.pos.z, 'gold');
+    }
+    ISL.gardenLeft = n;
+  }
+
+  // ---------- pads that open a card when stepped on (the shop) and the world gates ----------
+  SWIRL_TEX.center.set(.5, .5);
+  function setGate(pt, open) {
+    const W = WORLDS[pt.wi], was = pt.open;
+    pt.open = open;
+    if (pt.plateMat.map) pt.plateMat.map.dispose();
+    pt.plateMat.map = signTex(['МИР ' + W.n, open ? W.name : '★ ' + W.need]); pt.plateMat.needsUpdate = true;
+    pt.bars.visible = !open; pt.sw.material.opacity = open ? .9 : .3;
+    if (was === false && open) { toast('Врата открыты!', 'Мир ' + W.n + ': ' + W.name); Snd.sfx.portal(); }
+  }
+  function updateGates(dt) {
+    SWIRL_TEX.rotation = -time * 1.3;
+    for (const pd of L.pads) {
+      pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
+      const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
+      if (!inside) pd.armed = true;
+      else if (pd.armed && G.state === 'playing' && P.onGround) { pd.armed = false; if (pd.kind === 'shop') openShop(); }
+    }
+    for (const pt of L.portals) {
+      const W = WORLDS[pt.wi], open = starCount() >= W.need;
+      if (pt.open !== open) setGate(pt, open);
+      const inside = Math.abs(P.pos.x - pt.x) < 2.1 && Math.abs(P.pos.z - pt.z) < .8 && P.pos.y > pt.top - .5 && P.pos.y < pt.top + 4.5;
+      if (!inside) { pt.armed = true; continue; }
+      if (!pt.armed || G.state !== 'playing') continue;
+      pt.armed = false;
+      if (open) { openWorld(pt.wi); continue; }
+      P.vel.set(0, 7, 7); P.onGround = false; P.noCut = true; G.shake = Math.max(G.shake, .2);
+      Snd.sfx.locked(); popup('Нужно ★ ' + W.need, pt.x, pt.top + 3.2, pt.z, 'gold');
+    }
+  }
+
+  // ---------- water: deep enough and the hero swims; a jump from the surface leaps out ----------
+  function waterAt(x, z) {
+    for (const w of L.waters) if (x > w.x0 && x < w.x1 && z > w.z0 && z < w.z1) return w.y;
+    return null;
+  }
+  function enterWater(wy) {
+    const k = clamp(-P.vel.y / 20, .25, 1.2);
+    P.swim = true; P.pound = null; P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.airJumps = 0; P.wallT = 0; P.wallSlide = false; P.skidT = 0; P.combo = 0;
+    if (P.riding) { // Dino does not swim: he hops off and runs home
+      const d = P.riding; P.riding = null; applySize();
+      d.state = 'idle'; d.x = d.hx; d.y = d.hy; d.z = d.hz; d.cool = 2;
+      popup('Дино боится воды!', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.yelp();
+    }
+    P.vel.y *= .25; P.vel.x *= .7; P.vel.z *= .7;
+    Snd.at(P.pos.x, wy, P.pos.z).splash(k);
+    emit(P.pos.x, wy + .1, P.pos.z, 0xe6f8ff, (8 + 16 * k) | 0, 3 + 3 * k, 3 + 3 * k, 12, .7, .2);
+    puff(P.pos.x, wy + .2, P.pos.z, 0xffffff, 4, 1.5, .8, .6, 1);
+    wave(P.pos.x, wy - .05, P.pos.z, 0xffffff, 1.6 + k, .5, false);
+  }
+  function swimFx(dt, wy, moving) {
+    P.swimT -= dt;
+    if (P.swimT > 0) return;
+    P.swimT = moving ? .42 : 1.1;
+    wave(P.pos.x, wy - .05, P.pos.z, 0xffffff, moving ? 1.3 : 1, .7, false);
+    if (!moving) return;
+    Snd.at(P.pos.x, wy, P.pos.z).stroke();
+    emit(P.pos.x - Math.sin(P.facing) * .5, wy + .05, P.pos.z - Math.cos(P.facing) * .5, 0xe6f8ff, 4, 1.4, 1.6, 8, .45, .15);
+  }
+  // the action button in the water: a strong stroke forward
+  function swimDash() {
+    if (P.dashCd > 0) return;
+    P.dashCd = .6; P.vel.x = Math.sin(P.facing) * 9.5; P.vel.z = Math.cos(P.facing) * 9.5;
+    const wy = waterAt(P.pos.x, P.pos.z); if (wy === null) return;
+    Snd.sfx.splash(.45); emit(P.pos.x, wy + .05, P.pos.z, 0xe6f8ff, 10, 3, 2, 10, .5, .18); wave(P.pos.x, wy - .05, P.pos.z, 0xffffff, 1.8, .45, false);
+  }
+
+  // ---------- Murr's shop ----------
+  const CAPS = [
+    { id: 'classic', name: 'Бирюзовая кепка', price: 0, col: 0x16a39c, dark: 0x0f7f79 },
+    { id: 'red', name: 'Красная кепка', price: 25, col: 0xf0503a, dark: 0xc0341f },
+    { id: 'violet', name: 'Фиолетовая кепка', price: 40, col: 0x8a5ae6, dark: 0x6a3ac0 },
+    { id: 'pink', name: 'Розовая кепка', price: 40, col: 0xff7ab6, dark: 0xd9508f },
+    { id: 'gold', name: 'Золотая кепка', price: 150, col: 0xffd23f, dark: 0xe0a414 },
+  ];
+  const capDef = () => CAPS.find((c) => c.id === SAVE.cap) || CAPS[0];
+  function applyCap() { if (P.fire) return; const c = capDef(); hero.m.cap.color.setHex(c.col); hero.m.capDark.color.setHex(c.dark); }
+  const COIN_ICON = document.querySelector('.coin-ico');
+  function renderShop() {
+    $('shopBank').textContent = 'У тебя ' + SAVE.bank + ' ' + plural(SAVE.bank, 'значок', 'значка', 'значков');
+    const box = $('shopList'); box.textContent = '';
+    const item = (title, sub, price, done, onBuy, swatch) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'shop-item';
+      const left = document.createElement('span');
+      if (swatch !== undefined) { const sw = document.createElement('i'); sw.className = 'swatch'; sw.style.background = '#' + swatch.toString(16).padStart(6, '0'); left.append(sw); }
+      const sm = document.createElement('small'); sm.textContent = sub; left.append(title, sm);
+      const right = document.createElement('b');
+      if (done) right.textContent = done;
+      else { right.append(String(price)); const ic = COIN_ICON.cloneNode(true); ic.removeAttribute('class'); right.append(ic); }
+      b.append(left, right);
+      b.disabled = !!done && done !== 'Надеть' || (!done && SAVE.bank < price);
+      b.addEventListener('click', () => {
+        if (done !== 'Надеть') { if (SAVE.bank < price) return; SAVE.bank -= price; }
+        saveGame(); Snd.sfx.buy(); onBuy(); if (G.state === 'menu') renderShop();
+      });
+      box.append(b);
+    };
+    item('★ Звезда удачи', 'Всего одна на всю лавку', 100, hasStar('shop') ? 'Куплено' : null, () => {
+      awardStar('shop'); closeMenu(); celebrateStar(starName('shop'), P.pos.x, P.pos.y + 2, P.pos.z);
+    });
+    item('Щит', 'Спасёт от одного удара', 15, P.shield ? 'Уже есть' : null, () => {
+      P.shield = true; popup('ЩИТ!', P.pos.x, P.pos.y + 2.2, P.pos.z, 'aqua'); glow(P.pos.x, P.pos.y + .8, P.pos.z, 0x8ff3ff, 20, 4, 1, 3, .6);
+    });
+    item('Огненный перец', 'Вырастешь и будешь бросать огонь', 30, P.fire ? 'Уже есть' : null, () => {
+      if (!P.big) setBig(true, true); setFire(true); P.happyT = 1; Snd.sfx.pepper();
+    });
+    for (const c of CAPS) {
+      const own = SAVE.caps.includes(c.id);
+      item(c.name, own ? 'Твоя' : 'Для красоты', c.price, own ? (SAVE.cap === c.id ? 'Надета' : 'Надеть') : null, () => {
+        if (!SAVE.caps.includes(c.id)) SAVE.caps.push(c.id);
+        SAVE.cap = c.id; saveGame(); applyCap(); P.happyT = 1;
+      }, c.col);
+    }
+  }
+  function openMenu(name) {
+    G.state = 'menu'; resetTouch(); touchEl.hidden = true; input.jumpQueued = input.actQueued = false;
+    showScreen(name);
+  }
+  function closeMenu() {
+    if (G.state !== 'menu') return;
+    G.state = 'playing'; showScreen(null); showTouch(isTouch); input.jumpQueued = input.actQueued = false;
+    last = performance.now();
+  }
+  function openShop() { renderShop(); openMenu('shop'); Snd.sfx.ui(); }
+  // the card behind a world gate: its levels, which are cleared (a star), which are still shut
+  function openWorld(wi) {
+    const W = WORLDS[wi];
+    $('worldEyebrow').textContent = 'Врата · мир ' + W.n; $('worldName').textContent = W.name;
+    const got = W.levels.filter((li) => hasStar('l:' + LEVELS[li].id)).length;
+    $('worldSub').textContent = 'Звёзд за уровни: ' + got + ' из ' + W.levels.length;
+    const box = $('worldLevels'); box.textContent = '';
+    W.levels.forEach((li, k) => {
+      const lv = LEVELS[li], done = hasStar('l:' + lv.id), prev = k ? LEVELS[W.levels[k - 1]] : null, open = !prev || hasStar('l:' + prev.id);
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'lvl'; b.disabled = !open;
+      const head = document.createElement('span'); head.textContent = lv.id + (done ? ' ' : '');
+      if (done) { const s = document.createElement('span'); s.className = 'got'; s.textContent = '★'; head.append(s); }
+      const s = document.createElement('small'); s.textContent = open ? (lv.boss ? 'Босс: ' : '') + lv.name : 'сначала ' + prev.id;
+      b.append(head, s);
+      b.setAttribute('aria-label', 'Мир ' + lv.id + ', ' + (open ? lv.name + (done ? ', пройден' : '') : 'закрыт'));
+      b.addEventListener('click', () => playLevel(li));
+      box.append(b);
+    });
+    openMenu('world'); Snd.sfx.portal();
+  }
+
+  // ---------- the island each frame ----------
+  function updateIsland(dt) {
+    updateStars(dt);
+    updateFrogs(dt);
+    updateRedCoins(dt);
+    updateRace(dt);
+    updateMagic(dt);
+    updateDigs(dt);
+    updateGarden();
+    updateGates(dt);
   }
   // ================= bosses =================
   // One rule for all of them: dodge the attack, then stomp the boss while it is dazed (stars circle its head). Three hits.
@@ -4741,6 +6112,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (d < best && d > .6) { best = d; lookTgt = [c.x, c.y, c.z]; }
     }
     if (lookTgt) return;
+    for (const st of L.stars) {
+      if (st.state !== 'idle') continue;
+      const dx = st.x - P.pos.x, dz = st.z - P.pos.z;
+      if (dx * dx + dz * dz < 64) { lookTgt = [st.x, st.y, st.z, true]; return; }
+    }
     for (const n of L.npcs) if (n.talking) { lookTgt = [n.x, n.y + n.h * .8, n.z]; return; }
     if (fairy.active) lookTgt = [fairy.x, fairy.y + .8, fairy.z, true];
   }
@@ -4762,6 +6138,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.state === 'goal' && G.goalPhase === 'slide') {
       t.shLx = t.shRx = -2.7; t.elL = t.elR = -.35; t.shLz = t.shRz = -.05; t.hipL = -.6; t.kneeL = 1.1; t.hipR = .15; t.kneeR = .35;
       return ['happy', rate];
+    }
+    if (P.swim && G.state !== 'dying') {
+      const ph = time * (spd > 1 ? 7.5 : 3.6);
+      if (spd > 1) { // front crawl: lying flat, arms windmilling, a flutter kick, the head up to breathe
+        t.lean = 1.05; t.headX = -.95; t.twist = Math.sin(ph) * .25; t.bank = Math.sin(ph) * .1;
+        t.shLx = -1.5 - Math.cos(ph) * 1.4; t.shRx = -1.5 + Math.cos(ph) * 1.4; t.shLz = t.shRz = .25; t.elL = t.elR = -.35;
+        t.hipL = .15 + Math.sin(ph * 2) * .35; t.hipR = .15 - Math.sin(ph * 2) * .35; t.kneeL = t.kneeR = .3; t.ankL = t.ankR = .5;
+        return ['determined', 14];
+      }
+      // treading water: upright, arms sweeping, legs pedalling
+      t.lean = .22; t.shLz = t.shRz = .95 + Math.sin(ph * 2) * .35; t.shLx = t.shRx = -.45; t.elL = t.elR = -.7;
+      t.hipL = -.5 + Math.sin(ph) * .45; t.hipR = -.5 - Math.sin(ph) * .45; t.kneeL = .9 + Math.cos(ph) * .35; t.kneeR = .9 - Math.cos(ph) * .35;
+      return ['normal', 10];
     }
     if (P.pound === 'wind') { // curled up for the flip
       t.hipL = t.hipR = -1.6; t.kneeL = t.kneeR = 2.1; t.shLx = t.shRx = -.9; t.elL = t.elR = -1.4; t.shLz = t.shRz = .3; t.torsoX = .45; t.headX = .3;
@@ -4838,7 +6227,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
             if (ft >= FIDGET_T[fidget]) { fidget = null; idleT = 1.5; }
           }
         }
-        if (G.state === 'goal' && (G.goalPhase === 'bossWin' || G.goalPhase === 'fairy' || G.goalPhase === 'tally')) { // victory fist pump
+        if ((G.state === 'goal' && (G.goalPhase === 'bossWin' || G.goalPhase === 'fairy' || G.goalPhase === 'tally')) || P.cheerT > 0) { // victory fist pump
           t.shRx = -2.8; t.shRz = .2; t.elR = -.3 - .6 * Math.max(0, Math.sin(time * 9)); t.shLz = .6; t.shLx = .35; t.elL = -1.9; face = 'happy'; rate = 20;
         }
       }
@@ -4942,7 +6331,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       }
     }
     const h = .75;
-    hero.body.position.set(h * Math.sin(flipZ), h * (1 - Math.cos(flipA)) + h * (1 - Math.cos(flipZ)), -h * Math.sin(flipA));
+    // lying flat in the water pivots the body round the feet; slide it back so the swimmer stays over his spot
+    P.swimK = damp(P.swimK, P.swim ? 1 : 0, 8, dt);
+    hero.body.position.set(h * Math.sin(flipZ), h * (1 - Math.cos(flipA)) + h * (1 - Math.cos(flipZ)), -h * Math.sin(flipA) - Math.sin(J.lean) * .5 * P.swimK);
     hero.body.rotation.set(J.lean + flipA, P.riding ? 0 : spinA, J.bank + flipZ);
     // secondary motion: the head nods with sudden stops and landings, the cowlick and the scarf trail behind
     if (P.landT > .2) SPR.nod.v += P.landK * 3;
@@ -4992,7 +6383,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     setM(hero.grin, MOUTH.grin, 1, 1, 1);
   }
   function updateBlob() {
-    if (!hero.root.visible || G.state === 'dying') { blob.visible = false; return; }
+    if (!hero.root.visible || G.state === 'dying' || P.swim) { blob.visible = false; return; }
     const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, .12);
     if (gy === -Infinity) { blob.visible = false; return; }
     const k = clamp(1 - (P.pos.y - gy) * .07, .35, 1);
@@ -5012,14 +6403,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (snap) { cam.tx = P.pos.x; cam.ty = ty; cam.tz = P.pos.z; cam.dist = cam.distGoal; }
     else {
       cam.tx = damp(cam.tx, P.pos.x, 10, dt); cam.tz = damp(cam.tz, P.pos.z, 10, dt);
-      cam.ty = damp(cam.ty, ty, P.onGround ? 5 : (ty < cam.ty - .5 ? 6 : 2.6), dt);
-      cam.dist = damp(cam.dist, cam.distGoal + (P.big ? .9 : 0) + (P.riding ? .9 : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0), 4, dt);
+      cam.ty = damp(cam.ty, ty, P.onGround || P.swim ? 5 : (ty < cam.ty - .5 ? 6 : 2.6), dt);
+      // in a cave the camera comes in close and low, so it stays inside with the hero
+      cam.tight = L.caves ? L.caves.some((c) => P.pos.x > c.x0 && P.pos.x < c.x1 && P.pos.z > c.z0 && P.pos.z < c.z1 && P.pos.y < c.y1) : false;
+      const far = cam.distGoal + (P.big ? .9 : 0) + (P.riding ? .9 : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
+      cam.dist = damp(cam.dist, cam.tight ? 4.2 : far, 4, dt);
     }
     // field of view widens for a moment on big launches and while the dino runs flat out
     G.kick = Math.max(0, G.kick - dt * 2.2);
     const fov = baseFov + G.kick * 7 + (P.riding && P.onGround ? clamp(Math.hypot(P.vel.x, P.vel.z) / RIDE_SPD, 0, 1) * 4 : 0);
     if (Math.abs(camera.fov - fov) > .01) { camera.fov = damp(camera.fov, fov, 9, dt); camera.updateProjectionMatrix(); }
-    const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+    const pitch = cam.tight ? Math.min(cam.pitch, .16) : cam.pitch, cp = Math.cos(pitch), sp = Math.sin(pitch);
     const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);
     const lx = cam.tx + fx * 1.6, lz = cam.tz + fz * 1.6, ly = cam.ty + 1.3;
     camera.position.set(lx - fx * cp * cam.dist, ly + sp * cam.dist, lz - fz * cp * cam.dist);
@@ -5035,9 +6429,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   let titleYaw = .6, baseFov = 55;
   function titleCam(dt) {
     titleYaw += dt * .12;
-    const s = L.start;
-    camera.position.set(s.x + Math.sin(titleYaw) * 11, 4.4, s.z + Math.cos(titleYaw) * 11);
-    camera.lookAt(s.x, 2.6, s.z);
+    const s = L.start, c = L.titleCam || { x: s.x, y: 2.6, z: s.z, r: 11, h: 4.4 };
+    camera.position.set(c.x + Math.sin(titleYaw) * c.r, c.h, c.z + Math.cos(titleYaw) * c.r);
+    camera.lookAt(c.x, c.y, c.z);
     sun.target.position.set(s.x, s.y, s.z);
     sun.position.set(s.x + SUN_OFF.x, s.y + SUN_OFF.y, s.z + SUN_OFF.z);
   }
@@ -5050,7 +6444,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (P.riding) { const d = P.riding; P.riding = null; applySize(); d.state = 'flee'; d.t = 0; d.vx = d.vz = d.vy = 0; d.x = P.pos.x; d.y = P.pos.y; d.z = P.pos.z; }
     Snd.stopMusic(); Snd.sfx.die();
     P.vel.set(0, kind === 'fall' ? P.vel.y : 0, 0);
-    P.shield = false;
+    P.shield = false; P.swim = false;
     if (kind === 'time') toast('Время вышло', 'Попробуй быстрее');
   }
   function updateDying(dt) {
@@ -5127,44 +6521,77 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ================= flow =================
-  const screens = { title: $('scrTitle'), pause: $('scrPause'), clear: $('scrClear'), over: $('scrOver'), win: $('scrWin') };
+  const screens = { title: $('scrTitle'), pause: $('scrPause'), clear: $('scrClear'), over: $('scrOver'), win: $('scrWin'), world: $('scrWorld'), shop: $('scrShop') };
   const hudEl = $('hud'), touchEl = $('touch');
   function showScreen(name) { for (const k in screens) screens[k].hidden = k !== name; }
-  function placePlayer(pt) {
+  function placePlayer(pt, facing = Math.PI) {
     P.pos.set(pt.x, pt.y, pt.z); P.vel.set(0, 0, 0);
-    P.onGround = false; P.ground = null; P.facing = Math.PI; P.inv = 0; P.combo = 0; P.squash = 1; P.jumpBuf = 0; P.coyote = 0; P.noCut = false;
+    P.onGround = false; P.ground = null; P.facing = facing; P.inv = 0; P.combo = 0; P.squash = 1; P.jumpBuf = 0; P.coyote = 0; P.noCut = false;
     P.riding = null; P.airJumps = 0; applySize(); P.lastSafe = { x: pt.x, y: pt.y, z: pt.z };
     P.pound = null; P.spinT = 0; P.spinCd = 0; P.spinAir = false; P.poundJT = 0; P.flipT = 0; P.throwT = 0; P.fireCd = 0;
     resetIdle(); P.jumpN = 0; P.landedT = 1; P.skidT = 0; P.wallT = 0; P.wallLock = 0; P.wallSlide = false; P.wallKickT = 0; P.inFan = false;
+    P.swim = false; P.swimT = 0; P.swimK = 0; P.dashCd = 0; P.cheerT = 0;
     G.chain = 0; G.chainT = 0; G.hitStop = 0; G.kick = 0; comboEl.classList.remove('show');
-    hero.root.visible = true; hero.root.rotation.set(0, Math.PI, 0);
-    cam.yaw = 0; cam.yawGoal = null; cam.pitch = .38;
+    hero.root.visible = true; hero.root.rotation.set(0, facing, 0);
+    cam.yaw = wrapPi(facing - Math.PI); cam.yawGoal = null; cam.pitch = .38;
   }
+  // start (or restart) level li; the lives carry over between the levels of one trip through a gate
   function startLevel(li, fresh) {
     G.li = li;
     if (fresh) {
       G.cpIndex = -1; G.levelCoins = 0; P.shield = false;
       for (const k of Array.from(G.gifts)) if (k.indexOf(LEVELS[li].id + ':') === 0) G.gifts.delete(k);
     }
-    loadLevel(li);
+    loadLevel(LEVELS[li]);
     for (let i = 0; i <= G.cpIndex; i++) markCheckpoint(L.checkpoints[i]);
     placePlayer(G.cpIndex >= 0 ? cpSpawn(L.checkpoints[G.cpIndex]) : L.start);
     G.time = L.def.time; G.warned = false; G.state = 'playing'; G.goalPhase = null; G.fw = [];
-    setupSpark();
+    setupSpark(); applyCap();
     input.jumpQueued = false; input.actQueued = false; resetTouch();
-    showScreen(null); hudEl.hidden = false; showTouch(isTouch);
+    showScreen(null); hudEl.hidden = false; hudEl.dataset.mode = 'level'; hudEl.classList.remove('race'); showTouch(isTouch);
     updateCam(0, true);
     toast('Мир ' + L.def.id, L.def.name);
     Snd.setRoom(L.def.theme === 'stone' ? .32 : .12);
     Snd.setAmbient(L.def.amb || THEME_FX[L.def.theme].amb);
     Snd.startMusic(L.def.music);
   }
-  function newGame(li) {
-    Snd.init(); goFullscreen(); keepAwake();
-    G.lives = 3; G.score = 0; G.coins = 0; G.gifts.clear(); setBig(false, false); G.star = false;
+  // through a gate into a level, with three fresh lives
+  function playLevel(li) {
+    Snd.init(); G.lives = 3; setBig(false, false);
     startLevel(li, true);
   }
+  // the island: from the title (at the village) or back from a level (in front of that world's gate)
+  function enterHub(fromWorld = -1) {
+    loadLevel(HUB);
+    const gate = L.portals[fromWorld];
+    // back from a level: a few steps in front of the gate, facing away from it, with the camera clear of the arch
+    if (gate) placePlayer({ x: gate.x, y: gate.top, z: gate.z + 9.5 }, 0); else placePlayer(L.start);
+    G.state = 'playing'; G.goalPhase = null; G.fw = [];
+    setupSpark(); applyCap();
+    input.jumpQueued = false; input.actQueued = false; resetTouch();
+    showScreen(null); hudEl.hidden = false; hudEl.dataset.mode = 'hub'; hudEl.classList.remove('race'); showTouch(isTouch);
+    updateCam(0, true);
+    toast(HUB.name, '★ ' + starCount() + ' / ' + TOTAL_STARS);
+    Snd.setRoom(.12); Snd.setAmbient(HUB.amb); Snd.startMusic(HUB.music);
+  }
+  // falling on the island costs nothing: the hero is back at the last flag he touched
+  function hubRespawn(quiet) {
+    const c = ISL.cp, pt = c ? cpSpawn(c) : L.start;
+    setBig(false, false); placePlayer(pt);
+    for (const f of L.frogs) if (f.state === 'follow') { f.x = pt.x; f.y = pt.y; f.z = pt.z; }
+    ISL.trail.length = 0;
+    if (ISL.race.on) resetRace();
+    G.state = 'playing'; updateCam(0, true);
+    Snd.startMusic(HUB.music);
+    if (!quiet) toast('Ой!', c ? 'Начнём от флажка' : 'Начнём с деревни');
+  }
+  function startGame() {
+    Snd.init(); goFullscreen(); keepAwake();
+    G.lives = 3; G.score = 0; G.coins = 0; G.gifts.clear(); setBig(false, false); G.star = false;
+    enterHub();
+  }
   function loseLife() {
+    if (L.def.hub) { hubRespawn(); return; }
     G.lives--; setBig(false, false);
     if (G.lives <= 0) { gameOver(); return; }
     startLevel(G.li, false);
@@ -5172,44 +6599,70 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function saveBest() { if (G.score > G.best) { G.best = G.score; store.set('best', G.best); } }
   function gameOver() {
     G.state = 'over'; saveBest();
-    $('overScore').textContent = 'Счёт: ' + G.score.toLocaleString('ru-RU') + (G.score >= G.best && G.score > 0 ? ' · новый рекорд' : '');
+    $('overScore').textContent = 'Уровень ' + L.def.id + ' · счёт ' + G.score.toLocaleString('ru-RU') + (G.score >= G.best && G.score > 0 ? ' · новый рекорд' : '');
     touchEl.hidden = true; showScreen('over'); Snd.sfx.over(); Snd.setAmbient(null);
+  }
+  // the level after li in the same world, or null at the world's end
+  function nextInWorld(li) {
+    const w = WORLDS[worldOf(li)], k = w.levels.indexOf(li);
+    return k + 1 < w.levels.length ? w.levels[k + 1] : null;
   }
   function levelClear() {
     G.state = 'clear';
-    G.unlocked = Math.max(G.unlocked, Math.min(LEVELS.length, G.li + 2)); store.set('unlocked', G.unlocked);
+    const first = awardStar('l:' + L.def.id);
     saveBest();
     $('clearWorld').textContent = 'Мир ' + L.def.id + ' · ' + L.def.name;
+    const cs = $('clearStar'); cs.hidden = false;
+    cs.textContent = first ? '★ Новая звезда! Теперь их ' + starCount() + ' из ' + TOTAL_STARS : '★ Звезда за этот уровень уже была';
     $('stCoins').textContent = G.levelCoins;
     $('stTime').textContent = G.timeBonus.toLocaleString('ru-RU');
     $('stScore').textContent = G.score.toLocaleString('ru-RU');
-    $('btnNext').textContent = G.li + 1 < LEVELS.length ? 'Мир ' + LEVELS[G.li + 1].id : 'Финал';
+    const next = nextInWorld(G.li), fin = G.li === LEVELS.length - 1, btn = $('btnNext');
+    btn.hidden = next === null && !fin;
+    btn.textContent = fin ? 'Финал' : next !== null ? 'Дальше: ' + LEVELS[next].id : '';
     touchEl.hidden = true; showScreen('clear');
+    if (first) setTimeout(() => Snd.sfx.starGet(), 250);
   }
   function toTitle() {
     Snd.stopMusic(); Snd.setAmbient(null);
-    G.state = 'title'; setBig(false, false); spark.state = 'off'; loadLevel(0); placePlayer(L.start); P.onGround = true; P.shield = false;
+    G.state = 'title'; setBig(false, false); spark.state = 'off'; loadLevel(HUB); placePlayer(L.start); P.onGround = true; P.shield = false; applyCap();
     hudEl.hidden = true; touchEl.hidden = true; showScreen('title');
-    renderLevelPick();
+    renderTitleInfo();
     const best = $('best'); best.hidden = !(G.best > 0); best.textContent = 'Рекорд: ' + G.best.toLocaleString('ru-RU');
     updateHowto();
   }
-  function renderLevelPick() {
-    const box = $('levelPick'); box.textContent = '';
-    box.hidden = G.unlocked < 2;
-    LEVELS.forEach((lv, i) => {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'lvl';
-      const locked = i >= G.unlocked; b.disabled = locked;
-      const s = document.createElement('small'); s.textContent = locked ? 'закрыт' : (lv.boss ? 'Босс: ' : '') + lv.name;
-      b.append(document.createTextNode(lv.id), s);
-      b.setAttribute('aria-label', 'Мир ' + lv.id + ', ' + (locked ? 'закрыт' : lv.name));
-      b.addEventListener('click', () => newGame(i));
-      box.append(b);
-    });
+  function renderTitleInfo() {
+    const n = starCount(), info = $('saveInfo'), reset = $('btnReset');
+    info.hidden = reset.hidden = n === 0 && SAVE.bank === 0;
+    info.textContent = '★ ' + n + ' / ' + TOTAL_STARS + ' · значков ' + SAVE.bank;
+    reset.textContent = 'Новая игра'; reset.dataset.armed = '';
+  }
+  // pause: on the island it lists the island's stars with a hint for each one still missing
+  function renderPause() {
+    const hub = !!L.def.hub;
+    $('questBox').hidden = !hub; $('btnRestart').hidden = hub; $('btnToIsland').hidden = hub; $('btnToFlag').hidden = !hub;
+    if (!hub) return;
+    $('questCount').textContent = '★ ' + starCount() + ' / ' + TOTAL_STARS;
+    const ul = $('questList'); ul.textContent = '';
+    const row = (done, name, hint) => {
+      const li = document.createElement('li'); if (done) li.className = 'done';
+      const i = document.createElement('i'); i.textContent = done ? '★' : '☆';
+      const t = document.createElement('span'); t.textContent = name;
+      li.append(i, t);
+      if (!done) { const sm = document.createElement('small'); sm.textContent = hint; li.append(sm); }
+      ul.append(li);
+    };
+    for (const q of HUB_STARS) {
+      const extra = q.id === 'frogs' ? ' (' + SAVE.frogs.length + '/' + FROG_N + ')' : q.id === 'red' ? ' (' + SAVE.red.length + '/' + RED_N + ')' : '';
+      const out = L.stars.some((st) => st.id === q.id && st.revealed && st.state !== 'taken');
+      row(hasStar(q.id), q.name + (hasStar(q.id) ? '' : extra), out ? 'Звезда уже появилась: забери её!' : q.hint);
+    }
+    const lv = LEVELS.filter((l) => hasStar('l:' + l.id)).length;
+    row(lv === LEVELS.length, 'Уровни за вратами (' + lv + '/' + LEVELS.length + ')', 'Каждый пройденный уровень даёт звезду. Врата на севере, за фонтаном.');
   }
   function pause() {
     if (G.state !== 'playing') return;
-    G.state = 'paused'; Snd.pauseMusic(); Snd.sfx.ui(); showScreen('pause'); touchEl.hidden = true;
+    G.state = 'paused'; Snd.pauseMusic(); Snd.sfx.ui(); renderPause(); showScreen('pause'); touchEl.hidden = true;
     resetTouch();
   }
   function resume() {
@@ -5251,9 +6704,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return { x, y };
   }
   addEventListener('keydown', (e) => {
-    if (e.code === 'Escape' || e.code === 'KeyP') { if (G.state === 'playing') pause(); else if (G.state === 'paused') resume(); return; }
+    if (e.code === 'Escape' || e.code === 'KeyP') { if (G.state === 'playing') pause(); else if (G.state === 'paused') resume(); else if (G.state === 'menu') closeMenu(); return; }
     if (e.code === 'KeyM') { toggleMute(); return; }
-    if (e.code === 'Enter' && G.state === 'title' && document.activeElement === document.body) { newGame(0); return; }
+    if (e.code === 'Enter' && G.state === 'title' && document.activeElement === document.body) { startGame(); return; }
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
     if (ACT_KEYS.includes(e.code) && !e.repeat && G.state === 'playing') input.actQueued = true;
@@ -5376,27 +6829,49 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   $('btnSound').addEventListener('click', toggleMute);
   $('btnPause').addEventListener('click', () => { if (G.state === 'playing') pause(); });
-  $('btnPlay').addEventListener('click', () => newGame(0));
+  $('btnPlay').addEventListener('click', startGame);
+  // a fresh start wipes the saved stars; it asks for a second tap first
+  $('btnReset').addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (!b.dataset.armed) { b.dataset.armed = '1'; b.textContent = 'Стереть звёзды? Нажми ещё раз'; setTimeout(renderTitleInfo, 3500); return; }
+    Object.assign(SAVE, SAVE_NEW()); saveGame(); store.set('unlocked', 1); Snd.sfx.shrink(); applyCap(); renderTitleInfo();
+  });
   $('btnResume').addEventListener('click', resume);
   $('btnRestart').addEventListener('click', () => { Snd.init(); G.cpIndex = -1; startLevel(G.li, true); });
+  $('btnToIsland').addEventListener('click', () => { Snd.init(); saveBest(); enterHub(worldOf(G.li)); });
+  $('btnToFlag').addEventListener('click', () => { resume(); hubRespawn(true); });
   $('btnMenu').addEventListener('click', () => { saveBest(); toTitle(); });
   $('btnNext').addEventListener('click', () => {
     Snd.init();
-    if (G.li + 1 < LEVELS.length) startLevel(G.li + 1, true);
+    const next = nextInWorld(G.li);
+    if (next !== null) startLevel(next, true);
     else { G.state = 'win'; saveBest(); $('winScore').textContent = 'Итоговый счёт: ' + G.score.toLocaleString('ru-RU'); showScreen('win'); }
   });
-  $('btnAgain').addEventListener('click', () => newGame(0));
-  $('btnOverMenu').addEventListener('click', toTitle);
-  $('btnWinAgain').addEventListener('click', () => newGame(0));
+  $('btnClearIsland').addEventListener('click', () => { Snd.init(); enterHub(worldOf(G.li)); });
+  $('btnAgain').addEventListener('click', () => playLevel(G.li));
+  $('btnOverIsland').addEventListener('click', () => { Snd.init(); enterHub(worldOf(G.li)); });
+  $('btnWinIsland').addEventListener('click', () => { Snd.init(); enterHub(worldOf(G.li)); });
   $('btnWinMenu').addEventListener('click', toTitle);
+  $('btnWorldClose').addEventListener('click', closeMenu);
+  $('btnShopClose').addEventListener('click', closeMenu);
   document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); keys.clear(); } });
 
   // ================= HUD =================
-  const H = { score: $('hScore'), coins: $('hCoins'), world: $('hWorld'), time: $('hTime'), lives: $('hLives') };
+  const H = { score: $('hScore'), coins: $('hCoins'), world: $('hWorld'), time: $('hTime'), lives: $('hLives'), stars: $('hStars') };
   const hudCache = {};
   function setHud(k, v) { if (hudCache[k] !== v) { hudCache[k] = v; H[k].textContent = v; } }
   function updateHud() {
     if (hudEl.hidden) return;
+    if (L.def.hub) {
+      setHud('stars', starCount() + '/' + TOTAL_STARS);
+      setHud('coins', String(SAVE.bank).padStart(3, '0'));
+      const race = ISL.race.on;
+      if (hudCache.race !== race) { hudCache.race = race; hudEl.classList.toggle('race', race); }
+      if (race) setHud('time', String(Math.max(0, Math.ceil(ISL.race.t))));
+      if (hudCache.warn) { hudCache.warn = false; H.time.classList.remove('warn'); }
+      return;
+    }
+    if (hudCache.race) { hudCache.race = false; hudEl.classList.remove('race'); }
     setHud('score', String(G.score).padStart(6, '0'));
     setHud('coins', String(G.coins).padStart(2, '0'));
     setHud('world', L.def.id);
@@ -5465,7 +6940,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   function step(dt) {
     time += dt;
-    if (G.state === 'playing') {
+    if (G.state === 'playing' && !L.def.hub) {
       G.time -= dt;
       if (G.time <= 0) { G.time = 0; die('time'); }
       else if (G.time < 60 && !G.warned) { G.warned = true; Snd.sfx.warn(); if (!L.boss) Snd.setTempo(1.12); }
@@ -5492,7 +6967,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     magnetCoins(dt);
     updateSprings(dt);
     updateFx(dt);
+    if (L.def.hub) updateIsland(dt);
     if (P.inv > 0) P.inv -= dt;
+    P.dashCd -= dt; P.cheerT -= dt;
     if (P.growT > 0) P.growT -= dt;
     P.happyT -= dt; P.hurtT -= dt; P.jumpFaceT -= dt; P.landT -= dt;
     if (P.spinT > 0) {
@@ -5519,7 +6996,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (dt > .1) dt = .1;
     watchPerf(dt);
     if (G.state === 'title') {
-      time += dt; updatePlatforms(dt); updateEnemies(dt); updateBlocks(dt); titleCam(dt);
+      time += dt; updatePlatforms(dt); updateEnemies(dt); updateBlocks(dt); if (L.def.hub) updateIsland(dt); titleCam(dt);
     } else if (G.state === 'playing' || G.state === 'dying' || G.state === 'goal') {
       if (G.hitStop > 0) G.hitStop -= dt; // a few frames of freeze sell the impact
       else {
@@ -5547,12 +7024,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ================= boot =================
-  function snapshot() { return { unlocked: G.unlocked, best: G.best }; }
+  function snapshot() { return { best: G.best }; }
   let booted = false;
   function boot(data) {
     if (booted) return;
     booted = true; window.__hopBooted = true;
-    if (data && typeof data.unlocked === 'number') G.unlocked = Math.max(G.unlocked, data.unlocked);
     if (data && typeof data.best === 'number') G.best = Math.max(G.best, data.best);
     quality = isTouch ? 1 : 2;
     resize();
