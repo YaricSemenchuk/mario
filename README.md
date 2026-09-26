@@ -89,7 +89,9 @@ sound is muffled.
   as after a fall). The browsers talk directly over WebRTC (Trystero, loaded from jsDelivr only when a room is joined),
   meeting through public Nostr relays, so there is still no server. Some mobile networks do not let two phones connect
   directly; Wi-Fi usually does
-- Games with friends, started from the friends card for everyone in the same open world (each one says yes or no):
+- Games with friends, started from the friends card for everyone in the room, wherever they are (each one says yes or
+  no). The game is played in the host's open world, or on Promo Island from the title or a level, and whoever says yes
+  is taken there:
   - a ring race: everyone gets the same ride (a kart, the snowboard down the ice slalom, the jet ski on the lagoon, the
     rover on the Moon) and races the rings of the world's own race quest (the factory has a course round its oven), two or
     three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the racer back
