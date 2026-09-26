@@ -294,6 +294,66 @@
   #btnRide.on { background: var(--gold); }
   .title-note { margin: 0; font: 800 13px/1.3 var(--ui); color: var(--white); text-shadow: var(--outline); letter-spacing: .04em; }
 
+  /* ---------- friends online: name tags, the friends card, notes about who came and went, the wave button ---------- */
+  #tags { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+  .tag {
+    position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; width: max-content;
+    padding: 4px 9px 5px 6px; border-radius: 999px; background: rgba(255, 247, 228, .92); border: 2px solid var(--ink);
+    box-shadow: 0 2px 0 var(--ink); font: 800 12.5px/1 var(--ui); color: var(--ink); white-space: nowrap; will-change: transform;
+  }
+  .tag i { flex: none; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--ink); }
+  .tag small { font: 700 11px/1 var(--ui); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .tag small:empty { display: none; }
+  .tag .dir { display: none; flex: none; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid var(--ink); }
+  .tag.edge .dir { display: block; }
+  .tag.right .dir { order: 1; }
+  .tag.away { opacity: .62; }
+  #netFeed {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); transform: translateX(-50%); z-index: 7;
+    display: grid; justify-items: center; gap: 6px; width: max-content; max-width: 60vw; pointer-events: none;
+  }
+  #netFeed p { margin: 0; padding: 6px 12px 7px; border-radius: 12px; background: rgba(28, 30, 59, .74); color: var(--white); font: 800 13px/1.25 var(--ui); text-align: center; transition: opacity .4s; }
+  #netFeed p.out { opacity: 0; }
+  #btnNet { position: relative; }
+  #btnNet b {
+    position: absolute; right: -8px; top: -8px; min-width: 18px; height: 18px; box-sizing: border-box; padding: 0 4px; border-radius: 9px;
+    background: var(--leaf); color: var(--white); border: 2px solid var(--ink); font: 900 11px/14px var(--ui); font-variant-numeric: tabular-nums;
+  }
+  #btnWave {
+    position: absolute; right: calc(env(safe-area-inset-right, 0px) + 150px); bottom: calc(env(safe-area-inset-bottom, 0px) + 118px);
+    width: 50px; height: 50px; border-radius: 50%; padding: 0; cursor: pointer; font-size: 23px; line-height: 1;
+    background: rgba(255, 255, 255, .85); border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink);
+    display: grid; place-items: center; pointer-events: auto; touch-action: none;
+  }
+  #btnWave:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  #scrNet .card { width: min(440px, 100%); }
+  .net-field { display: grid; gap: 6px; text-align: left; font: 800 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+  .net-input {
+    width: 100%; box-sizing: border-box; padding: 11px 12px; border: 3px solid var(--ink); border-radius: 12px; background: var(--white); color: var(--ink);
+    font: 800 17px/1.1 var(--ui); letter-spacing: 0; text-transform: none; -webkit-user-select: text; user-select: text; touch-action: manipulation;
+  }
+  .net-input::placeholder { color: rgba(74, 78, 124, .55); }
+  .net-input:focus { outline: 3px solid var(--sky); outline-offset: 1px; }
+  .net-join { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .net-join .net-input { text-transform: uppercase; letter-spacing: .18em; }
+  .net-join .btn { padding: 11px 18px; }
+  .net-or { margin: 0; font: 800 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+  #netOn { display: grid; gap: 12px; }
+  .net-code { margin: 0; display: grid; gap: 4px; justify-items: center; }
+  .net-code small { font: 800 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); }
+  .net-code b { font: 400 clamp(38px, 9vw, 50px)/1 var(--display); letter-spacing: .14em; color: var(--ink); }
+  .net-status { margin: 0; font: 700 14px/1.4 var(--ui); color: var(--ink-soft); text-wrap: pretty; }
+  .net-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; text-align: left; max-height: min(32vh, 290px); overflow-y: auto; }
+  .net-list:empty { display: none; }
+  .net-list li { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; background: var(--white); border: 3px solid var(--ink); border-radius: 12px; }
+  .net-list li .swatch { flex: none; margin: 0; }
+  .net-list li span { flex: 1; min-width: 0; display: grid; gap: 3px; }
+  .net-list li b { font: 900 15px/1.15 var(--ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .net-list li small { font: 600 12px/1.3 var(--ui); color: var(--ink-soft); }
+  .btn-sm { flex: none; padding: 9px 12px; font-size: 13px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
+  .btn-sm:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 var(--ink); }
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
   #errBar {
     position: fixed; left: 8px; right: 8px; bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); z-index: 50;
     padding: 8px 12px; border-radius: 10px; background: #fff; color: #b3261e; border: 2px solid #b3261e;
@@ -312,6 +372,14 @@
     #scrShop .shop-list { max-height: max(120px, calc(100dvh - 226px)); }
     #scrShop .shop-item { padding: 7px 10px; }
     .shop-tab { padding: 7px 4px 6px; }
+    /* the friends card sideways: the name, the status and the buttons on the left, the room on the right */
+    #scrNet .card { width: min(720px, 100%); grid-template-columns: 1fr 1fr; column-gap: 18px; align-items: start; }
+    #scrNet .eyebrow, #scrNet h2, #scrNet .card-sub { display: none; }
+    #scrNet .net-field, #netStatus, #scrNet .btn-row { grid-column: 1; }
+    #netOff, #netOn { grid-column: 2; grid-row: 1 / span 3; margin: 0; }
+    #netOn { gap: 10px; }
+    .net-code b { font-size: 34px; }
+    .net-list { max-height: calc(100dvh - 250px); }
   }
   @media (prefers-reduced-motion: reduce) {
     #toast, .btn { transition: none; }
@@ -331,6 +399,10 @@
   <div class="hud-cell hud-time"><span class="hud-lbl">Время</span><span class="hud-val" id="hTime">300</span></div>
   <div class="hud-cell lvl-only"><span class="hud-lbl">Жизни</span><span class="hud-val"><svg viewBox="0 0 18 16" width="17" height="15" aria-hidden="true"><path d="M9 14.6 2.2 8A4.1 4.1 0 0 1 9 2.9a4.1 4.1 0 0 1 6.8 5.1Z" fill="#f0503a" stroke="#1c1e3b" stroke-width="2" stroke-linejoin="round"/></svg>×<span id="hLives">3</span></span></div>
   <div class="hud-btns">
+    <button class="icon-btn" id="btnNet" type="button" aria-label="Друзья" hidden>
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="9" cy="8" r="3.4" fill="currentColor"/><path d="M2.6 19.5a6.4 6.4 0 0 1 12.8 0z" fill="currentColor"/><circle cx="16.8" cy="8.6" r="2.6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M17.6 13.6a4.9 4.9 0 0 1 4 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <b id="netCount">0</b>
+    </button>
     <button class="icon-btn" id="btnRide" type="button" aria-label="Транспорт" hidden>
       <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="6" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="18" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M6 17h9l3-11h3M15 17l-3-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
@@ -356,12 +428,15 @@
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6l-1.5 8 8.5-11h-6z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
     <span id="actLbl">УДАР</span>
   </button>
+  <button id="btnWave" type="button" aria-label="Помахать друзьям" hidden>👋</button>
 </div>
 
 <div id="combo" aria-hidden="true"><div><b id="comboN">×2</b><small>комбо</small></div><span id="comboBar"><i></i></span></div>
 <div id="pops"></div>
 <div id="bubbles"></div>
+<div id="tags"></div>
 <div id="toast" aria-live="polite"></div>
+<div id="netFeed" aria-live="polite"></div>
 <div id="bossBar" hidden><span id="bossName"></span><div id="bossHp"></div></div>
 
 <section class="screen screen-title" id="scrTitle">
@@ -370,6 +445,7 @@
     <p class="tagline">Исследуй Промо-остров, помогай жителям, собирай звёзды и открывай врата в новые миры.</p>
     <div class="title-actions">
       <button class="btn btn-main" id="btnPlay" type="button">Играть</button>
+      <button class="btn btn-ghost" id="btnFriends" type="button">С друзьями</button>
     </div>
     <p class="title-note" id="saveInfo" hidden></p>
     <button class="btn btn-ghost" id="btnReset" type="button" hidden>Новая игра</button>
@@ -388,6 +464,7 @@
     </div>
     <div class="card-actions">
       <button class="btn btn-main" id="btnResume" type="button">Продолжить</button>
+      <button class="btn" id="btnPauseNet" type="button">Играть с друзьями</button>
       <button class="btn" id="btnRestart" type="button">Начать уровень заново</button>
       <button class="btn" id="btnToIsland" type="button">На остров</button>
       <button class="btn" id="btnToFlag" type="button">К последнему флажку</button>
@@ -459,6 +536,34 @@
     </div>
     <div class="shop-list" id="shopList" role="tabpanel"></div>
     <div class="card-actions"><button class="btn btn-ghost" id="btnShopClose" type="button">Уйти</button></div>
+  </div>
+</section>
+
+<section class="screen" id="scrNet" hidden>
+  <div class="card">
+    <p class="eyebrow">Игра с друзьями</p>
+    <h2>Играть вместе</h2>
+    <p class="card-sub">Друзья в одной комнате видят героев друг друга, когда они в одном мире. Звёзды и квесты у каждого свои.</p>
+    <label class="net-field">Твоё имя <input class="net-input" id="netName" maxlength="14" autocomplete="nickname" enterkeyhint="done" spellcheck="false"></label>
+    <div class="card-actions" id="netOff">
+      <button class="btn btn-main" id="btnNetCreate" type="button">Создать комнату</button>
+      <p class="net-or">или войди по коду друга</p>
+      <form class="net-join" id="netJoin" autocomplete="off">
+        <input class="net-input" id="netCode" maxlength="40" placeholder="КОД" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go" aria-label="Код комнаты">
+        <button class="btn" type="submit">Войти</button>
+      </form>
+    </div>
+    <div id="netOn" hidden>
+      <p class="net-code"><small>Комната</small><b id="netCodeShow"></b></p>
+      <button class="btn btn-main" id="btnNetShare" type="button">Позвать друга</button>
+      <ul class="net-list" id="netList" aria-label="Друзья в комнате"></ul>
+      <button class="btn btn-ghost" id="btnNetLeave" type="button">Выйти из комнаты</button>
+    </div>
+    <p class="net-status" id="netStatus" role="status" hidden></p>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="btnNetBack" type="button">Назад</button>
+      <button class="btn" id="btnNetGo" type="button">Играть</button>
+    </div>
   </div>
 </section>
 
@@ -1870,8 +1975,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ================= hero =================
   // Our own hero in a glossy toy style: big head, big eyes, soft round shapes. Jointed like a puppet (hips, knees,
   // ankles, waist, shoulders, elbows, wrists, neck) so the animation can bend every limb; eyes with moving pupils
-  // and blinks, several mouth shapes, a scarf and a cowlick that swing with the motion.
-  const hero = (() => {
+  // and blinks, several mouth shapes, a scarf and a cowlick that swing with the motion. Friends online get rigs of their own.
+  function buildHero() {
     const gloss = (color, shininess = 38) => addRim(std({ color, roughness: glossToRough(shininess) }));
     const m = {
       cap: gloss(0x16a39c, 70), capDark: gloss(0x0f7f79, 60), shirt: gloss(0xff8a2a), over: gloss(0x2c3f93, 45),
@@ -2008,9 +2113,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const mask = new T.Mesh(GEO.mask, MAT.char); mask.visible = false; head.add(mask);
     const shield = new T.Mesh(SPH, new T.MeshBasicMaterial({ color: 0x8ff3ff, transparent: true, opacity: .24, depthWrite: false }));
     shield.position.y = .85; shield.scale.setScalar(1.02); shield.visible = false; root.add(shield);
-    scene.add(root);
     return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, helmet, pack, mask };
-  })();
+  }
+  const hero = buildHero();
+  scene.add(hero.root);
   const blob = new T.Mesh(new T.CircleGeometry(.5, 20), new T.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .32, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
   blob.rotation.x = -Math.PI / 2;
   scene.add(blob);
@@ -2729,6 +2835,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (let i = 0; i < p.count; i++) { const y = p.getY(i); p.setX(i, p.getX(i) + Math.sin(y * .55) * .45); p.setZ(i, p.getZ(i) + Math.cos(y * .45) * .35); }
     g.computeVertexNormals(); return shared(g);
   })();
+  // the dino: a body, two legs that swing from the hips and a tail (the levels' dinos and the ones friends ride)
+  function dinoModel() {
+    const g = new T.Group();
+    const body = new T.Mesh(GEO.dinoBody, MAT.char); body.castShadow = true; g.add(body);
+    const legs = [-1, 1].map((sd) => {
+      const pv = new T.Group(); pv.position.set(sd * .28, .55, -.05);
+      const lm = new T.Mesh(GEO.dinoLeg, MAT.char); lm.castShadow = true; pv.add(lm); g.add(pv); return pv;
+    });
+    const tail = new T.Group(); tail.position.set(0, .76, -.45); g.add(tail);
+    const tm = new T.Mesh(GEO.dinoTail, MAT.char); tm.castShadow = true; tail.add(tm);
+    return { g, legs, tail };
+  }
   function makeBuilder(seed) {
     const near = new ChunkMerger(false), far = new ChunkMerger(false), stone = new ChunkMerger(true), sky = new Merger(false), lit = new Merger(false);
     const paths = new ChunkMerger(true), gems = new Merger(false), slabs = {};
@@ -2993,14 +3111,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         L.firebars.push({ x, y: py, z, axis, speed, a: opt.phase || 0, balls, reach: n * .55 + .6 });
       },
       dino(x, top, d) {
-        const z = -d, g = new T.Group(); g.position.set(x, top, z); add(g);
-        const body = new T.Mesh(GEO.dinoBody, MAT.char); body.castShadow = true; g.add(body);
-        const legs = [-1, 1].map((sd) => {
-          const pv = new T.Group(); pv.position.set(sd * .28, .55, -.05);
-          const lm = new T.Mesh(GEO.dinoLeg, MAT.char); lm.castShadow = true; pv.add(lm); g.add(pv); return pv;
-        });
-        const tail = new T.Group(); tail.position.set(0, .76, -.45); g.add(tail);
-        const tm = new T.Mesh(GEO.dinoTail, MAT.char); tm.castShadow = true; tail.add(tm);
+        const z = -d, { g, legs, tail } = dinoModel(); g.position.set(x, top, z); add(g);
         const lids = [-1, 1].map((sd) => {
           const lid = new T.Mesh(SPH_HI, MAT.dinoLid); lid.position.set(sd * .15, 1.56, .905); lid.scale.set(.108, .138, .078); lid.visible = false; g.add(lid); return lid;
         });
@@ -6129,7 +6240,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1, riding: null, airJumps: 0, lastSafe: null, happyT: 0, hurtT: 0, jumpFaceT: 0, landT: 0, landK: 0,
     fire: false, spinT: 0, spinCd: 0, spinAir: false, spinHit: new Set(), pound: null, poundT: 0, poundJT: 0, flipT: 0, fireCd: 0, throwT: 0, stepT: 0,
     flipDur: .5, flipAxis: 'x', flipDir: 1, jumpN: 0, landedT: 1, skidT: 0, wallN: new T.Vector3(), wallT: 0, wallLock: 0, wallSlide: false, wallKickT: 0, inFan: false,
-    swim: false, swimT: 0, swimK: 0, dashCd: 0, cheerT: 0, veh: null, vehId: '', rideCd: 0, sand: false, dive: false, jetT: 0, dashHitT: 0, rent: '' };
+    swim: false, swimT: 0, swimK: 0, dashCd: 0, cheerT: 0, veh: null, vehId: '', rideCd: 0, sand: false, dive: false, jetT: 0, dashHitT: 0, rent: '', waveT: 0 };
   const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null, tight: false };
   let time = 0;
 
@@ -8273,18 +8384,23 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     cloud: { name: 'Облачко', price: 260, sub: 'Парит, прыгает в воздухе и не тонет', spd: 9.5, acc: 24, jump: 1.05, air: 1, y: .52, pose: 'stand', glide: true, floats: true },
     rover: { name: 'Луноход', price: 220, sub: 'Шесть колёс: быстрый и сбивает врагов', spd: 12.5, acc: 26, jump: 1, air: 0, y: .36, pose: 'sit', bump: true, motor: .8 },
   };
-  const skinDef = () => SKINS.find((s) => s.id === SAVE.skin) || SKINS[0];
-  const capDef = () => { const c = CAPS.find((k) => k.id === SAVE.cap); if (c && c.col !== undefined) return c; const s = skinDef(); return { col: s.cap, dark: s.dark }; };
-  // costume, cap and hat on the hero; the fire pepper still turns the cap red and the overalls cream
-  function applyLook() {
-    const s = skinDef(), c = capDef(), m = hero.m, fire = P.fire;
+  const skinDef = (id = SAVE.skin) => SKINS.find((s) => s.id === id) || SKINS[0];
+  const capDef = (id = SAVE.cap, skin = SAVE.skin) => { const c = CAPS.find((k) => k.id === id); if (c && c.col !== undefined) return c; const s = skinDef(skin); return { col: s.cap, dark: s.dark }; };
+  // costume, cap and hat on a hero (ours or a friend's); the fire pepper still turns the cap red and the overalls cream,
+  // and the moon's worlds put on the glass helmet and the air tank
+  function dressHero(h, look, fire, suit) {
+    const s = skinDef(look.skin), c = capDef(look.cap, look.skin), m = h.m;
     m.shirt.color.setHex(s.shirt); m.over.color.setHex(fire ? 0xfff1dc : s.over); m.scarf.color.setHex(s.scarf); m.scarf2.color.setHex(s.scarf2);
     m.mitt.color.setHex(s.glove); m.shoe.color.setHex(s.shoe);
     m.cap.color.setHex(fire ? 0xf0503a : c.col); m.capDark.color.setHex(fire ? 0xc0341f : c.dark);
-    const hat = HATS.find((h) => h.id === SAVE.hat), suit = !!(L && L.def.suit);
-    for (const id in hero.hats) hero.hats[id].visible = !suit && !!hat && hat.id === id;
-    hero.capG.visible = suit || !(hat && hat.hide);
-    hero.helmet.visible = hero.pack.visible = suit;
+    const hat = HATS.find((k) => k.id === look.hat);
+    for (const id in h.hats) h.hats[id].visible = !suit && !!hat && hat.id === id;
+    h.capG.visible = suit || !(hat && hat.hide);
+    h.helmet.visible = h.pack.visible = suit;
+  }
+  function applyLook() {
+    dressHero(hero, { skin: SAVE.skin, cap: SAVE.cap, hat: SAVE.hat }, P.fire, !!(L && L.def.suit));
+    netLookChanged();
   }
   const COIN_ICON = document.querySelector('.coin-ico');
   const hexCss = (c) => '#' + c.toString(16).padStart(6, '0');
@@ -8848,6 +8964,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     if (L.boss && L.boss.active && !L.boss.dead) lookTgt = [L.boss.x, L.boss.y + L.boss.h * .6, L.boss.z];
     if (lookTgt) return;
+    lookTgt = netFriendNear(36); // a friend close by
+    if (lookTgt) return;
     best = 25;
     for (const c of L.coins) {
       if (c.taken) continue;
@@ -9035,6 +9153,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (P.vel.y < -14) face = 'surprise';
     }
     if (P.throwT > 0) { t.shRx = -1.75; t.shRz = .1; t.elR = -.15; t.twist -= .25; face = 'effort'; }
+    else if (P.waveT > 0) { // waving to friends online
+      t.shRz = 2.5; t.shRx = -.3; t.elR = -.5 + Math.sin(time * 13) * .45; t.wrR = Math.sin(time * 13) * .3; t.twist += .2; face = 'cheer'; rate = Math.max(rate, 20);
+    }
     return [face, rate];
   }
   function animateHero(dt) {
@@ -9064,7 +9185,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         groundAt(P.pos.x + Math.sin(P.facing) * (HW + .2), P.pos.z + Math.cos(P.facing) * (HW + .2), P.pos.y + .05, 0) < P.pos.y - 1.2;
     }
     let [face, rate] = heroPose(t, dt, spd, turn);
-    if (!(P.onGround || G.state === 'title') || P.spinT > 0 || P.pound || P.throwT > 0) { idleT = 0; idleAll = 0; fidget = null; }
+    if (!(P.onGround || G.state === 'title') || P.spinT > 0 || P.pound || P.throwT > 0 || P.waveT > 0) { idleT = 0; idleAll = 0; fidget = null; }
     if (G.state !== 'dying' && G.state !== 'title' && face !== 'hurt' && (G.state === 'goal' || P.happyT > 0) && !teeter) face = face === 'cheer' ? 'cheer' : 'happy';
     else if (P.hurtT > 0 && face === 'normal') face = 'hurt';
     else if (P.jumpFaceT > 0 && face === 'normal') face = 'surprise';
@@ -9308,7 +9429,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ================= flow =================
-  const screens = { title: $('scrTitle'), pause: $('scrPause'), clear: $('scrClear'), over: $('scrOver'), win: $('scrWin'), world: $('scrWorld'), shop: $('scrShop') };
+  const screens = { title: $('scrTitle'), pause: $('scrPause'), clear: $('scrClear'), over: $('scrOver'), win: $('scrWin'), world: $('scrWorld'), shop: $('scrShop'), net: $('scrNet') };
   const hudEl = $('hud'), touchEl = $('touch');
   function showScreen(name) { for (const k in screens) screens[k].hidden = k !== name; }
   function placePlayer(pt, facing = Math.PI) {
@@ -9319,7 +9440,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     applySize(); P.lastSafe = { x: pt.x, y: pt.y, z: pt.z };
     P.pound = null; P.spinT = 0; P.spinCd = 0; P.spinAir = false; P.poundJT = 0; P.flipT = 0; P.throwT = 0; P.fireCd = 0;
     resetIdle(); P.jumpN = 0; P.landedT = 1; P.skidT = 0; P.wallT = 0; P.wallLock = 0; P.wallSlide = false; P.wallKickT = 0; P.inFan = false;
-    P.swim = false; P.swimT = 0; P.swimK = 0; P.dashCd = 0; P.cheerT = 0; P.dive = false; P.jetT = 0; P.dashHitT = 0; P.rent = '';
+    P.swim = false; P.swimT = 0; P.swimK = 0; P.dashCd = 0; P.cheerT = 0; P.dive = false; P.jetT = 0; P.dashHitT = 0; P.rent = ''; P.waveT = 0;
     G.chain = 0; G.chainT = 0; G.hitStop = 0; G.kick = 0; comboEl.classList.remove('show');
     hero.root.visible = true; hero.root.rotation.set(0, facing, 0);
     cam.yaw = wrapPi(facing - Math.PI); cam.yawGoal = null; cam.pitch = .38;
@@ -9384,10 +9505,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     Snd.startMusic(L.def.music);
     if (!quiet) toast('Ой!', c ? 'Начнём от флажка' : 'Начнём сначала');
   }
-  function startGame() {
+  function startGame(key = 'island') {
     Snd.init(); goFullscreen(); keepAwake();
     G.lives = 3; G.score = 0; G.coins = 0; G.gifts.clear(); setBig(false, false); G.star = false;
-    enterHub('island');
+    enterHub(key);
   }
   // back from a level to the world its door is in
   function leaveLevel() { Snd.init(); saveBest(); enterHub(hubOfLevel(G.li), { li: G.li }); }
@@ -9520,9 +9641,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return { x, y };
   }
   addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement) { if (e.code === 'Escape') e.target.blur(); return; } // typing a name or a room code
     if (e.code === 'Escape' || e.code === 'KeyP') { if (G.state === 'playing') pause(); else if (G.state === 'paused') resume(); else if (G.state === 'menu') closeMenu(); return; }
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (e.code === 'KeyV' && !e.repeat && G.state === 'playing') { rideToggle(); return; }
+    if (e.code === 'KeyG' && !e.repeat) { netWave(); return; }
     if (e.code === 'Enter' && G.state === 'title' && document.activeElement === document.body) { startGame(); return; }
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
@@ -9629,7 +9752,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
       ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['Esc', ' — пауза.']];
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['G', ' — помахать друзьям. '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
@@ -9647,7 +9770,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnSound').addEventListener('click', toggleMute);
   btnRide.addEventListener('click', () => { Snd.init(); rideToggle(); btnRide.blur(); });
   $('btnPause').addEventListener('click', () => { if (G.state === 'playing') pause(); });
-  $('btnPlay').addEventListener('click', startGame);
+  $('btnPlay').addEventListener('click', () => startGame());
   // a fresh start wipes the saved stars; it asks for a second tap first
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
@@ -9704,6 +9827,522 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const warn = G.time < 60 && (G.state === 'playing' || G.state === 'paused');
     if (hudCache.warn !== warn) { hudCache.warn = warn; H.time.classList.toggle('warn', warn); }
   }
+
+  // ================= friends online =================
+  // Friends in one room see each other's heroes whenever they are in the same world or level: the hero runs, jumps,
+  // swims, rides and waves on the other screens too. Only the pose travels; everyone keeps their own world, stars,
+  // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
+  // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
+  const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
+  const NET_APP = 'super-hop-3d', NET_V = 1, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
+  // of them share all eight (the library's default picks six by the app's name, and two of those were down)
+  const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
+    'schnorr.me'].map((h) => 'wss://' + h);
+  const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', CODE_LEN = 5;
+  // where a hero is, as one byte: 0 for nowhere (the title, the cards between levels), then the worlds, then the levels
+  const NET_LOCS = [''].concat(Object.keys(HUBS).map((k) => 'h:' + k), LEVELS.map((l) => 'l:' + l.id));
+  const RIDE_IDS = Object.keys(RIDES);
+  // The pose, up to 20 times a second: the hero's root, the ride under him, then every joint and face part that
+  // animateHero moves, read off our hero and put on the friend's copy. A channel is [part, property, axis, is an angle].
+  const NET_CH = [];
+  (() => {
+    const ch = (pick, prop, axes, ang = false) => { for (const a of axes) NET_CH.push([pick, prop, a, ang]); };
+    ch((h) => h.body, 'position', 'xyz'); ch((h) => h.body, 'rotation', 'xyz', true); ch((h) => h.body, 'scale', 'xyz');
+    ch((h) => h.hips, 'position', 'xy'); ch((h) => h.hips, 'rotation', 'y', true); ch((h) => h.torso, 'rotation', 'xyz', true);
+    ch((h) => h.neck, 'rotation', 'x', true); ch((h) => h.head, 'rotation', 'xyz', true); ch((h) => h.tuft, 'rotation', 'xz', true);
+    for (let i = 0; i < 2; i++) {
+      ch((h) => h.legs[i].hip, 'rotation', 'xz', true); ch((h) => h.legs[i].knee, 'rotation', 'x', true); ch((h) => h.legs[i].ankle, 'rotation', 'x', true);
+      ch((h) => h.arms[i].sh, 'rotation', 'xyz', true); ch((h) => h.arms[i].el, 'rotation', 'x', true); ch((h) => h.arms[i].wr, 'rotation', 'x', true);
+      ch((h) => h.eyes[i], 'scale', 'xy'); ch((h) => h.looks[i], 'position', 'xy'); ch((h) => h.lids[i], 'position', 'y');
+      ch((h) => h.brows[i], 'position', 'y'); ch((h) => h.brows[i], 'rotation', 'z', true);
+    }
+    for (let i = 0; i < 3; i++) ch((h) => h.scarf[i], 'rotation', 'xy', true);
+    for (const k of ['smile', 'frown', 'open', 'grin']) ch((h) => h[k], 'scale', 'xyz');
+    ch((h) => h.shield, 'scale', 'xyz');
+  })();
+  // before the channels: the root's turn, tumble and size; the ride's height, tilt, turn and squash; the dino's legs
+  const NET_PRE = 10, NET_N = NET_PRE + NET_CH.length, NET_HEAD = 24;
+  const NET_ANG = new Uint8Array(NET_N); // angles are wrapped and eased the short way round
+  for (const i of [0, 1, 4, 5, 6, 8, 9]) NET_ANG[i] = 1;
+  NET_CH.forEach((c, i) => { NET_ANG[NET_PRE + i] = c[3] ? 1 : 0; });
+  // the parts that show and hide, a bit each
+  const NET_VIS = [(h) => h.root, (h) => h.body, (h) => h.eyes[0], (h) => h.eyes[1], (h) => h.happy[0], (h) => h.happy[1], (h) => h.lids[0], (h) => h.lids[1],
+    (h) => h.smile, (h) => h.frown, (h) => h.open, (h) => h.grin, (h) => h.mask, (h) => h.shield];
+  const NF_FIRE = 1, NF_NOBLOB = 2, NF_PAUSED = 4;
+  const saved = store.get('net', {});
+  const net = {
+    lib: null, room: null, act: null, code: '', state: 'off', err: '', note: '', peers: new Map(), sendT: 0, helloKey: '', from: 'title', waveCd: 0, uiT: 0, listKey: '',
+    name: typeof saved.name === 'string' ? saved.name.slice(0, 14) : '', last: typeof saved.code === 'string' ? saved.code : '',
+    auto: typeof saved.auto === 'string' ? saved.auto : 'Игрок ' + (10 + Math.floor(Math.random() * 90)),
+  };
+  const netSave = () => store.set('net', { name: net.name, code: net.last, auto: net.auto });
+  const netName = () => net.name.trim() || net.auto;
+  // a send can fail when a friend drops out mid-way; that is fine, the next one goes to whoever is left
+  function netSend(action, data, opt) {
+    if (!action) return;
+    try { const p = action.send(data, opt); if (p && p.catch) p.catch(() => {}); } catch (e) { /* the peer is gone */ }
+  }
+  function netLoc() {
+    if (!L || !(G.state === 'playing' || G.state === 'paused' || G.state === 'menu' || G.state === 'dying' || G.state === 'goal')) return 0;
+    return Math.max(0, NET_LOCS.indexOf(L.def.hub ? 'h:' + L.def.key : 'l:' + L.def.id));
+  }
+  function netLocName(loc) {
+    const k = NET_LOCS[loc] || '';
+    if (k[0] === 'h') return HUBS[k.slice(2)].name;
+    const lv = LEVELS.find((l) => 'l:' + l.id === k);
+    return lv ? 'Уровень ' + lv.id + ' · ' + lv.name : '';
+  }
+
+  // ---------- the pose on the wire: a small binary packet ----------
+  const qA = (v) => clamp(Math.round(wrapPi(v) * 10000), -32767, 32767), qL = (v) => clamp(Math.round(v * 8000), -32767, 32767);
+  function netPack(loc) {
+    const h = hero, r = h.root, buf = new ArrayBuffer(NET_HEAD + NET_N * 2), dv = new DataView(buf);
+    let ride = 0, rg = null;
+    if (P.riding) { ride = 255; rg = P.riding.g; } else if (P.veh) { ride = RIDE_IDS.indexOf(P.vehId) + 1; rg = rideGroup(P.vehId); }
+    let vis = 0;
+    NET_VIS.forEach((pick, i) => { if (pick(h).visible) vis |= 1 << i; });
+    const flags = (P.fire ? NF_FIRE : 0) | (P.swim || P.sand || G.state === 'dying' ? NF_NOBLOB : 0) | (G.state === 'paused' || G.state === 'menu' ? NF_PAUSED : 0);
+    dv.setUint8(0, NET_V); dv.setUint8(1, loc); dv.setUint8(2, ride); dv.setUint8(3, flags);
+    dv.setUint32(4, vis >>> 0, true); dv.setUint32(8, Math.floor(performance.now()) >>> 0, true);
+    dv.setFloat32(12, r.position.x, true); dv.setFloat32(16, r.position.y, true); dv.setFloat32(20, r.position.z, true);
+    let o = NET_HEAD;
+    const put = (v, ang) => { dv.setInt16(o, ang ? qA(v) : qL(v), true); o += 2; };
+    put(r.rotation.y, 1); put(r.rotation.z, 1); put(r.scale.x);
+    if (rg) { put(rg.position.y - r.position.y); put(rg.rotation.x, 1); put(rg.rotation.y, 1); put(rg.rotation.z, 1); put(rg.scale.y); }
+    else { put(0); put(0, 1); put(0, 1); put(0, 1); put(1); }
+    const legs = P.riding ? P.riding.legs : null;
+    put(legs ? legs[0].rotation.x : 0, 1); put(legs ? legs[1].rotation.x : 0, 1);
+    for (const [pick, prop, ax, ang] of NET_CH) put(pick(h)[prop][ax], ang);
+    return buf;
+  }
+  // anything that does not look like our own packet is dropped
+  function netUnpack(data) {
+    const buf = data instanceof ArrayBuffer ? data : ArrayBuffer.isView(data) ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) : null;
+    if (!buf || buf.byteLength !== NET_HEAD + NET_N * 2) return null;
+    const dv = new DataView(buf);
+    if (dv.getUint8(0) !== NET_V) return null;
+    const x = dv.getFloat32(12, true), y = dv.getFloat32(16, true), z = dv.getFloat32(20, true);
+    if (!(Math.abs(x) < 1e4 && Math.abs(y) < 1e4 && Math.abs(z) < 1e4)) return null;
+    const v = new Float32Array(NET_N);
+    for (let i = 0, o = NET_HEAD; i < NET_N; i++, o += 2) v[i] = dv.getInt16(o, true) / (NET_ANG[i] ? 10000 : 8000);
+    return { loc: dv.getUint8(1), ride: dv.getUint8(2), flags: dv.getUint8(3), vis: dv.getUint32(4, true), t: dv.getUint32(8, true), x, y, z, v };
+  }
+
+  // ---------- friends ----------
+  function netPeer(id) {
+    let g = net.peers.get(id);
+    if (!g) {
+      g = { id, name: '', old: false, look: { skin: 'classic', cap: 'auto', hat: '' }, snaps: [], off: null, loc: 0, seen: 0, last: null,
+        rig: null, nodes: null, visNodes: null, blob: null, ride: null, rideId: 0, dress: '', tag: null, emoT: 0,
+        cur: new Float32Array(NET_N), px: 0, py: 0, pz: 0, vis: 0, flags: 0, rideNow: 0 };
+      net.peers.set(id, g);
+    }
+    return g;
+  }
+  function netDrop(id, quiet) {
+    const g = net.peers.get(id); if (!g) return;
+    net.peers.delete(id);
+    if (g.rig) {
+      scene.remove(g.rig.root); scene.remove(g.blob); g.blob.material.dispose();
+      for (const k in g.rig.m) g.rig.m[k].dispose();
+      g.rig.shield.material.dispose();
+    }
+    if (g.ride) scene.remove(g.ride.g);
+    if (g.tag) g.tag.el.remove();
+    if (!quiet && g.name) netNote(g.name + ' уже не в игре');
+    netUi();
+  }
+  function netOnHello(d, id) {
+    if (!d || typeof d !== 'object') return;
+    const g = netPeer(id), first = !g.name;
+    g.old = d.v !== NET_V;
+    g.name = String(d.n || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 14) || 'Друг';
+    g.look = {
+      skin: SKINS.some((s) => s.id === d.s) ? d.s : 'classic',
+      cap: CAPS.some((c) => c.id === d.c) ? d.c : 'auto',
+      hat: HATS.some((k) => k.id === d.h) ? d.h : '',
+    };
+    if (first) { netNote(g.name + ' в игре'); Snd.sfx.pop(); }
+    netUi();
+  }
+  function netOnPose(data, id) {
+    const s = netUnpack(data); if (!s) return;
+    const g = netPeer(id), now = performance.now(), prev = g.snaps[g.snaps.length - 1];
+    if (s.loc !== g.loc || (prev && s.t < prev.t)) {
+      g.snaps.length = 0; g.off = null;
+      if (s.loc && s.loc === netLoc() && g.name) netNote(g.name + ' тоже здесь');
+    }
+    g.loc = s.loc; g.seen = now; g.last = s;
+    // the gap between their clock and ours: the smallest one seen, drifting up slowly in case the link gets slower
+    const d = now - s.t;
+    g.off = g.off === null || d < g.off ? d : g.off + (d - g.off) * .02;
+    g.snaps.push(s); if (g.snaps.length > 30) g.snaps.shift();
+  }
+  function netOnEmote(d, id) {
+    const g = net.peers.get(id); if (!g || !d || d.e !== 'wave' || g.emoT > performance.now()) return;
+    g.emoT = performance.now() + 1000;
+    if (g.rig && g.rig.root.visible) { popup('👋', g.px, g.py + 2.3 * g.cur[2], g.pz); Snd.sfx.blip(); }
+  }
+  // ours: waving (G on a keyboard, the hand button on a phone); the friends see the arm go and a hand over the head
+  function netWave() {
+    if (!net.room || G.state !== 'playing' || net.waveCd > 0) return;
+    net.waveCd = 1.2; P.waveT = 2.2; resetIdle();
+    popup('👋', P.pos.x, P.pos.y + PH + .7, P.pos.z);
+    netSend(net.act.emo, { e: 'wave' });
+  }
+  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat });
+  // the name or the costume changed: tell everyone
+  function netLookChanged() {
+    if (!net.room) return;
+    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h;
+    if (key === net.helloKey) return;
+    net.helloKey = key; netSend(net.act.hello, h);
+  }
+  // a friend close by, for our hero's eyes
+  function netFriendNear(d2max) {
+    let best = d2max, tgt = null;
+    for (const g of net.peers.values()) {
+      if (!g.rig || !g.rig.root.visible) continue;
+      const dx = g.px - P.pos.x, dz = g.pz - P.pos.z, d = dx * dx + dz * dz;
+      if (d < best && Math.abs(g.py - P.pos.y) < 4) { best = d; tgt = [g.px, g.py + 1.3 * g.cur[2], g.pz, true]; }
+    }
+    return tgt;
+  }
+
+  // ---------- joining and leaving a room ----------
+  function netCleanCode(s) {
+    s = String(s || '');
+    const m = s.match(/[?&#]room=([^&#\s]+)/i); if (m) s = m[1];
+    return s.toUpperCase().split('').filter((c) => CODE_ABC.includes(c)).join('').slice(0, CODE_LEN);
+  }
+  function netNewCode() {
+    const a = new Uint32Array(CODE_LEN); crypto.getRandomValues(a);
+    return Array.from(a, (x) => CODE_ABC[x % CODE_ABC.length]).join('');
+  }
+  async function netJoin(code) {
+    netLeave();
+    net.code = code; net.last = code; net.state = 'loading'; net.err = ''; net.note = ''; net.joinedAt = performance.now(); netSave();
+    renderNet();
+    try { if (!net.lib) net.lib = await import(NET_LIB); } catch (e) {
+      if (net.code === code) { net.code = ''; net.state = 'off'; net.note = 'Не загрузилась игра по сети. Проверь интернет и попробуй ещё раз.'; renderNet(); }
+      return;
+    }
+    await netOpen(code);
+    renderNet(); netUi();
+  }
+  // the room itself; a room left a moment ago has to be gone before the same one can be joined again
+  let netLeaving = null;
+  async function netOpen(code) {
+    if (netLeaving) await netLeaving;
+    if (net.code !== code || net.room) return;
+    let room;
+    try {
+      room = net.lib.joinRoom({ appId: NET_APP, relayConfig: { urls: NET_RELAYS, warnOnRelayFailure: false } }, 'room-' + code, {
+        onJoinError: () => { net.err = 'С кем-то из друзей не соединиться напрямую: не пускает сеть. Попробуйте другой Wi-Fi или мобильный интернет.'; renderNet(); },
+      });
+    } catch (e) { net.code = ''; net.state = 'off'; net.note = 'Игра по сети не запустилась в этом браузере.'; renderNet(); return; }
+    net.room = room; net.state = 'on'; net.openedAt = performance.now();
+    const hello = room.makeAction('hello'), pose = room.makeAction('pose'), emo = room.makeAction('emote');
+    net.act = { hello, pose, emo };
+    hello.onMessage = (d, m) => netOnHello(d, m.peerId);
+    pose.onMessage = (d, m) => netOnPose(d, m.peerId);
+    emo.onMessage = (d, m) => netOnEmote(d, m.peerId);
+    room.onPeerJoin = (id) => { net.err = ''; netPeer(id); netSend(hello, netHello(), { target: id }); netUi(); };
+    room.onPeerLeave = (id) => netDrop(id);
+    net.helloKey = ''; netLookChanged();
+  }
+  function netClose() {
+    const r = net.room;
+    net.room = null; net.act = null;
+    if (r) { try { const p = r.leave(); if (p && p.then) netLeaving = p.catch(() => {}).then(() => { netLeaving = null; }); } catch (e) { /* already gone */ } }
+  }
+  function netLeave() {
+    netClose();
+    net.code = ''; net.state = 'off'; net.err = ''; net.note = '';
+    for (const id of Array.from(net.peers.keys())) netDrop(id, true);
+    netUi();
+  }
+  // Alone in a room for half a minute: join it again quietly, for fresh subscriptions on the relays and a fresh round
+  // of announces. In testing a room once stopped hearing the relays while the sockets stayed open, and a friend who
+  // came back was never found; with nobody connected, joining again costs nothing.
+  function netRefresh() { const code = net.code; netClose(); netOpen(code); }
+  addEventListener('pagehide', () => { if (net.room) try { net.room.leave(); } catch (e) { /* closing anyway */ } });
+  // share the room's link: the phone's share sheet, or the clipboard on a computer
+  async function netShare() {
+    const url = location.origin + location.pathname + '?room=' + net.code, text = 'Поиграем вместе в Super Hop 3D! Комната ' + net.code;
+    try { if (navigator.share) { await navigator.share({ title: 'Super Hop 3D', text, url }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(url); net.note = 'Ссылка скопирована. Отправь её другу.'; } catch (e) { net.note = 'Отправь другу ссылку: ' + url; }
+    renderNet();
+  }
+
+  // ---------- friends' heroes each frame ----------
+  function netRig(g) {
+    const h = buildHero(); h.root.visible = false; scene.add(h.root);
+    g.rig = h;
+    g.nodes = NET_CH.map(([pick, prop]) => pick(h)[prop]);
+    g.visNodes = NET_VIS.map((pick) => pick(h));
+    g.blob = new T.Mesh(blob.geometry, blob.material.clone()); g.blob.rotation.x = -Math.PI / 2; g.blob.visible = false; scene.add(g.blob);
+  }
+  function netRide(g, id) {
+    if (g.rideId === id) return;
+    if (g.ride) { scene.remove(g.ride.g); g.ride = null; }
+    g.rideId = id;
+    if (id === 255) g.ride = dinoModel();
+    else if (RIDE_IDS[id - 1]) {
+      const gr = new T.Group(), m = new T.Mesh(GEO.rides[RIDE_IDS[id - 1]], MAT.char); m.castShadow = true; gr.add(m); gr.rotation.order = 'YXZ';
+      g.ride = { g: gr };
+    }
+    if (g.ride) scene.add(g.ride.g);
+  }
+  // the pose a little in the past, between the two packets around that moment, so the motion stays smooth
+  function netSample(g, now) {
+    const s = g.snaps, rt = now - g.off - NET_DELAY;
+    let i = s.length - 1;
+    while (i > 0 && s[i].t > rt) i--;
+    const a = s[i], b = s[i + 1];
+    let k = b && rt > a.t ? clamp((rt - a.t) / Math.max(1, b.t - a.t), 0, 1) : 0;
+    if (b && Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) > 8) k = k < .5 ? 0 : 1; // a jump back to a flag: no sliding across
+    const c = k < .5 || !b ? a : b, v = g.cur;
+    if (!b || k === 0) { v.set(a.v); g.px = a.x; g.py = a.y; g.pz = a.z; }
+    else {
+      for (let j = 0; j < NET_N; j++) v[j] = NET_ANG[j] ? a.v[j] + wrapPi(b.v[j] - a.v[j]) * k : lerp(a.v[j], b.v[j], k);
+      g.px = lerp(a.x, b.x, k); g.py = lerp(a.y, b.y, k); g.pz = lerp(a.z, b.z, k);
+    }
+    g.vis = c.vis; g.flags = c.flags; g.rideNow = c.ride;
+  }
+  function netHide(g) {
+    if (g.rig) { g.rig.root.visible = false; g.blob.visible = false; }
+    if (g.ride) g.ride.g.visible = false;
+    if (g.tag) g.tag.el.hidden = true;
+  }
+  function netShowPeer(g, loc, now) {
+    if (!loc || g.loc !== loc || !g.snaps.length || g.old) { netHide(g); return; }
+    if (!g.rig) netRig(g);
+    netSample(g, now);
+    const h = g.rig, r = h.root, v = g.cur;
+    r.position.set(g.px, g.py, g.pz); r.rotation.set(0, v[0], v[1]); r.scale.setScalar(v[2]);
+    for (let i = 0; i < NET_CH.length; i++) g.nodes[i][NET_CH[i][2]] = v[NET_PRE + i];
+    for (let i = 0; i < NET_VIS.length; i++) g.visNodes[i].visible = !!(g.vis & (1 << i));
+    const fire = !!(g.flags & NF_FIRE), suit = !!L.def.suit, key = g.look.skin + '|' + g.look.cap + '|' + g.look.hat + '|' + fire + '|' + suit;
+    if (g.dress !== key) { g.dress = key; dressHero(h, g.look, fire, suit); }
+    const shown = r.visible, dist = Math.hypot(g.px - P.pos.x, g.py - P.pos.y, g.pz - P.pos.z);
+    r.visible = shown && dist < (scene.fog ? scene.fog.far + 20 : 260); // past the fog there is nothing to see
+    netRide(g, g.rideNow);
+    const feetY = g.py + (g.ride ? v[3] : 0);
+    if (g.ride) {
+      const rg = g.ride.g; rg.visible = r.visible;
+      rg.position.set(g.px, feetY, g.pz); rg.rotation.set(v[4], v[5], v[6]); rg.scale.set(1, v[7] || 1, 1);
+      if (g.ride.legs) { g.ride.legs[0].rotation.x = v[8]; g.ride.legs[1].rotation.x = v[9]; }
+    }
+    // a soft shadow on whatever is under the friend
+    const bl = g.blob;
+    let gy = r.visible && !(g.flags & NF_NOBLOB) ? groundAt(g.px, g.pz, feetY + .05, .12) : -Infinity;
+    if (gy > -Infinity && g.ride && L.waters.length) { const w = waterAt(g.px, g.pz); if (w !== null && w <= feetY + .05) gy = Math.max(gy, w); }
+    if (gy === -Infinity || feetY - gy > 14) bl.visible = false;
+    else {
+      const kk = clamp(1 - (feetY - gy) * .07, .35, 1);
+      bl.visible = true; bl.position.set(g.px, gy + .03, g.pz); bl.scale.setScalar(kk * (g.ride ? 1.5 : v[2] > 1.1 ? 1.25 : 1)); bl.material.opacity = .34 * kk;
+    }
+    netPlaceTag(g, shown, dist, now);
+  }
+
+  // ---------- name tags: over a friend's head, or at the screen's edge with an arrow when the friend is out of view ----------
+  const tagsEl = $('tags'), _tc = new T.Vector3();
+  function netPlaceTag(g, shown, dist, now) {
+    if (!g.tag) {
+      const el = document.createElement('div'); el.className = 'tag';
+      const dir = document.createElement('b'), dot = document.createElement('i'), name = document.createElement('span'), note = document.createElement('small');
+      dir.className = 'dir'; el.append(dir, dot, name, note); tagsEl.append(el);
+      g.tag = { el, dir, dot, name, note, key: '', edge: null };
+    }
+    const tg = g.tag;
+    if (!shown || hudEl.hidden) { tg.el.hidden = true; return; }
+    tg.el.hidden = false;
+    const w = innerWidth, hh = innerHeight, y = g.py + 2.25 * g.cur[2] + (g.rideId === 255 ? .2 : 0);
+    _tc.set(g.px, y, g.pz).applyMatrix4(camera.matrixWorldInverse);
+    const behind = _tc.z > -.2;
+    _v.set(g.px, y, g.pz).project(camera);
+    let sx = (_v.x * .5 + .5) * w, sy = (-_v.y * .5 + .5) * hh;
+    const mx = 74, top = 78, bottom = 46;
+    const edge = behind || sx < mx || sx > w - mx || sy < top || sy > hh - bottom;
+    if (edge) {
+      // towards the friend from the middle of the screen; somebody behind the camera shows at the bottom edge
+      let dx = sx - w / 2, dy = sy - hh / 2;
+      if (behind) { dx = clamp(_tc.x * 40, -w, w); dy = hh; }
+      const m = Math.max(Math.abs(dx) / (w / 2 - mx), dy < 0 ? -dy / (hh / 2 - top) : dy / (hh / 2 - bottom), 1e-6);
+      sx = w / 2 + dx / m; sy = hh / 2 + dy / m;
+      tg.dir.style.transform = 'rotate(' + (Math.atan2(dy, dx) + Math.PI / 2).toFixed(2) + 'rad)';
+      tg.el.classList.toggle('right', dx > 0); // the arrow on the side it points to
+    }
+    if (tg.edge !== edge) { tg.edge = edge; tg.el.classList.toggle('edge', edge); }
+    const away = now - g.seen > NET_AWAY, paused = !!(g.flags & NF_PAUSED);
+    const note = (edge || dist > 40 ? Math.round(dist) + ' м' : '') + (away ? ' 💤' : paused ? ' ⏸' : '');
+    const key = g.name + '|' + note + '|' + g.look.skin;
+    if (tg.key !== key) {
+      tg.key = key; tg.name.textContent = g.name || 'Друг'; tg.note.textContent = note.trim();
+      tg.dot.style.background = hexCss(skinDef(g.look.skin).shirt);
+    }
+    tg.el.classList.toggle('away', away);
+    tg.el.style.transform = `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) translate(-50%, ${edge ? '-50%' : '-100%'})`;
+  }
+
+  // ---------- each frame: send our pose, move the friends ----------
+  function netUpdate(dt) {
+    net.waveCd -= dt;
+    if (!net.room) return;
+    const now = performance.now(), loc = netLoc();
+    if (!net.peers.size && now - net.openedAt > 30000) { netRefresh(); return; }
+    net.sendT -= dt;
+    if (net.sendT <= 0 && net.peers.size) {
+      // fast while a friend is in the same place and we are playing, a slow heartbeat otherwise
+      let near = false;
+      for (const g of net.peers.values()) if (loc && g.loc === loc && now - g.seen < NET_AWAY) { near = true; break; }
+      net.sendT = near && G.state !== 'paused' && G.state !== 'menu' ? 1 / NET_HZ : NET_IDLE;
+      netSend(net.act.pose, netPack(loc));
+    }
+    camera.updateMatrixWorld();
+    for (const g of net.peers.values()) netShowPeer(g, loc, now);
+    if (!screens.net.hidden) { net.uiT -= dt; if (net.uiT <= 0) { net.uiT = 1; renderNet(); } }
+  }
+
+  // ---------- the friends card, the HUD button, the wave button ----------
+  const btnNet = $('btnNet'), btnWave = $('btnWave'), feedEl = $('netFeed');
+  function netNote(text) {
+    const p = document.createElement('p'); p.textContent = text; feedEl.append(p);
+    while (feedEl.children.length > 3) feedEl.firstChild.remove();
+    setTimeout(() => { p.classList.add('out'); setTimeout(() => p.remove(), 450); }, 3200);
+  }
+  function netUi() {
+    const n = net.peers.size, on = !!net.room;
+    btnNet.hidden = !on; $('netCount').textContent = n; btnNet.setAttribute('aria-label', 'Друзья в комнате: ' + n);
+    btnWave.hidden = !(on && n > 0);
+    $('btnPauseNet').textContent = on ? 'Друзья · ' + n : 'Играть с друзьями';
+    if (!screens.net.hidden) renderNet();
+  }
+  function openNet(from) { net.from = from; net.listKey = ''; net.note = ''; renderNet(); showScreen('net'); Snd.sfx.ui(); }
+  function closeNet() {
+    if (net.from === 'pause' && G.state === 'paused') { renderPause(); showScreen('pause'); }
+    else if (G.state === 'title') showScreen('title');
+    else showScreen(null);
+  }
+  // can we follow a friend there: only into open worlds, and only the ones our stars have opened
+  function netCanGo(g) {
+    const k = NET_LOCS[g.loc] || '';
+    if (k[0] !== 'h' || !g.last || g.old) return null;
+    const key = k.slice(2), W = WORLDS.find((w) => w.hub === key);
+    return { key, need: W && starCount() < W.need ? W.need : 0 };
+  }
+  function netWhere(g, loc) {
+    if (g.old) return 'у друга другая версия игры: обновите страницу';
+    if (!g.seen) return 'подключается…';
+    if (!g.loc) return 'в меню';
+    const away = performance.now() - g.seen > NET_AWAY, paused = g.last && g.last.flags & NF_PAUSED;
+    return (g.loc === loc ? 'Здесь же: ' : '') + netLocName(g.loc) + (away ? ' · не у экрана' : paused ? ' · пауза' : '');
+  }
+  function renderNet() {
+    const on = !!net.code, loc = netLoc();
+    $('netOff').hidden = on; $('netOn').hidden = !on;
+    const nameIn = $('netName');
+    if (document.activeElement !== nameIn) nameIn.value = net.name;
+    nameIn.placeholder = net.auto;
+    const codeIn = $('netCode');
+    if (!on && document.activeElement !== codeIn && !codeIn.value) codeIn.value = net.last;
+    $('netCodeShow').textContent = net.code;
+    $('btnNetGo').textContent = net.from === 'title' ? 'Играть' : 'Продолжить';
+    const n = net.peers.size;
+    let status = '';
+    if (net.state === 'loading') status = 'Подключаемся…';
+    else if (on) {
+      status = n ? 'В комнате ' + n + ' ' + plural(n, 'друг', 'друга', 'друзей') + '.' : 'Пока никого. Нажми «Позвать друга» и отправь ссылку.';
+      if (!n && net.lib && net.lib.getRelaySockets && performance.now() - net.joinedAt > 8000) {
+        const socks = Object.values(net.lib.getRelaySockets() || {});
+        if (!socks.some((s) => s && s.readyState === 1)) status = 'Нет связи с сетью. Проверь интернет.';
+      }
+    }
+    const st = $('netStatus'); st.textContent = [status, on ? net.err : '', net.note].filter(Boolean).join(' '); st.hidden = !st.textContent;
+    // the list is rebuilt only when something in it changed, so a tap on a button is not lost
+    const rows = Array.from(net.peers.values()).map((g) => {
+      const go = netCanGo(g);
+      return { g, where: netWhere(g, loc), go, label: !go ? '' : go.need ? '★ ' + go.need : 'К другу' };
+    });
+    const key = rows.map((r) => r.g.id + r.g.name + r.g.look.skin + r.where + r.label).join('|');
+    if (key === net.listKey) return;
+    net.listKey = key;
+    const ul = $('netList'); ul.textContent = '';
+    for (const r of rows) {
+      const li = document.createElement('li');
+      const sw = document.createElement('i'); sw.className = 'swatch'; sw.style.background = hexCss(skinDef(r.g.look.skin).shirt);
+      const txt = document.createElement('span'), b = document.createElement('b'), sm = document.createElement('small');
+      b.textContent = r.g.name || 'Друг'; sm.textContent = r.where; txt.append(b, sm);
+      li.append(sw, txt);
+      if (r.go) {
+        const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-sm'; btn.textContent = r.label;
+        btn.disabled = !!r.go.need;
+        btn.setAttribute('aria-label', r.go.need ? 'Этот мир откроется при ' + r.go.need + ' звёздах' : 'Перенестись к другу: ' + (r.g.name || 'Друг'));
+        btn.addEventListener('click', () => netGoTo(r.g));
+        li.append(btn);
+      }
+      ul.append(li);
+    }
+  }
+  // follow a friend: into their world if it is not ours, next to them, facing them. Like a fall, it ends a race and
+  // drops what is being carried.
+  function netGoTo(g) {
+    const t = netCanGo(g), s = g.last;
+    if (!t || t.need || !s) return;
+    if (G.state === 'title') startGame(t.key);
+    else if (!L.def.hub || L.def.key !== t.key) { Snd.init(); enterHub(t.key); }
+    else {
+      if (ISL.race && ISL.race.on) resetRace();
+      if (ISL.carry) dropCarry('fall');
+      if (G.state === 'paused') resume(); else if (G.state === 'menu') closeMenu();
+    }
+    const f = s.v[0], fy = s.y + (s.ride ? s.v[3] : 0);
+    let spot = { x: s.x, y: fy + .05, z: s.z };
+    for (const [ox, oz] of [[-Math.sin(f), -Math.cos(f)], [Math.cos(f), -Math.sin(f)], [-Math.cos(f), Math.sin(f)], [Math.sin(f), Math.cos(f)]]) {
+      const x = s.x + ox * 1.6, z = s.z + oz * 1.6;
+      if (freeAt(x, fy + .05, z)) { spot = { x, y: fy + .05, z }; break; }
+    }
+    placePlayer(spot, Math.atan2(s.x - spot.x, s.z - spot.z));
+    for (const fo of L.lost) if (fo.state === 'follow') { fo.x = spot.x; fo.y = spot.y; fo.z = spot.z; }
+    ISL.trail.length = 0;
+    G.state = 'playing'; showScreen(null); hudEl.hidden = false; showTouch(isTouch); updateCam(0, true); updateRideBtn();
+    puff(spot.x, spot.y + .4, spot.z, 0xffffff, 10, 2, .6, .5, 1); Snd.sfx.portal();
+    toast(g.name || 'Друг', 'Вы рядом');
+  }
+  function netOnBoot() {
+    let code = '';
+    try {
+      const u = new URL(location.href);
+      if (u.searchParams.has('room')) {
+        code = netCleanCode(u.searchParams.get('room'));
+        u.searchParams.delete('room'); history.replaceState(null, '', u.pathname + u.search + u.hash);
+      }
+    } catch (e) { /* no link, no room */ }
+    netUi();
+    if (code.length === CODE_LEN) { netJoin(code); openNet('title'); }
+  }
+  $('btnFriends').addEventListener('click', () => openNet('title'));
+  $('btnPauseNet').addEventListener('click', () => openNet('pause'));
+  btnNet.addEventListener('click', () => { if (G.state === 'playing') pause(); if (G.state === 'paused') openNet('pause'); btnNet.blur(); });
+  $('btnNetCreate').addEventListener('click', () => { Snd.init(); netJoin(netNewCode()); });
+  $('netJoin').addEventListener('submit', (e) => {
+    e.preventDefault(); Snd.init();
+    const code = netCleanCode($('netCode').value);
+    $('netCode').value = code;
+    if (code.length === CODE_LEN) { $('netCode').blur(); netJoin(code); }
+    else { net.note = 'Код комнаты — пять букв и цифр, его пишут в ссылке после room='; renderNet(); }
+  });
+  $('netCode').addEventListener('input', (e) => { const c = netCleanCode(e.target.value); if (c !== e.target.value) e.target.value = c; });
+  $('netName').addEventListener('input', (e) => { net.name = e.target.value.replace(/[\u0000-\u001f\u007f]/g, '').slice(0, 14); netSave(); });
+  $('netName').addEventListener('change', () => { net.name = net.name.trim(); netSave(); netLookChanged(); });
+  $('btnNetShare').addEventListener('click', netShare);
+  $('btnNetLeave').addEventListener('click', () => { netLeave(); renderNet(); Snd.sfx.ui(); });
+  $('btnNetBack').addEventListener('click', () => { Snd.sfx.ui(); closeNet(); });
+  $('btnNetGo').addEventListener('click', () => { if (G.state === 'title') startGame(); else if (G.state === 'paused') resume(); else closeNet(); });
+  btnWave.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); netWave(); });
+  btnWave.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // ================= resize & loop =================
   function resize() {
@@ -9801,7 +10440,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       glow(P.pos.x + Math.sin(a) * R, P.pos.y + PH * .5, P.pos.z + Math.cos(a) * R, 0xbff6ff, 1, .3, 0, 0, .25, .3);
       P.spinT -= dt; if (P.spinT <= 0) { P.spinT = 0; P.spinCd = .12; }
     } else if (P.spinCd > 0) P.spinCd -= dt;
-    P.poundJT -= dt; P.flipT -= dt; P.fireCd -= dt; P.throwT -= dt;
+    P.poundJT -= dt; P.flipT -= dt; P.fireCd -= dt; P.throwT -= dt; P.waveT -= dt;
     P.landedT += dt; P.skidT -= dt; P.wallT -= dt; P.wallLock -= dt; P.wallKickT -= dt; P.rideCd -= dt;
   }
 
@@ -9856,6 +10495,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateFairy(dt);
     animateCoins();
     animateHero(dt);
+    netUpdate(dt);
     updateBlob();
     if (G.hitStop <= 0) { updateParticles(dt); updateWaves(dt); }
     updateWeather(dt);
@@ -9878,6 +10518,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     resize();
     buildComposer();
     toTitle();
+    netOnBoot();
     last = performance.now();
     requestAnimationFrame(frame);
   }
