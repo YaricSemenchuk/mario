@@ -88,9 +88,12 @@ a flying dragon, and under the water every sound is muffled.
 - The KV-44: the long green tank of the cartoons with five turrets, the hero standing in the hatch of the big one. It is
   slower and turns more slowly than the tank, and its whole hull keeps clear of walls (where it cannot turn it backs up a
   little). The action button fires a salvo: the big gun, then the small turrets one after another (they all turn with
-  the big one), and loading them all again takes a while. Its thick armour gives a heart more in a tank battle, and the
-  tank's upgrades work on it too. It is lent on a blue pad by the hangars, bought in the shops, and it is what the hero
-  drives against Leviathan
+  the big one), and loading them all again takes a while. It also carries a grenade launcher on the roof of the big turret
+  and a rocket pod on each side of it, each on a button of its own (C and R on desktop) that darkens while it loads: the
+  grenade launcher lobs four grenades in a high arc onto the target (over walls, too) or onto the ground ahead, and the
+  pods send off eight rockets that turn by themselves to the targets round the tank and burst on them. Its thick armour
+  gives a heart more in a tank battle, and the tank's upgrades work on it too. It is lent on a blue pad by the hangars,
+  bought in the shops, and it is what the hero drives against Leviathan
 - Upgrading the tank: medals come for victories (one for every wave of a tank battle knocked out, three for Leviathan,
   three for a tank battle with friends won, one for a draw) and buy upgrades in the shops' "Tank" tab, three levels each: the gun reloads faster
   and grows longer and thicker; the shells burst wider, then come out of a pair of guns, then turn fiery and hit twice as
@@ -218,7 +221,7 @@ a flying dragon, and under the water every sound is muffled.
 - Collectibles are the Promobile mark
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
   on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun; on a KV-44,
-  a salvo), mouse drag or Q/E for the
+  a salvo, with C for its grenade launcher and R for its rockets), mouse drag or Q/E for the
   camera, V for a ride, G to wave to friends
 
 ## Play

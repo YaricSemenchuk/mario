@@ -118,6 +118,17 @@
   }
   #btnAct.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); background: #ff7a5c; }
   #btnAct.fire { background: rgba(255, 176, 58, .95); }
+  /* the KV-44's grenade launcher and rocket pods: a button each by the action button, darkened from the top while it loads */
+  .kv-btn {
+    position: absolute; width: 64px; height: 64px; border-radius: 50%; padding: 0; cursor: pointer; --cd: 0;
+    background: linear-gradient(to bottom, rgba(28, 30, 59, .55) calc(var(--cd) * 100%), transparent 0), var(--kv-col);
+    border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink);
+    display: grid; place-items: center; align-content: center; gap: 1px; color: var(--ink);
+    font: 900 9px/1 var(--ui); letter-spacing: .06em; pointer-events: auto; touch-action: none;
+  }
+  .kv-btn.on { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  #btnRocket { --kv-col: rgba(255, 138, 42, .95); right: calc(env(safe-area-inset-right, 0px) + 218px); bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); }
+  #btnNade { --kv-col: rgba(143, 196, 92, .95); right: calc(env(safe-area-inset-right, 0px) + 214px); bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
   #btnCam {
     position: absolute; right: calc(env(safe-area-inset-right, 0px) + 44px); bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
     width: 52px; height: 52px; border-radius: 50%; padding: 0; cursor: pointer;
@@ -462,6 +473,14 @@
   <button id="btnAct" type="button" aria-label="Удар">
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6l-1.5 8 8.5-11h-6z" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
     <span id="actLbl">УДАР</span>
+  </button>
+  <button id="btnRocket" class="kv-btn" type="button" aria-label="Ракетница" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.2c2.5 1.9 3.7 4.9 3.7 8.4v5.6H8.3v-5.6c0-3.5 1.2-6.5 3.7-8.4z" fill="currentColor"/><path d="M8.3 12.6 5 16.2v3.6l3.3-1.8zM15.7 12.6l3.3 3.6v3.6l-3.3-1.8z" fill="currentColor"/><path d="M10.2 17.8h3.6L12 22z" fill="currentColor"/></svg>
+    <span>РАКЕТЫ</span>
+  </button>
+  <button id="btnNade" class="kv-btn" type="button" aria-label="Гранатомёт" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="11" cy="14.5" r="6.6" fill="currentColor"/><rect x="8.8" y="4.6" width="4.4" height="4.2" rx="1" fill="currentColor"/><path d="M13.4 6.4h3.4l2.4 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>ГРАНАТЫ</span>
   </button>
   <button id="btnWave" type="button" aria-label="Помахать друзьям" hidden>👋</button>
 </div>
@@ -2392,6 +2411,34 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // all its road wheels in one, for a tank that stands still
     GEO.bigWheels[k] = mergedGeo([-1, 1].flatMap((s) => D.wheels.flatMap((z) => tankWheelParts(D.c).map(([g, col, m]) => [g, col, M4(s * D.wx, D.wy, z, D.ws, D.ws, D.ws).multiply(m)]))));
   }
+  // The hero's KV-44 carries more: a rocket pod on each side of its big turret (four tubes each, a rocket in every one) and
+  // an automatic grenade launcher on the roof by the hatch, turning with the turret. In the big turret's own units:
+  // KV_TUBES are the mouths of the tubes, in the order the rockets go (left and right in turn, top ones first); KV_GL is
+  // the grenade launcher's pivot, how far it is tipped up and the end of its barrel.
+  const KV_TUBES = Array.from({ length: 8 }, (_, i) => { const s = i % 2 ? 1 : -1, j = i >> 1; return [s * (.93 + (j % 2 ? -.07 : .07)), j < 2 ? .72 : .52, .41]; });
+  const KV_GL = { at: [.5, 1.22, .42], pitch: .3, tip: [0, .01, .58] };
+  KV_GL.end = [KV_GL.at[0], KV_GL.at[1] + KV_GL.tip[1] * Math.cos(KV_GL.pitch) + KV_GL.tip[2] * Math.sin(KV_GL.pitch),
+    KV_GL.at[2] - KV_GL.tip[1] * Math.sin(KV_GL.pitch) + KV_GL.tip[2] * Math.cos(KV_GL.pitch)];
+  GEO.kvPods = mergedGeo([
+    ...[-1, 1].flatMap((s) => [[BOX, KV44_C.dark, M4(s * .72, .62, -.12, .14, .14, .46)], [BOX, KV44_C.body, M4(s * .93, .62, -.12, .3, .42, 1)],
+      [BOX, KV44_C.dark, M4(s * .93, .62, .39, .32, .44, .04)], [BOX, KV44_C.dark, M4(s * .93, .62, -.63, .32, .44, .04)],
+      [BOX, KV44_C.trim, M4(s * .93, .835, -.12, .31, .025, 1.01)], [STAR5, KV44_C.trim, M4(s * 1.085, .6, -.15, .13, .13, .13, 0, s * Math.PI / 2, 0)]]),
+    ...KV_TUBES.map(([x, y, z]) => [TANK_CYL, 0x1c1e2e, M4(x, y, z + .005, .065, .02, .065, Math.PI / 2, 0, 0)]),
+    [TANK_CYL, KV44_C.dark, M4(KV_GL.at[0], 1.03, KV_GL.at[2], .12, .04, .12)], [TANK_CYL, 0x3b3f50, M4(KV_GL.at[0], 1.12, KV_GL.at[2], .045, .18, .045)],
+  ]);
+  GEO.kvGL = mergedGeo([
+    [BOX, KV44_C.dark, M4(0, 0, 0, .14, .13, .3)], [TANK_CYL, 0x3b3f50, M4(0, .01, .33, .045, .4, .045, Math.PI / 2, 0, 0)],
+    [TANK_CYL, 0x2b2f4a, M4(0, .01, .54, .06, .08, .06, Math.PI / 2, 0, 0)], [TANK_CYL, KV44_C.hub, M4(0, .01, .45, .052, .03, .052, Math.PI / 2, 0, 0)],
+    [BOX, KV44_C.body, M4(0, .06, .12, .26, .2, .025)], [TANK_CYL, KV44_C.body, M4(.12, -.02, .03, .1, .07, .1, 0, 0, Math.PI / 2)],
+    [TANK_CYL, KV44_C.trim, M4(.157, -.02, .03, .055, .01, .055, 0, 0, Math.PI / 2)], [BOX, 0x3b3f50, M4(0, .02, -.18, .16, .035, .035)],
+    ...[-1, 1].map((s) => [BOX, 0x3b3f50, M4(s * .07, -.03, -.19, .03, .08, .03)]),
+  ]);
+  // a rocket along +z (its nose at +.39): white with a red nose, band and fins; and a grenade, olive with a golden band
+  GEO.rocket = mergedGeo([[TANK_CYL, 0xeeeef4, M4(0, 0, 0, .055, .5, .055, Math.PI / 2, 0, 0)], [CONE, 0xf0503a, M4(0, 0, .32, .055, .14, .055, Math.PI / 2, 0, 0)],
+    [TANK_CYL, 0xf0503a, M4(0, 0, -.08, .058, .04, .058, Math.PI / 2, 0, 0)], [TANK_CYL, 0x3b3f50, M4(0, 0, -.27, .042, .04, .042, Math.PI / 2, 0, 0)],
+    [BOX, 0xf0503a, M4(0, 0, -.2, .16, .012, .1)], [BOX, 0xf0503a, M4(0, 0, -.2, .012, .16, .1)]]);
+  GEO.grenade = mergedGeo([[SPH_HI, 0x5f7f3a, M4(0, 0, 0, .13, .13, .16)], [TANK_CYL, 0xffd23f, M4(0, 0, .02, .135, .035, .135, Math.PI / 2, 0, 0)],
+    [SPH_HI, 0x3b3f50, M4(0, 0, .15, .06, .06, .05)]]);
   MAT.leviEye = std({ color: 0xff5a3a, emissive: 0xff2a10, emissiveIntensity: 1.3, roughness: .35 });
   // where Leviathan's mortar shell will fall: a red ring on the ground
   MAT.mortar = std({ color: 0xff4a3a, emissive: 0xff2a1a, emissiveIntensity: 1.2, roughness: .5, transparent: true, opacity: .9, depthWrite: false });
@@ -3104,10 +3151,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cannon: () => { noise(.55, .55, 0, 900, 'lowpass', 110, .8); tone('sine', 130, 36, .45, .65); tone('square', 480, 95, .12, .1); swoosh(.3, .2, 2400, 500); },
       clang: () => { tone('square', 1250, 880, .1, .1); tone('triangle', 640, 430, .4, .22); noise(.14, .22, 0, 3200, 'highpass'); },
       reload: () => { tone('square', 1500, 0, .03, .05); tone('square', 950, 0, .04, .06, .08); },
+      // the KV-44's grenade launcher going off (a hollow thump) and a rocket leaving its pod (a whoosh)
+      nade: () => { tone('sine', 260, 90, .14, .4); noise(.14, .3, 0, 800, 'lowpass', 200, .8); tone('square', 700, 240, .05, .05); },
+      rocket: () => { swoosh(.7, .3, 400, 2800); noise(.6, .18, 0, 1600, 'bandpass', 700, .7); tone('sawtooth', 160, 520, .45, .035); },
     };
     // pitch-varied sounds, so frequent ones do not sound mechanical
     const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush', 'splash', 'stroke', 'ribbit',
-      'boing', 'peep', 'beep', 'giggle', 'grunt', 'blub', 'zoop', 'screech', 'snort', 'chomp', 'flap', 'breath', 'cannon', 'clang']);
+      'boing', 'peep', 'beep', 'giggle', 'grunt', 'blub', 'zoop', 'screech', 'snort', 'chomp', 'flap', 'breath', 'cannon', 'clang', 'nade', 'rocket']);
     function spotNode(p) {
       _sv.set(p[0], p[1], p[2]);
       const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
@@ -7089,7 +7139,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.stall(22, 0); B.pad('shop', 19.6, 0, 0, 'tank');
     B.npc('cat', 23.4, 0, 0, 'Кот Болт', ['Мур-р-р! Я кузен Мурра, живу при гараже. Лапы в масле, зато танк блестит!', 'Танк есть и у меня в лавке, навсегда. Поедет с тобой в любой открытый мир!',
       'А за медали я модернизирую танк: пушку, снаряды, броню и мотор. Медали дают за победы в танковых боях.',
-      'Есть у меня и КВ-44: пять башен, залп из всех пушек! Модернизация танка ему тоже достаётся.'], { yaw: -Math.PI / 2 });
+      'Есть у меня и КВ-44: пять башен, залп из всех пушек, а ещё гранатомёт и ракетница! Модернизация танка ему тоже достаётся.'], { yaw: -Math.PI / 2 });
     for (const [x, d] of [[16, -4], [26, 6], [-6, 14], [6, 14]]) B.barrel(x, 0, d);
     B.crate(-30.5, 0, 16, 1.3); B.crate(-30.5, 1.3, 16, .9); B.crate(-5.5, 0, 2, 1.2); B.tyres(18.5, 0, 13); B.tyres(-3.5, 0, 16, 2);
     for (let d = 1; d <= 13; d += 2) B.coin(0, 1.2, d);
@@ -7128,7 +7178,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       SAVE.tb ? 'Твой рекорд: ' + SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') + '. Три волны, и звезда твоя. Пять волн, ещё одна!' : 'Продержишься три волны, дам звезду. Пять волн, ещё одну!',
       'Под танкодромом спит Левиафан, огромный танк-босс! Встань на фиолетовый коврик, и он поднимется из-под земли.',
       'Против Левиафана тебе помогут три КВ-44 с базы, а ты поедешь на своём КВ-44! Прячься за ними: ядра отскакивают от их брони.',
-      'КВ-44 стреляет залпом из всех башен сразу! Покататься на нём можно и так: синий коврик у ангаров.',
+      'КВ-44 стреляет залпом из всех башен сразу, гранатомёт с крыши закидывает гранаты даже за стены, а ракеты сами находят танки! Покататься на нём можно и так: синий коврик у ангаров.',
       SAVE.levi ? 'Левиафан повержен уже ' + SAVE.levi + ' ' + plural(SAVE.levi, 'раз', 'раза', 'раз') + '! А на шестой волне боя он приходит сам.' : 'Победишь Левиафана, дам звезду. А на шестой волне боя он приходит сам!',
     ]);
     B.tankArena({ x0: -30, x1: 30, d0: 30, d1: 86, top: 0, cx: 0, cd: 42, face: Math.PI, gate: [-4, 4, 28, 30], owner: bear, star3: 'tk.win3', star5: 'tk.win5',
@@ -7522,7 +7572,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     facing: Math.PI, anim: 0, squash: 1, shield: false, inv: 0, combo: 0, noCut: false, big: false, growT: 0, scaleCur: 1, riding: null, airJumps: 0, lastSafe: null, happyT: 0, hurtT: 0, jumpFaceT: 0, landT: 0, landK: 0,
     fire: false, spinT: 0, spinCd: 0, spinAir: false, spinHit: new Set(), pound: null, poundT: 0, poundJT: 0, flipT: 0, fireCd: 0, throwT: 0, stepT: 0,
     flipDur: .5, flipAxis: 'x', flipDir: 1, jumpN: 0, landedT: 1, skidT: 0, wallN: new T.Vector3(), wallT: 0, wallLock: 0, wallSlide: false, wallKickT: 0, inFan: false,
-    swim: false, swimT: 0, swimK: 0, dashCd: 0, cheerT: 0, veh: null, vehId: '', salvo: [], salvoT: 0, rideCd: 0, sand: false, dive: false, jetT: 0, dashHitT: 0, rent: '', waveT: 0,
+    swim: false, swimT: 0, swimK: 0, dashCd: 0, cheerT: 0, veh: null, vehId: '', salvo: [], salvoT: 0, nadeCd: 0, nadeQ: 0, nadeT: 0, nadeGet: null, nadeLast: null, rkCd: 0, rkQ: 0, rkT: 0, rkGets: [], rideCd: 0, sand: false, dive: false, jetT: 0, dashHitT: 0, rent: '', waveT: 0,
     // on a dragon: in flight or not, speed along the way, the nose's pitch, the bank, a flap's lift, cooldowns; where the saddle is
     flyOn: false, flySpd: 0, flyPitch: 0, flyBank: 0, flapV: 0, flapCd: 0, breathCd: 0, bumpCd: 0, seat: new T.Vector3(),
     // in a tank: where the turret points, what it is aimed at (and when to look again), the reload
@@ -7806,6 +7856,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // what the touch buttons say: jump and hit, fire with the pepper, on a dragon a beat of the wings and its breath
   let btnMode = '';
   function updateButtons() {
+    updateKvBtns();
     const W = P.veh && P.veh.wings, gun = !!(P.veh && P.veh.cannon), salvo = gun && !!P.veh.hull, mode = W ? W.breath : salvo ? 'salvo' : gun ? 'gun' : P.fire ? 'fire' : '';
     if (mode === btnMode) return;
     btnMode = mode;
@@ -8011,6 +8062,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const f = L.fireballs[i]; f.life -= dt;
       if (f.life <= 0) { killFireball(i, false); continue; }
       if (!f.air) f.vy -= 30 * dt; // a dragon's breath flies straight
+      if (f.grav) f.vy -= f.grav * dt; // a KV-44's grenade falls as it flies
+      if (f.rocket) steerRocket(f, dt);
       const nx = f.x + f.vx * dt, nz = f.z + f.vz * dt;
       if (pointHits(nx, f.y, nz, .18)) { killFireball(i, true); continue; }
       f.x = nx; f.z = nz;
@@ -8021,8 +8074,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (f.y < L.killY || (L.lavaY !== null && f.y < L.lavaY + .1)) { killFireball(i, true); continue; }
       if (L.waters.length) { const fw = waterAt(f.x, f.z); if (fw !== null && f.y < fw) { killFireball(i, true); continue; } }
       f.m.position.set(f.x, f.y, f.z);
-      if (f.shell) { // a tank's shell trails smoke, a fiery one fire
-        if (f.hot) glow(f.x - f.vx * .01, f.y, f.z - f.vz * .01, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 2, .5, .3, 0, .3, .35);
+      if (f.shell) { // a tank's shell trails smoke, a fiery one fire, a rocket both; a grenade tumbles
+        if (f.rocket) {
+          glow(f.x - f.vx * .012, f.y - f.vy * .012, f.z - f.vz * .012, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 2, .6, .2, 0, .22, .3);
+          if (Math.random() < .7) puff(f.x - f.vx * .02, f.y - f.vy * .02, f.z - f.vz * .02, 0xe8e6ee, 1, .2, .3, .5, .45);
+        } else if (f.nade) { f.m.rotation.x += dt * 11; if (Math.random() < .25) puff(f.x, f.y, f.z, 0xeeeef4, 1, .1, .1, .3, .3); }
+        else if (f.hot) glow(f.x - f.vx * .01, f.y, f.z - f.vz * .01, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 2, .5, .3, 0, .3, .35);
         else if (Math.random() < .6) puff(f.x - f.vx * .01, f.y, f.z - f.vz * .01, 0xeeeef4, 1, .15, .2, .3, .4);
       }
       else {
@@ -8567,8 +8624,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (g.dy) P.pos.y += g.dy;
     }
     if (g && g.belt) { moveH('x', g.bvx * dt, false); moveH('z', g.bvz * dt, false); }
-    if (holdStill()) input.jumpQueued = input.actQueued = false;
+    if (holdStill()) input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false;
     if (input.actQueued) { input.actQueued = false; action(); }
+    if (input.nadeQueued) { input.nadeQueued = false; nadeFire(); }
+    if (input.rocketQueued) { input.rocketQueued = false; rocketFire(); }
     const inp = readInput();
     const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
     const wx = cy * inp.x - sy * inp.y, wz = -sy * inp.x - cy * inp.y;
@@ -10238,9 +10297,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // every step in a tank: the reload, the pick (a few times a second, or at once when it is gone), the turret, the marker
   function updateTank(dt) {
-    const was = P.tankCd; P.tankCd -= dt;
+    const was = P.tankCd, wasN = P.nadeCd, wasR = P.rkCd; P.tankCd -= dt; P.nadeCd -= dt; P.rkCd -= dt;
     if (!(P.veh && P.veh.cannon) || G.state !== 'playing') { reticle.visible = false; P.aimAt = null; return; }
     if (was > 0 && P.tankCd <= 0) { Snd.sfx.reload(); sightPop = 1; }
+    if (P.veh.launchers) { // a KV-44's grenade launcher and rocket pods: loaded again, and their bursts shot after shot
+      if ((wasN > 0 && P.nadeCd <= 0) || (wasR > 0 && P.rkCd <= 0)) Snd.sfx.reload();
+      if (P.nadeQ > 0 && (P.nadeT -= dt) <= 0) { P.nadeT = NADE_GAP; nadeShot(NADE_N - P.nadeQ); P.nadeQ--; }
+      if (P.rkQ > 0 && (P.rkT -= dt) <= 0) { P.rkT = ROCKET_GAP; rocketShot(ROCKET_N - P.rkQ); P.rkQ--; }
+    } else P.nadeQ = P.rkQ = 0;
     if (P.salvo.length) { // a KV-44's salvo, shot after shot
       P.salvoT -= dt;
       if (!P.veh.hull) P.salvo.length = 0; else if (P.salvoT <= 0) { P.salvoT = .13; kvShot(P.salvo.shift()); }
@@ -10304,6 +10368,98 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const yaw = at ? Math.atan2(at[0] - mx, at[2] - mz) : P.aim, pitch = at ? clamp(Math.atan2(at[1] - my, Math.hypot(at[0] - mx, at[2] - mz)), -.4, .5) : 0, cp = Math.cos(pitch);
     shellOut(mx, my, mz, Math.sin(yaw) * cp * SHELL_V, Math.sin(pitch) * SHELL_V, Math.cos(yaw) * cp * SHELL_V, false, tankMod(1) >= 3, tankMod(1) >= 1 ? 3.3 : SHELL_R);
     if (k < 0) { u.recoil = 1; Snd.sfx.cannon(); G.shake = Math.max(G.shake, .2); } else { u.minis[k].recoil = 1; Snd.at(mx, my, mz).cannon(); }
+  }
+  // ---------- the KV-44's grenade launcher and rocket pods ----------
+  // Two more weapons of the hero's KV-44, on buttons of their own (and the keys C and R), each loading again for a while
+  // (its button fills up as it does). The grenade launcher on the roof of the big turret lobs four grenades one after
+  // another in a high arc, a little apart: onto what the gun is aimed at, or else onto whatever is worth it in front of
+  // the gun, even behind a wall, or else onto the ground a way ahead; they burst where they land. The rocket pods on the
+  // sides of the big turret send off eight rockets that climb out and then turn by themselves to the targets round the
+  // tank (the one the gun looks at first, then the nearest), two to each, and burst on them.
+  const NADE_N = 4, NADE_GAP = .16, NADE_CD = 3.5, NADE_G = 20, NADE_R = 2.2, NADE_REACH = 34;
+  const ROCKET_N = 8, ROCKET_GAP = .1, ROCKET_CD = 9, ROCKET_V = 34, ROCKET_R = 2.4, ROCKET_REACH = 55, ROCKET_BOOST = .22;
+  const NADE_SPREAD = [[0, 0], [1, .6], [-1, .6], [0, -1]];
+  // a point on the KV-44's big turret (in its own units) out in the world, with the turret turned to the aim
+  function kvPoint(lx, ly, lz) {
+    const D = BIG_TANKS.kv44, sc = D.sc, [ax, ay, az] = D.big.at, cf = Math.cos(P.facing), sf = Math.sin(P.facing), ca = Math.cos(P.aim), sa = Math.sin(P.aim);
+    return [P.pos.x + (ax * cf + az * sf + lx * ca + lz * sa) * sc, P.pos.y + (ay + ly) * sc, P.pos.z + (az * cf - ax * sf - lx * sa + lz * ca) * sc];
+  }
+  // What a launcher goes for within `reach`, no further than `cone` off the way the gun looks: nearest that way first, then
+  // the nearest; each a function that finds the spot again as it moves ([x, middle y, z]), null once it is gone
+  function kvTargets(reach, cone) {
+    const x0 = P.pos.x, y0 = P.pos.y + 1.5, z0 = P.pos.z, list = [];
+    const add = (x, y, z, get) => {
+      const d = Math.hypot(x - x0, z - z0), off = Math.abs(wrapPi(Math.atan2(x - x0, z - z0) - P.aim));
+      if (d > 3 && d < reach && Math.abs(y - y0) < 16 && off < cone) list.push({ s: off * 12 + d, get });
+    };
+    for (const e of L.enemies) if (e.alive) add(e.x, e.y + e.h * .5, e.z, () => (e.alive ? [e.x, e.y + e.h * .5, e.z] : null));
+    const q = ISL.beacons;
+    if (q && q.style === 'target' && !questDone(q.star)) for (const b of q.list) if (!b.lit) add(b.x, b.y + TARGET_Y, b.z, () => (b.lit ? null : [b.x, b.y + TARGET_Y, b.z]));
+    return list.sort((a, b) => a.s - b.s).map((c) => c.get);
+  }
+  // the ground `d` metres out from the tank, `off` to the side of the gun (or where the tank stands, over a drop)
+  function kvGround(d, off = 0) {
+    const a = P.aim + off, x = P.pos.x + Math.sin(a) * d, z = P.pos.z + Math.cos(a) * d, y = groundAt(x, z, P.pos.y + 6);
+    return [x, y > -Infinity ? y : P.pos.y, z];
+  }
+  // a launcher still loading: a click and a word (not more than once a second)
+  function kvNotYet() {
+    if (time - (P.nagAt || -9) < 1) return;
+    P.nagAt = time; Snd.sfx.locked(); popup('Заряжается…', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold');
+  }
+  function nadeFire() {
+    if (G.state !== 'playing' || !(P.veh && P.veh.launchers)) return;
+    if (P.nadeCd > 0 || P.nadeQ > 0) { kvNotYet(); return; }
+    P.nadeCd = NADE_CD; P.nadeQ = NADE_N; P.nadeT = 0;
+    const spot = kvGround(16);
+    P.nadeGet = P.aimAt || kvTargets(NADE_REACH, .7)[0] || (() => spot); P.nadeLast = spot;
+  }
+  function nadeShot(i) {
+    const u = rideGroup(P.vehId).userData, [mx, my, mz] = kvPoint(...KV_GL.end), p = P.nadeGet() || P.nadeLast;
+    P.nadeLast = p;
+    const [ox, oz] = NADE_SPREAD[i % NADE_SPREAD.length], c = Math.cos(P.aim), s = Math.sin(P.aim);
+    const tx = p[0] + ox * c + oz * s, tz = p[2] - ox * s + oz * c, dx = tx - mx, dz = tz - mz;
+    const ft = clamp(.5 + Math.hypot(dx, dz) / 20, .55, 2.1), vx = dx / ft, vz = dz / ft, vy = (p[1] - my) / ft + NADE_G * ft / 2; // (lands in ft seconds)
+    const m = new T.Mesh(GEO.grenade, MAT.char); m.rotation.order = 'YXZ'; m.rotation.y = Math.atan2(vx, vz); m.position.set(mx, my, mz); m.castShadow = true; L.group.add(m);
+    L.fireballs.push({ m, x: mx, y: my, z: mz, vx, vy, vz, life: ft + 1.2, bounces: 0, air: true, shell: true, nade: true, grav: NADE_G, dmg: 1, blast: NADE_R });
+    u.glKick = 1; P.throwT = .2;
+    flashAt(mx, my, mz, 0xffe07a, 1.4, .08); puff(mx, my, mz, 0xe8e6ee, 3, 1.4, .4, .4, .7);
+    Snd.at(mx, my, mz).nade();
+  }
+  function rocketFire() {
+    if (G.state !== 'playing' || !(P.veh && P.veh.launchers)) return;
+    if (P.rkCd > 0 || P.rkQ > 0) { kvNotYet(); return; }
+    P.rkCd = ROCKET_CD; P.rkQ = ROCKET_N; P.rkT = 0;
+    P.rkGets = kvTargets(ROCKET_REACH, Math.PI + 1).slice(0, 4);
+  }
+  // rocket i out of its tube, a little out to its side and up; two to each target (or the next one still there), or with
+  // none onto the ground ahead, spread out
+  function rocketShot(i) {
+    const tube = KV_TUBES[i], [mx, my, mz] = kvPoint(tube[0], tube[1], tube[2] + .1), side = i % 2 ? 1 : -1, n = P.rkGets.length;
+    let get = null, p = null;
+    for (let k = 0; k < n && !p; k++) { get = P.rkGets[((i >> 1) + k) % n]; p = get(); }
+    if (!p) { get = null; p = kvGround(17 + (i % 3) * 4, (((i * 5) % 8) / 7 - .5) * .6); }
+    const yaw = P.aim + side * .14, pitch = .7, v = ROCKET_V * .45;
+    const vx = Math.sin(yaw) * Math.cos(pitch) * v, vy = Math.sin(pitch) * v, vz = Math.cos(yaw) * Math.cos(pitch) * v;
+    const m = new T.Mesh(GEO.rocket, MAT.char); m.scale.setScalar(1.3); m.rotation.order = 'YXZ'; m.position.set(mx, my, mz); L.group.add(m);
+    L.fireballs.push({ m, x: mx, y: my, z: mz, vx, vy, vz, life: 4.5, bounces: 0, air: true, shell: true, rocket: true, get, tx: p[0], ty: p[1], tz: p[2], spd: v, age: 0, dmg: 1, blast: ROCKET_R });
+    const [bx, by, bz] = kvPoint(tube[0], tube[1], -.75); // the back of the pod blows smoke
+    flashAt(mx, my, mz, 0xffb03a, 1.3, .08); glow(mx, my, mz, 0xff9a2a, 5, 2, .5, 0, .2, .3); puff(bx, by, bz, 0xe8e6ee, 2, 1.2, .4, .45, .55);
+    Snd.at(mx, my, mz).rocket();
+  }
+  // A rocket climbs straight out of its pod for a moment, then turns to its target, harder the longer it flies, and speeds
+  // up; if the target is gone it goes on to where it last was and bursts there
+  function steerRocket(f, dt) {
+    f.age += dt;
+    const p = f.get ? f.get() : null;
+    if (p) { f.tx = p[0]; f.ty = p[1]; f.tz = p[2]; } else f.get = null;
+    f.spd = Math.min(ROCKET_V, f.spd + dt * 40);
+    const dx = f.tx - f.x, dy = f.ty - f.y, dz = f.tz - f.z, d = Math.hypot(dx, dy, dz) || 1;
+    if (!f.get && d < 1.2) { f.life = 0; return; }
+    const k = f.age < ROCKET_BOOST ? 0 : Math.min(1, dt * (2.5 + f.age * 7)), l = Math.hypot(f.vx, f.vy, f.vz) || 1;
+    const ux = f.vx / l + (dx / d - f.vx / l) * k, uy = f.vy / l + (dy / d - f.vy / l) * k, uz = f.vz / l + (dz / d - f.vz / l) * k, n = Math.hypot(ux, uy, uz) || 1;
+    f.vx = ux / n * f.spd; f.vy = uy / n * f.spd; f.vz = uz / n * f.spd;
+    f.m.rotation.set(-Math.atan2(f.vy, Math.hypot(f.vx, f.vz)), Math.atan2(f.vx, f.vz), 0);
   }
   // a shell out of a gun (ours, or a friend's that only flies and bursts), with the flash and the smoke; a fiery one hits
   // twice as hard, and `blast` is how far its burst reaches
@@ -11361,11 +11517,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     tank: { name: 'Танк', price: 300, sub: 'Медленный, зато с пушкой: красная кнопка стреляет', spd: 9.5, acc: 16, jump: .6, air: 0, y: .88, pose: 'hatch', cannon: true, bump: true,
       hw: .8, motor: .5, wob: 'tread' },
     // the KV-44 of the cartoons: longer, slower and slower to turn, the hero in the hatch of its big turret (seatZ: the
-    // turret is that far behind the middle); the action button fires a salvo out of its turrets (kvFire). Its whole hull
+    // turret is that far behind the middle); the action button fires a salvo out of its turrets (kvFire), and it has a
+    // grenade launcher and rocket pods on buttons of their own (launchers: nadeFire, rocketFire). Its whole hull
     // (half width and length) keeps clear of walls; hw is only the part the hero's own box covers
-    kv44: { name: 'КВ-44', price: 500, sub: 'Пять башен: красная кнопка даёт залп из всех пушек! Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2,
+    kv44: { name: 'КВ-44', price: 500, sub: 'Пять башен, гранатомёт и ракетница! Красная кнопка даёт залп из всех пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2,
       pose: 'hatch', cannon: true, bump: true, hw: 1.3, hull: [BIG_TANKS.kv44.hw * BIG_TANKS.kv44.sc, BIG_TANKS.kv44.hd * BIG_TANKS.kv44.sc], turn: 1.9,
-      seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread' },
+      seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread', launchers: true },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -11504,12 +11661,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   for (const t of document.querySelectorAll('.shop-tab')) t.addEventListener('click', () => { shopTab = t.dataset.tab; Snd.sfx.ui(); renderShop(); $('shopList').scrollTop = 0; });
   function openMenu(name) {
-    G.state = 'menu'; resetTouch(); touchEl.hidden = true; input.jumpQueued = input.actQueued = false;
+    G.state = 'menu'; resetTouch(); touchEl.hidden = true; input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false;
     showScreen(name);
   }
   function closeMenu() {
     if (G.state !== 'menu') return;
-    G.state = 'playing'; showScreen(null); showTouch(isTouch); input.jumpQueued = input.actQueued = false;
+    G.state = 'playing'; showScreen(null); showTouch(isTouch); input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false;
     last = performance.now();
   }
   function openShop() { renderShop(); openMenu('shop'); Snd.sfx.ui(); }
@@ -11544,7 +11701,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function rideModel(id) {
     if (id === 'kv44') { // the whole long tank in a group of its own (the ride's group stays unscaled), its parts at hand
       const g = new T.Group(), t = bigTankModel('kv44'); g.add(t); g.rotation.order = 'YXZ';
-      Object.assign(g.userData, t.userData);
+      kvLaunchers(t); Object.assign(g.userData, t.userData);
       return g;
     }
     const g = new T.Group(), m = new T.Mesh(GEO.rides[id], MAT.char), u = g.userData; m.castShadow = true; g.add(m); g.rotation.order = 'YXZ';
@@ -11565,6 +11722,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       Object.assign(u, { spread: 0, ph: Math.random() * 6, air: false, work: 0, flapT: 0 });
     }
     return g;
+  }
+  // the hero's KV-44 (and a friend's) carries the rocket pods and the grenade launcher on its big turret, a rocket in every
+  // tube: they go as they are fired and come back one by one as the pods load again (animateVehicle)
+  function kvLaunchers(t) {
+    const u = t.userData, add = (geo) => { const m = new T.Mesh(geo, MAT.char); m.castShadow = true; u.turret.add(m); return m; };
+    add(GEO.kvPods);
+    u.gl = add(GEO.kvGL); u.gl.position.set(...KV_GL.at); u.gl.rotation.x = -KV_GL.pitch; u.glKick = 0;
+    u.rockets = KV_TUBES.map(([x, y, z]) => { const m = add(GEO.rocket); m.position.set(x, y, z - .31); return m; });
   }
   // a tank's moving parts on its hull: the road wheels, the turret on its ring and the gun in it (ours and the foes')
   function tankParts(g, look) {
@@ -11688,7 +11853,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     let turns = 0;
     if (def.hull) while (turns < 8 && heroHullHits(P.facing)) { P.facing = wrapPi(P.facing + Math.PI / 4); turns++; } // a KV-44 turned round till its hull fits
     if (!freeAt(P.pos.x, P.pos.y + .02, P.pos.z) || turns === 8) { P.veh = null; applySize(); popup('Тут тесно', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
-    if (def.cannon) { P.aim = P.facing; P.salvo.length = 0; }
+    if (def.cannon) { P.aim = P.facing; P.salvo.length = 0; P.nadeQ = P.rkQ = 0; }
+    if (def.launchers && !G.kvHint) {
+      G.kvHint = true;
+      setTimeout(() => toast('Гранатомёт и ракетница!', isTouch ? 'Кнопки «Гранаты» и «Ракеты» рядом с красной' : 'Клавиша C — гранатомёт, R — ракетница, F — залп'), 1400);
+    }
     if (P.swim) { const wy = waterAt(P.pos.x, P.pos.z); P.swim = false; P.dive = false; if (wy !== null) P.pos.y = wy; }
     P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.wallSlide = false; P.wallT = 0; P.skidT = 0; P.airJumps = def.air;
     rideGroup(P.vehId).visible = true;
@@ -11746,6 +11915,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // tracks; exhaust while it drives
       const u = g.userData, back = P.veh.hull ? P.veh.hull[1] : 1.5; u.turret.rotation.y = wrapPi(P.aim - g.rotation.y); g.rotation.x = -u.recoil * (P.veh.hull ? .03 : .07);
       if (u.minis) for (const m of u.minis) { m.t.rotation.y = u.turret.rotation.y; m.recoil = Math.max(0, m.recoil - dt * 4); m.gun.position.z = .5 - m.recoil * .3; }
+      if (u.rockets) { // the rockets leave their tubes one by one and come back one by one as the pods load; the grenade launcher kicks
+        const back = Math.floor(ROCKET_N * clamp(1 - P.rkCd / ROCKET_CD, 0, 1) + 1e-6), gone = ROCKET_N - P.rkQ;
+        u.rockets.forEach((m, i) => { m.visible = P.rkQ > 0 ? i >= gone : i < back; });
+        u.glKick = Math.max(0, u.glKick - dt * 7); u.gl.position.z = KV_GL.at[2] - u.glKick * .12;
+      }
       else if (u.look !== SAVE.tkMods.join('')) applyTankLook(g, SAVE.tkMods);
       if (spd > 1 && Math.random() < dt * 7) puff(P.pos.x - Math.sin(P.facing) * back, P.pos.y + .85, P.pos.z - Math.cos(P.facing) * back, 0x9a9aa8, 1, .4, .8, .6, .5);
       if (u.boost && u.boost.visible && spd > 3) for (const s of [-1, 1]) { // the rocket boosters roar
@@ -12678,7 +12852,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (perkOn('shroom') && !P.big) setBig(true, false); // the mushroom in the pocket
     G.time = L.def.time + (perkOn('clock') ? 60 : 0); G.warned = false; G.state = 'playing'; G.goalPhase = null; G.fw = [];
     setupSpark(); applyLook();
-    input.jumpQueued = false; input.actQueued = false; resetTouch();
+    input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false; resetTouch();
     showScreen(null); hudEl.hidden = false; hudEl.dataset.mode = 'level'; hudEl.classList.remove('race'); showTouch(isTouch);
     updateRideBtn(); updateCam(0, true);
     toast('Мир ' + L.def.id, L.def.name);
@@ -12707,7 +12881,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     placePlayer(spot || L.start, face);
     G.state = 'playing'; G.goalPhase = null; G.fw = [];
     setupSpark(); applyLook();
-    input.jumpQueued = false; input.actQueued = false; resetTouch();
+    input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false; resetTouch();
     showScreen(null); hudEl.hidden = false; hudEl.dataset.mode = 'hub'; hudEl.classList.remove('race'); showTouch(isTouch);
     updateRideBtn(); updateCam(0, true);
     const ws = worldStars(key);
@@ -12870,7 +13044,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const keys = new Set();
   const JUMP_KEYS = ['Space', 'KeyK', 'KeyJ', 'KeyZ'];
   const ACT_KEYS = ['ShiftLeft', 'ShiftRight', 'KeyF', 'KeyX', 'KeyL'];
-  const input = { jumpQueued: false, actQueued: false };
+  const input = { jumpQueued: false, actQueued: false, nadeQueued: false, rocketQueued: false };
   const touchJump = { id: null, held: false }, touchAct = { id: null };
   const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const look = { id: null, x: 0, y: 0 };
@@ -12898,6 +13072,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
     if (ACT_KEYS.includes(e.code) && !e.repeat && G.state === 'playing') input.actQueued = true;
+    if (e.code === 'KeyC' && !e.repeat && G.state === 'playing') input.nadeQueued = true; // a KV-44's grenade launcher
+    if (e.code === 'KeyR' && !e.repeat && G.state === 'playing') input.rocketQueued = true; // and its rockets
     keys.add(e.code);
   });
   addEventListener('keyup', (e) => keys.delete(e.code));
@@ -12981,6 +13157,22 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   btnAct.addEventListener('pointerup', actEnd); btnAct.addEventListener('pointercancel', actEnd); btnAct.addEventListener('lostpointercapture', actEnd);
   btnAct.addEventListener('contextmenu', (e) => e.preventDefault());
   btnCam.addEventListener('pointerdown', (e) => { e.preventDefault(); cam.yawGoal = wrapPi(P.facing + Math.PI); });
+  // the KV-44's grenade launcher and rocket buttons: there only in a KV-44, darkened from the top while they load
+  const btnNade = $('btnNade'), btnRocket = $('btnRocket');
+  for (const [b, k] of [[btnNade, 'nadeQueued'], [btnRocket, 'rocketQueued']]) {
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); if (G.state === 'playing') input[k] = true; b.classList.add('on'); });
+    const up = () => b.classList.remove('on');
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  let kvBtnsOn = false;
+  function updateKvBtns() {
+    const on = !!(P.veh && P.veh.launchers);
+    if (on !== kvBtnsOn) { kvBtnsOn = on; btnNade.hidden = btnRocket.hidden = !on; }
+    if (!on) return;
+    kvLoad(btnNade, P.nadeQ > 0 ? 1 : P.nadeCd / NADE_CD); kvLoad(btnRocket, P.rkQ > 0 ? 1 : P.rkCd / ROCKET_CD);
+  }
+  function kvLoad(b, k) { const v = Math.round(clamp(k, 0, 1) * 20) / 20; if (b.kvCd !== v) { b.kvCd = v; b.style.setProperty('--cd', v); } }
 
   function showTouch(on) { touchEl.hidden = !on; if (on) restStick(); }
   function resetTouch() {
@@ -13000,7 +13192,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
       ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['G', ' — помахать друзьям. '], ['Esc', ' — пауза.']];
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['G', ' — помахать друзьям. '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
