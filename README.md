@@ -13,17 +13,18 @@ the frame rate falls, so older phones stay playable. Needs Safari 16.4+ or a cur
 Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound effects panned and
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed
-per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a moon base). Every open world has a tune
-of its own, the kart, the jet ski and the moon rover hum louder and higher as they speed up, and under the water every
-sound is muffled.
+per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a moon base, birds and distant calls in the
+jungle). Every open world has a tune of its own (the survival game and the dragons' cup have their own too), the kart, the
+jet ski and the moon rover hum louder and higher as they speed up, the wind roars past a flying dragon, and under the water
+every sound is muffled.
 
-- Seven open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
+- Nine open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
   Promo Island sits between them: a village with a fountain, houses and a windmill, a beach with a pier, a lake under
   a waterfall cliff (with a cave behind the water), a vegetable garden, a lighthouse on a plateau, a forest on terraces
   and a sky island above it. The hero swims (the action button is a stroke forward, a jump leaps out of the water) and
   walks up and down slopes
-- Behind the island's gates lie six more worlds, each with its own folk and quests; the first four have ten stars and
-  doors to their levels, the last two are open worlds of ten quests each:
+- Behind the island's gates lie eight more worlds, each with its own folk and quests; the first four have ten stars and
+  doors to their levels, the next two are open worlds of ten quests each, and the last two are open from the start:
   - the Desert: an oasis and a bazaar, the Sphinx, the Great Pyramid with a tomb inside, a mesa climbed by riding a
     wandering dust devil, a field of quicksand (the hero sinks and has to jump out), dunes and a melon patch
   - Ice Peaks: a penguin village of igloos, a skating rink, a steaming hot spring, the Ice Mountain with a crystal cave,
@@ -44,7 +45,33 @@ sound is muffled.
     on its launch pad (five fuel cells and it takes off), the aliens' flying saucers, a crater with a gravity lift up to a
     belt of floating asteroids, the Moon Mountain with a crystal cave, an observatory and a dark lunar sea. A moon rover
     is lent at the base
-- Stars: 72 in the worlds and one for every level cleared, 86 in all. They come from folk and secrets: lost ones to bring
+  - Dino Valley: a green valley in a ring of red earth cliffs under a smoking volcano. A stone village of the cave folk
+    (huts round a campfire, the chief Uga and the girl Ula), stone cars lent at a blue pad, the rideable Dino in his
+    paddock, a lake under a waterfall with a beach, mama Bronti the brontosaurus and her nest, Ula's berry patch taken over
+    by raptors, a volcano with a crater of lava, and the survival clearing in the middle (below). The wild ones roam the
+    valley too: raptors that run the hero down and pounce, a triceratops that snorts and charges, a pterodactyl that dives
+  - Dragon Peaks: islands in the sky over a sea of clouds, reached only by dragon. Five dragons stand on their perches at the
+    roost; stepping on the ring in front of one puts the hero on its back (the golden one sleeps until the dragons' cup is
+    won). Further off: an island with a stone ring to fly through, the Wind Spire nearly a hundred metres high, a canyon
+    between two cliffs, an island with a waterfall pouring off into the clouds, the ruins of a cloud castle. Falling into
+    the clouds brings the hero back to the last flag, still on the dragon
+- The survival game (Dino Valley): a red pad in the middle of a clearing ringed with rock. A boulder closes the way in and
+  the dinosaurs come in waves out of the ferns, more of them and more kinds each time: raptors, pterodactyls, a triceratops,
+  and from the fourth wave a tyrannosaur that cannot be knocked over (its stamp sends a ring along the ground to jump
+  over; a stomp on its back only bounces off, a ground pound next to it dazes it) and meteors that land on red circles.
+  The hero has hearts instead of lives (three, four with the spare heart), a ride only takes a hit for him, hearts turn up
+  on the grass now and then, and every wave lived through gives a heart back and ten badges. Three waves and five waves
+  bring a star each; the best game is kept. "🦖 Выживание" on the title goes straight there
+- Flying dragons: in the air a dragon flies on by itself; the stick turns it and tips its nose up and down (let go and it
+  levels out), the jump button beats the wings for speed and height (held, it keeps climbing), the action button breathes
+  fire, ice, leaves, lightning or stars, a puff that pops balloons, knocks enemies over and lights beacons. Diving speeds
+  it up, it lands when it comes down slowly and only touches the ground when fast. A hit only slows it. The camera swings
+  round behind it. Five dragons with their own speed, turning and climbing; each can be bought in the shops and then
+  flies in every open world. "🐉 Драконы" on the title goes straight to the roost
+- The dragons' cup (Dragon Peaks): two laps of a ring course high among the islands, round the Wind Spire and through the
+  canyon, against three dragons ridden by Ping, Kvak and Murr, who follow the rings by themselves (a little faster when
+  behind, slower when well ahead). Every ring gives a gust of speed; first place brings a star and wakes the golden dragon
+- Stars: 87 in the worlds and one for every level cleared, 101 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a
@@ -65,8 +92,8 @@ sound is muffled.
   missing; on the island it also sums up every world and says where the gates are
 - The World Gates open with stars: five on the island's square (the first leads to the Green levels, the others into the
   worlds at 3, 8, 15 and 24 stars), the Sea Gate at the end of the pier (30) and the Star Gate on a cloud islet above the
-  forest (42). Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front
-  of its door
+  forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley and the Dragon Gate, open from the start.
+  Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front of its door
 - Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in three tabs:
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
     the hero's head, Iskra always along, a spare heart and a mushroom in the pocket for the levels, an hourglass with
@@ -75,9 +102,11 @@ sound is muffled.
     helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower)
   - rides, called with the ride button (V on a keyboard) in the open worlds: a scooter, a go-kart that bowls enemies
     over, a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
-    squashes spiky shells, a little cloud that glides, jumps in the air and skims water, and a six-wheeled moon rover.
-    A hit knocks the hero off. Blue pads lend a ride for free (the jet ski at the piers, the rover on the Moon) until the
-    hero gets off it
+    squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
+    a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
+    the ground under it, its stone rollers bowl enemies over) and five dragons that fly. A hit knocks the hero off (a dragon
+    only slows down). Blue pads lend a ride for free (the jet ski at the piers, the rover on the Moon, the stone car in Dino
+    Valley, the dragons at their perches) until the hero gets off it
 - Progress is saved in the browser: stars, finished quests, what every collection has found, the wallet and the shop
 - Friends online: "С друзьями" on the title (or "Играть с друзьями" in the pause card) makes a room with a five-letter
   code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
@@ -92,10 +121,11 @@ sound is muffled.
 - Games with friends, started from the friends card for everyone in the room, wherever they are (each one says yes or
   no). The game is played in the host's open world, or on Promo Island from the title or a level, and whoever says yes
   is taken there:
-  - a ring race: everyone gets the same ride (a kart, the snowboard down the ice slalom, the jet ski on the lagoon, the
-    rover on the Moon) and races the rings of the world's own race quest (the factory has a course round its oven), two or
-    three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the racer back
-    at the last ring. The others have 25 seconds after the first finish
+  - a ring race: everyone gets the same ride (a kart, the stone car in Dino Valley, the snowboard down the ice slalom,
+    the jet ski on the lagoon, the rover on the Moon; in Dragon Peaks each flies the dragon they picked, high up round
+    the dragons' cup course) and races the rings of the world's own race quest (the factory has a course round its oven),
+    two or three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the
+    racer back at the last ring. The others have 25 seconds after the first finish
   - hide and seek: one player seeks (never the same one twice running), blindfolded for 25 seconds while the others hide;
     the name tags of everyone still hidden disappear, the seeker finds someone by running right up to them, and in the
     last minute the hidden ones call out "Ку-ку!" with their tags back on the seeker's screen for a moment
