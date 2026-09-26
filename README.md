@@ -79,6 +79,15 @@ sound is muffled.
     A hit knocks the hero off. Blue pads lend a ride for free (the jet ski at the piers, the rover on the Moon) until the
     hero gets off it
 - Progress is saved in the browser: stars, finished quests, what every collection has found, the wallet and the shop
+- Friends online: "С друзьями" on the title (or "Играть с друзьями" in the pause card) makes a room with a five-letter
+  code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
+  they run, jump, swim, ride and wave (G, or the hand button on a phone) on each other's screens, in their own costumes
+  and hats, with a name over the head, or an arrow and the distance at the screen's edge when out of view. Everyone
+  keeps their own world, stars, quests and wallet; only the pose travels. The friends list says where each one is, and
+  "К другу" jumps into their open world right next to them (a race stops and a delivery drops, as after a fall). The
+  browsers talk directly over WebRTC (Trystero, loaded from jsDelivr only when a room is joined), meeting through
+  public Nostr relays, so there is still no server. Some mobile networks do not let two phones connect directly; Wi-Fi
+  usually does
 - Fourteen levels: Green Hills, Sky Trail, King Chestnut (Green world); Sunny Dunes (Desert); Ice Peaks, Lava Fortress,
   Fire Shell (Ice Peaks); Candy Valley, Jelly Bridges, Grumble (Candy Land); Gear Works, Cloud Heights, Storm Tower,
   Megabot (Sky Factory)
@@ -113,7 +122,8 @@ sound is muffled.
 - Lira: a fairy who flies out of every castle and thanks the hero in the last one
 - Collectibles are the Promobile mark
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
-  on desktop WASD or arrows, Space to jump, Shift or F for the action button, mouse drag or Q/E for the camera, V for a ride
+  on desktop WASD or arrows, Space to jump, Shift or F for the action button, mouse drag or Q/E for the camera, V for a ride,
+  G to wave to friends
 
 ## Play
 
