@@ -276,11 +276,11 @@
   .shop-item b { flex: none; display: flex; align-items: center; gap: 4px; font: 900 15px/1 var(--ui); font-variant-numeric: tabular-nums; }
   .swatch { display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px; border-radius: 50%; border: 2px solid var(--ink); }
   .swatch.duo { background-clip: padding-box; }
-  /* the shop: three tabs over a list that scrolls on its own, so the card fits a phone held sideways */
-  .shop-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  /* the shop: four tabs over a list that scrolls on its own, so the card fits a phone held sideways */
+  .shop-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .shop-tab {
-    padding: 9px 4px 8px; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, .6); border: 3px solid var(--ink); border-radius: 12px;
-    font: 800 13px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 3px 0 var(--ink);
+    padding: 9px 2px 8px; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, .6); border: 3px solid var(--ink); border-radius: 12px;
+    font: 800 12px/1 var(--ui); letter-spacing: .02em; text-transform: uppercase; box-shadow: 0 3px 0 var(--ink);
   }
   .shop-tab[aria-selected="true"] { background: var(--gold); }
   .shop-tab:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
@@ -355,6 +355,7 @@
   .btn-sm { flex: none; padding: 9px 12px; font-size: 13px; border-radius: 10px; box-shadow: 0 3px 0 var(--ink); }
   .btn-sm:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: 0 3px 0 var(--ink); }
   .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-row.three { grid-template-columns: 1fr 1fr 1fr; }
   .btn-go { background: var(--gold); }
   .net-games { display: grid; gap: 8px; }
   .net-hint { margin: 0; font: 600 12px/1.35 var(--ui); color: var(--ink-soft); text-wrap: pretty; }
@@ -496,6 +497,7 @@
     <div class="title-modes">
       <button class="btn btn-ghost btn-mode" id="btnModeDino" type="button">🦖 Выживание</button>
       <button class="btn btn-ghost btn-mode" id="btnModeDragon" type="button">🐉 Драконы</button>
+      <button class="btn btn-ghost btn-mode" id="btnModeTanks" type="button">💥 Танки</button>
     </div>
     <p class="title-note" id="saveInfo" hidden></p>
     <button class="btn btn-ghost" id="btnReset" type="button" hidden>Новая игра</button>
@@ -583,6 +585,7 @@
       <button class="shop-tab" type="button" role="tab" data-tab="perks" aria-selected="true">Плюшки</button>
       <button class="shop-tab" type="button" role="tab" data-tab="skins" aria-selected="false">Скины</button>
       <button class="shop-tab" type="button" role="tab" data-tab="rides" aria-selected="false">Транспорт</button>
+      <button class="shop-tab" type="button" role="tab" data-tab="tank" aria-selected="false">Танк</button>
     </div>
     <div class="shop-list" id="shopList" role="tabpanel"></div>
     <div class="card-actions"><button class="btn btn-ghost" id="btnShopClose" type="button">Уйти</button></div>
@@ -610,9 +613,10 @@
     </div>
     <div class="net-games" id="netGames" hidden>
       <p class="net-or">Поиграть вместе</p>
-      <div class="btn-row" id="netGameBtns">
+      <div class="btn-row three" id="netGameBtns">
         <button class="btn btn-sm" id="btnDuelRace" type="button">Гонка</button>
         <button class="btn btn-sm" id="btnDuelHide" type="button">Прятки</button>
+        <button class="btn btn-sm" id="btnDuelTank" type="button">Танки</button>
       </div>
       <button class="btn btn-sm" id="btnDuelQuit" type="button" hidden>Выйти из игры</button>
       <p class="net-hint" id="netGameHint"></p>
@@ -1126,6 +1130,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     jungle: groundSet(93, { top: '#4f9a3a', topDots: ['#428a30', '#5fae45', '#3b7f2c', '#6cbc4f'], body: '#8a5a36', bodyDots: ['#7a4d2c', '#9a6a40', '#6f4426'], drip: ['#428a30', '#4f9a3a'], strata: '#6a3f22' }),
     basalt: groundSet(97, { top: '#6f6468', topDots: ['#5f5458', '#7f7478', '#554a4e', '#8a6a5a'], body: '#4a4046', bodyDots: ['#3f363c', '#564c52', '#5a3a30'], drip: ['#5f5458', '#6f6468'], strata: '#3a3236' }),
     crag: groundSet(95, { top: '#6fc25a', topDots: ['#5fb04c', '#82d26a', '#58a646', '#8fdc76'], body: '#8d86a8', bodyDots: ['#7d7698', '#9d96b8', '#746e8e'], drip: ['#5fb04c', '#6fc25a'], strata: '#6f6a8a' }),
+    // the Tank Range: dry earth churned up by the tracks
+    dirt: groundSet(99, { top: '#c9a877', topDots: ['#b8966a', '#d6b88a', '#a88660', '#dcc095', '#9a7a56'], body: '#8a6446', bodyDots: ['#7a563a', '#9a7250', '#6f4c32'], drip: ['#b8966a', '#c9a877'], strata: '#6f4c32' }),
   };
   // per-theme decor: which tree, ground litter, bush and pipe colours
   const THEMES = {
@@ -1140,6 +1146,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     moon: { ground: 'moon', tree: 'lamp', tuft: null, litter: [0x9693a8, 0xb0adc0, 0x76738a], bush: [0x9a96ac, 0x7f7b92], under: [0x76738a, 0x66637a], pipe: [0xb8bfcc, 0xf0503a] },
     jungle: { ground: 'jungle', tree: 'fern', tuft: [0x3f8f2f, 0x2f7a2a], litter: null, bush: [0x2f8a3a, 0x4aa844], under: [0x8a5a36, 0x7a4d2c], pipe: [0x8a5a36, 0xc98d52] },
     crag: { ground: 'crag', tree: 'round', tuft: [0x5fb04c, 0x4aa03e], litter: null, bush: [0x4bb143, 0x69cf52], under: [0x8d86a8, 0x7d7698], pipe: [0xff7a3a, 0xffd23f] },
+    dirt: { ground: 'dirt', tree: 'round', tuft: null, litter: [0x9a8f7a, 0xb4a88e, 0x7f7666], bush: [0x7a9a4a, 0x8aaa52], under: [0x8a6446, 0x7a563a], pipe: [0x6fbf4a, 0xffd23f] },
   };
   // asteroids: rough faceted rock under a pale dusty top
   MAT.rock = std({ color: 0xa9a6b8, roughness: .95, flatShading: true });
@@ -1746,6 +1753,28 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     [CYL, 0xffffff, M4(0, 1.52, 0, .27, .16, .27)], [SPH_HI, 0xffffff, M4(0, 1.7, 0, .33, .2, .33)],
     [SPH_HI, 0xffffff, M4(-.16, 1.72, .08, .16, .14, .16)], [SPH_HI, 0xffffff, M4(.16, 1.72, -.06, .16, .14, .16)],
   ]);
+  // the commander of the Tank Range: a brown bear in a green jacket with a medal and a belt, a moustache, a peaked cap
+  GEO.commander = mergedGeo([
+    [SPH_HI, 0x3b2a1a, M4(-.2, .16, .04, .16, .18, .2)], [SPH_HI, 0x3b2a1a, M4(.2, .16, .04, .16, .18, .2)],
+    [SPH_HI, 0x5f8a3a, M4(0, .6, 0, .42, .45, .38)], [SPH_HI, 0x6f9a48, M4(0, .58, .2, .28, .3, .22)],
+    [CYL, 0x3b2a1a, M4(0, .42, 0, .43, .07, .39)], [BOX, 0xffd23f, M4(0, .42, .39, .11, .08, .03)],
+    [SPH_HI, 0xffd23f, M4(0, .62, .41, .03, .03, .02)], [SPH_HI, 0xffd23f, M4(0, .74, .38, .03, .03, .02)],
+    [BOX, 0xf0503a, M4(-.17, .84, .33, .07, .1, .02, -.35, 0, 0)], [CYL, 0xffd23f, M4(-.17, .76, .36, .055, .02, .055, Math.PI / 2 - .35, 0, 0)],
+    [SPH_HI, 0x5f8a3a, M4(-.42, .68, .08, .12, .22, .12, 0, 0, .5)], [SPH_HI, 0x5f8a3a, M4(.42, .68, .08, .12, .22, .12, 0, 0, -.5)],
+    [SPH_HI, 0x8a5a36, M4(-.5, .5, .1, .09, .09, .09)], [SPH_HI, 0x8a5a36, M4(.5, .5, .1, .09, .09, .09)],
+    [SPH_HI, 0x8a5a36, M4(0, 1.2, 0, .34, .31, .31)], [SPH_HI, 0xe8c89a, M4(0, 1.12, .25, .15, .11, .1)],
+    [SPH_HI, INK, M4(0, 1.16, .34, .05, .04, .03)],
+    [SPH_HI, 0x3b2a1a, M4(-.09, 1.09, .33, .09, .035, .03, 0, 0, .3)], [SPH_HI, 0x3b2a1a, M4(.09, 1.09, .33, .09, .035, .03, 0, 0, -.3)],
+    [SPH_HI, 0x8a5a36, M4(-.29, 1.36, 0, .1, .1, .07)], [SPH_HI, 0x8a5a36, M4(.29, 1.36, 0, .1, .1, .07)],
+    [SPH_HI, 0xe8c89a, M4(-.29, 1.36, .04, .06, .06, .04)], [SPH_HI, 0xe8c89a, M4(.29, 1.36, .04, .06, .06, .04)],
+    [SPH_HI, 0xffffff, M4(-.12, 1.27, .26, .065, .08, .04)], [SPH_HI, 0xffffff, M4(.12, 1.27, .26, .065, .08, .04)],
+    [SPH_HI, INK, M4(-.115, 1.26, .295, .035, .05, .02)], [SPH_HI, INK, M4(.115, 1.26, .295, .035, .05, .02)],
+    [SPH_HI, 0xffffff, M4(-.127, 1.28, .31, .012, .015, .006)], [SPH_HI, 0xffffff, M4(.103, 1.28, .31, .012, .015, .006)],
+    [BOX, 0x3b2a1a, M4(-.12, 1.37, .27, .1, .025, .03, 0, 0, -.2)], [BOX, 0x3b2a1a, M4(.12, 1.37, .27, .1, .025, .03, 0, 0, .2)],
+    [TORUS_ARC, 0x7a1f2c, M4(0, 1.02, .31, .045, .035, .035, 0, 0, Math.PI)],
+    [CYL, 0x4f7a32, M4(0, 1.47, 0, .31, .12, .31)], [CYL, 0xf0503a, M4(0, 1.45, 0, .315, .05, .315)], [CYL, 0x5f8a3a, M4(0, 1.57, -.02, .38, .09, .39)],
+    [SPH_HI, 0x1c1e2e, M4(0, 1.43, .25, .23, .03, .15)], [CYL, 0xffd23f, M4(0, 1.5, .31, .06, .02, .06, Math.PI / 2, 0, 0)],
+  ]);
   // the baker's ingredients: a strawberry, an egg, a bag of flour, a bottle of milk and a chocolate bar
   GEO.recipe = [
     mergedGeo([[SPH_HI, 0xf0333f, M4(0, 0, 0, .3, .36, .3)], [SPH_HI, 0xff6a6a, M4(-.1, .08, .2, .08, .12, .06)],
@@ -2202,6 +2231,96 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the UFO's beam: an open cone hanging from y 0 down to y -1, stretched to reach the ground
   GEO.beam = shared(new T.CylinderGeometry(.4, .9, 1, 24, 1, true)); GEO.beam.translate(0, -.5, 0);
   MAT.beam = new T.MeshBasicMaterial({ color: 0x9ffcff, transparent: true, opacity: .22, depthWrite: false, side: T.DoubleSide });
+  // Tanks: the hero's toy tank and the grumpy ones of the tank battles. The hull rides on two tracks (a belt over the road
+  // wheels, one under them, wrapped round the ends); the road wheels are meshes of their own that roll, and so is the
+  // turret, which turns on its ring and carries the gun (a mesh of its own again, to kick back when it fires). The hero
+  // stands in the hatch on top of the turret; the foes' turrets glare over their guns. Front is +z.
+  const TANK_LOOK = {
+    tank: { body: 0x6fbf4a, dark: 0x4f9a3a, trim: 0xffd23f, track: 0x2b2f4a, hub: 0xffd23f },
+    foe: { body: 0xa3a8c0, dark: 0x767c96, trim: 0xf0503a, track: 0x2b2f4a, hub: 0xf0503a },
+    boss: { body: 0x55507a, dark: 0x3b3758, trim: 0xffc53d, track: 0x1c1e2e, hub: 0xffc53d },
+  };
+  const TANK_WHEELS = [-.66, -.22, .22, .66], TANK_TURRET = [0, .85, -.12], TANK_GUN = [0, .2, .66];
+  const TANK_CYL = shared(new T.CylinderGeometry(1, 1, 1, 24));
+  function tankHullParts(c) {
+    const p = [
+      [BOX, c.dark, M4(0, .44, 0, 1.2, .5, 2.1)], [BOX, c.body, M4(0, .77, -.06, 1.86, .18, 2.5)], [BOX, c.body, M4(0, .6, 1.16, 1.24, .36, .42, -.6, 0, 0)],
+      [BOX, c.trim, M4(0, .865, .9, 1.87, .02, .16)], [BOX, c.trim, M4(0, .865, -1.02, 1.87, .02, .16)], [BOX, c.dark, M4(0, .62, -1.3, 1.24, .32, .12)],
+      [SPH_HI, 0xfff2c0, M4(-.56, .8, 1.27, .11, .1, .06)], [SPH_HI, 0xfff2c0, M4(.56, .8, 1.27, .11, .1, .06)],
+      [CYL, 0x3b3f50, M4(-.42, .8, -1.38, .08, .22, .08, Math.PI / 2, 0, 0)], [CYL, 0x3b3f50, M4(.42, .8, -1.38, .08, .22, .08, Math.PI / 2, 0, 0)],
+      [CYL, 0x9a6038, M4(0, .95, -1.12, .09, 1.3, .09, 0, 0, Math.PI / 2)], [BOX, 0x5a3a22, M4(-.4, .95, -1.12, .04, .2, .2)], [BOX, 0x5a3a22, M4(.4, .95, -1.12, .04, .2, .2)],
+    ];
+    for (const s of [-1, 1]) p.push(
+      [BOX, c.track, M4(s * .8, .69, 0, .42, .08, 2.2)], [BOX, c.track, M4(s * .8, .06, 0, .42, .09, 1.96)],
+      [TANK_CYL, c.track, M4(s * .8, .37, 1.08, .32, .42, .32, 0, 0, Math.PI / 2)], [TANK_CYL, c.track, M4(s * .8, .37, -1.08, .32, .42, .32, 0, 0, Math.PI / 2)],
+      [TANK_CYL, c.hub, M4(s * 1.012, .37, 1.08, .13, .02, .13, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(s * 1.012, .37, -1.08, .13, .02, .13, 0, 0, Math.PI / 2)]);
+    return p;
+  }
+  // the turret round its ring (the group sits at TANK_TURRET): a hatch on top with its lid open to the left, a round badge
+  // on each side, an aerial; `grumpy` gives it eyes and brows over the gun
+  function tankTurretParts(c, grumpy) {
+    const p = [
+      [TANK_CYL, c.dark, M4(0, .04, 0, .76, .08, .76)], [TANK_CYL, c.body, M4(0, .26, 0, .7, .38, .74)], [SPH_HI, c.body, M4(0, .44, 0, .7, .1, .74)],
+      [TANK_CYL, c.track, M4(0, .52, 0, .34, .03, .34)], [DONUT, c.dark, M4(0, .52, 0, .36, .36, .22, Math.PI / 2, 0, 0)],
+      [TANK_CYL, c.body, M4(-.5, .8, 0, .34, .05, .34, 0, 0, 1.9)],
+      [BOX, c.dark, M4(0, .2, .64, .38, .26, .22)],
+      [CYL, 0x3b3f50, M4(.46, .95, -.44, .016, .9, .016)], [SPH_HI, c.trim, M4(.46, 1.41, -.44, .045, .045, .045)],
+    ];
+    for (const s of [-1, 1]) p.push([TANK_CYL, c.trim, M4(s * .705, .27, 0, .2, .02, .2, 0, 0, Math.PI / 2)], [TANK_CYL, 0xffffff, M4(s * .715, .27, 0, .09, .02, .09, 0, 0, Math.PI / 2)]);
+    if (grumpy) p.push(...eyesAt(.26, .4, .66, 1.25, .45));
+    return p;
+  }
+  function tankGunParts(c) {
+    return [[TANK_CYL, c.dark, M4(0, 0, .75, .1, 1.5, .1, Math.PI / 2, 0, 0)], [TANK_CYL, c.trim, M4(0, 0, 1.12, .115, .1, .115, Math.PI / 2, 0, 0)],
+      [TANK_CYL, c.dark, M4(0, 0, 1.52, .15, .26, .15, Math.PI / 2, 0, 0)], [TANK_CYL, 0x1c1e2e, M4(0, 0, 1.655, .08, .02, .08, Math.PI / 2, 0, 0)]];
+  }
+  const tankWheelParts = (c) => [[TANK_CYL, 0x5a5f70, M4(0, 0, 0, .24, .36, .24, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(0, 0, 0, .11, .37, .11, 0, 0, Math.PI / 2)],
+    [BOX, 0x2b2f4a, M4(0, 0, 0, .38, .05, .4)]];
+  GEO.rides.tank = mergedGeo(tankHullParts(TANK_LOOK.tank));
+  GEO.tankHull = {}; GEO.tankTurret = {}; GEO.tankGun = {}; GEO.tankWheel = {};
+  for (const k in TANK_LOOK) {
+    const c = TANK_LOOK[k];
+    if (k !== 'tank') GEO.tankHull[k] = mergedGeo(tankHullParts(c));
+    GEO.tankTurret[k] = mergedGeo(tankTurretParts(c, k !== 'tank')); GEO.tankGun[k] = mergedGeo(tankGunParts(c)); GEO.tankWheel[k] = mergedGeo(tankWheelParts(c));
+  }
+  // the upgrades the hero's tank shows (a friend's too): armour skirts over the tracks, plates on the turret, a golden star
+  // on each side of it, a wider mantlet for the pair of guns, tall exhaust pipes, two rocket boosters behind
+  const TANK_TWIN = .16;
+  const STAR5 = (() => {
+    const sh = new T.Shape();
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2, r = i % 2 ? .42 : 1; sh[i ? 'lineTo' : 'moveTo'](Math.sin(a) * r, Math.cos(a) * r); }
+    const g = new T.ExtrudeGeometry(sh, { depth: .3, bevelEnabled: false }); g.translate(0, 0, -.15); return shared(g);
+  })();
+  GEO.tankSkirts = mergedGeo([-1, 1].flatMap((s) => [[BOX, 0x4f9a3a, M4(s * 1.05, .5, 0, .06, .42, 2.3)], [BOX, 0xffd23f, M4(s * 1.085, .66, 0, .02, .05, 2.32)],
+    ...[-.8, -.27, .27, .8].map((z) => [SPH_HI, 0x3b7a2c, M4(s * 1.085, .42, z, .04, .04, .04)])]));
+  GEO.tankPlates = mergedGeo([-1, 1].flatMap((s) => [[BOX, 0x4f9a3a, M4(s * .75, .26, -.05, .07, .32, .74)], [BOX, 0x4f9a3a, M4(s * .47, .26, .56, .32, .32, .07, 0, s * .6, 0)],
+    [SPH_HI, 0x3b7a2c, M4(s * .79, .38, -.3, .03, .03, .03)], [SPH_HI, 0x3b7a2c, M4(s * .79, .38, .2, .03, .03, .03)]]));
+  GEO.tankStars = mergedGeo([-1, 1].map((s) => [STAR5, 0xffd23f, M4(s * .8, .25, -.05, .15, .15, .15, 0, s * Math.PI / 2, 0)]));
+  GEO.tankMantle2 = mergedGeo([[BOX, 0x4f9a3a, M4(0, .2, .64, .6, .3, .24)], [BOX, 0xffd23f, M4(0, .36, .64, .62, .03, .25)]]);
+  GEO.tankPipes = mergedGeo([-1, 1].flatMap((s) => [[TANK_CYL, 0xb8bfcc, M4(s * .66, 1.2, -1.22, .08, .76, .08)], [TANK_CYL, 0x3b3f50, M4(s * .66, 1.6, -1.22, .1, .05, .1)]]));
+  GEO.tankBoost = mergedGeo([-1, 1].flatMap((s) => [[TANK_CYL, 0xf0503a, M4(s * .52, .66, -1.62, .2, .72, .2, Math.PI / 2, 0, 0)], [TANK_CYL, 0xffffff, M4(s * .52, .66, -1.5, .205, .1, .205, Math.PI / 2, 0, 0)],
+    [TANK_CYL, 0xffffff, M4(s * .52, .66, -1.78, .205, .1, .205, Math.PI / 2, 0, 0)], [CONE, 0x3b3f50, M4(s * .52, .66, -2.06, .19, .22, .19, Math.PI / 2, 0, 0)]]));
+  // the hero's shell, a golden one with a red band, flying along +z; the red chevron over whatever the gun is aimed at
+  GEO.shell = mergedGeo([[TANK_CYL, 0xffc53d, M4(0, 0, -.04, .11, .3, .11, Math.PI / 2, 0, 0)], [SPH_HI, 0xffd23f, M4(0, 0, .1, .11, .11, .2)],
+    [TANK_CYL, 0xf0503a, M4(0, 0, -.12, .115, .05, .115, Math.PI / 2, 0, 0)]]);
+  MAT.reticle = std({ color: 0xff6a4a, emissive: 0xff3a2a, emissiveIntensity: 1.4, roughness: .4, transparent: true, opacity: .9, depthWrite: false });
+  // a fiery shell (the top upgrade), and the sight: a ring with four ticks and a dot in the middle, turned to the camera
+  GEO.shellHot = mergedGeo([[TANK_CYL, 0xff7a1a, M4(0, 0, -.04, .12, .3, .12, Math.PI / 2, 0, 0)], [SPH_HI, 0xffd23f, M4(0, 0, .1, .12, .12, .22)],
+    [TANK_CYL, 0xd8302a, M4(0, 0, -.12, .125, .05, .125, Math.PI / 2, 0, 0)]]);
+  GEO.sight = mergedGeo([[RING_GEO, 0xffffff, M4(0, 0, 0, 1, 1, 1)], [SPH, 0xffffff, M4(0, 0, 0, .09, .09, .09)],
+    ...[0, 1, 2, 3].map((i) => [BOX, 0xffffff, M4(Math.cos(i * Math.PI / 2) * .72, Math.sin(i * Math.PI / 2) * .72, 0, i % 2 ? .08 : .4, i % 2 ? .4 : .08, .02)])]);
+  // the shooting range's targets: a round board of red and white rings on its legs; its middle (the bulb) lights up gold
+  const TARGET_Y = 1.55;
+  GEO.beacon.target = mergedGeo([
+    [CYL, 0x8a5a36, M4(-.5, .75, -.1, .07, 1.5, .07, 0, 0, .12)], [CYL, 0x8a5a36, M4(.5, .75, -.1, .07, 1.5, .07, 0, 0, -.12)], [BOX, 0x8a5a36, M4(0, .9, -.1, 1.1, .1, .08)],
+    ...[[.82, 0xffffff], [.64, 0xf0503a], [.46, 0xffffff], [.28, 0xf0503a]].map(([r, c], i) => [TANK_CYL, c, M4(0, TARGET_Y, i * .025, r, .1, r, Math.PI / 2, 0, 0)]),
+  ]);
+  // the barrier across the way into the tank ground: dark and yellow stripes
+  TX.hazard = makeTex(32, (g, s) => {
+    g.fillStyle = '#2b2f4a'; g.fillRect(0, 0, s, s); g.fillStyle = '#ffc53d';
+    for (let i = -s; i < s * 2; i += 16) { g.beginPath(); g.moveTo(i, s); g.lineTo(i + 8, s); g.lineTo(i + 8 + s, 0); g.lineTo(i + s, 0); g.closePath(); g.fill(); }
+  });
+  MAT.hazard = std({ map: TX.hazard, roughness: .7 });
   // what the hero wears in some worlds: a glass helmet and an air tank on the moon, a snorkel mask under the sea
   GEO.pack = mergedGeo([
     [BOX, 0xf4f6fb, M4(0, .28, -.4, .42, .44, .2)], [CYL, 0xb8bfcc, M4(-.11, .3, -.52, .08, .42, .08)], [CYL, 0xb8bfcc, M4(.11, .3, -.52, .08, .42, .08)],
@@ -2280,7 +2399,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const PRISM = (() => { let g = new T.CylinderGeometry(1, 1, 1, 3); g.rotateX(-Math.PI / 2); g = g.toNonIndexed(); g.computeVertexNormals(); return shared(g); })();
   const SIGN_GEO = shared(new T.BoxGeometry(1.9, .72, .1));
   const NPC_H = { robot: 2.05, frog: 1.05, penguin: 1.2, hedgehog: 1.15, cat: 1.4, crab: 1.05, camel: 2.25, snowman: 2.2, ginger: 1.3, gingerGran: 1.45, bear: 1.9,
-    turtle: .95, turtleGran: .95, octopus: 1.6, dolphin: 1, alien: 1.5, caveman: 1.95, cavegirl: 2.05, bronto: 5.1, dragonElder: 2.95, dragonMama: 2.95 };
+    turtle: .95, turtleGran: .95, octopus: 1.6, dolphin: 1, alien: 1.5, caveman: 1.95, cavegirl: 2.05, bronto: 5.1, dragonElder: 2.95, dragonMama: 2.95, commander: 1.75 };
   // on the moon everyone but the aliens wears a glass helmet: its centre height and radius for each kind of folk
   const NPC_HELMET = { robot: [1.55, .52], penguin: [.92, .46], cat: [1.12, .46], crab: [.72, .56], frog: [.72, .56], bear: [1.35, .56], hedgehog: [.72, .52] };
   const PYR = shared(new T.ConeGeometry(.75, 1, 4)); PYR.rotateY(Math.PI / 4);
@@ -2886,10 +3005,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       flap: () => { swoosh(.3, .3, 240, 950); tone('sine', 95, 55, .16, .1); },
       breath: () => { swoosh(.34, .4, 2000, 420); noise(.28, .14, 0, 1300); },
       gust: () => { swoosh(.45, .3, 500, 2600); tone('sine', 700, 1400, .2, .04, .05); },
+      // the Tank Range: the gun going off, a shell ringing off armour, the gun loaded again
+      cannon: () => { noise(.55, .55, 0, 900, 'lowpass', 110, .8); tone('sine', 130, 36, .45, .65); tone('square', 480, 95, .12, .1); swoosh(.3, .2, 2400, 500); },
+      clang: () => { tone('square', 1250, 880, .1, .1); tone('triangle', 640, 430, .4, .22); noise(.14, .22, 0, 3200, 'highpass'); },
+      reload: () => { tone('square', 1500, 0, .03, .05); tone('square', 950, 0, .04, .06, .08); },
     };
     // pitch-varied sounds, so frequent ones do not sound mechanical
     const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush', 'splash', 'stroke', 'ribbit',
-      'boing', 'peep', 'beep', 'giggle', 'grunt', 'blub', 'zoop', 'screech', 'snort', 'chomp', 'flap', 'breath']);
+      'boing', 'peep', 'beep', 'giggle', 'grunt', 'blub', 'zoop', 'screech', 'snort', 'chomp', 'flap', 'breath', 'cannon', 'clang']);
     function spotNode(p) {
       _sv.set(p[0], p[1], p[2]);
       const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
@@ -3021,6 +3144,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         lead: [79, 0, 0, 83, 86, 0, 84, 83, 81, 0, 0, 79, 77, 0, 0, 0, 79, 0, 0, 83, 86, 0, 88, 86, 84, 0, 83, 81, 83, 0, 0, 0,
           86, 0, 0, 84, 83, 0, 81, 79, 81, 0, 83, 84, 86, 0, 0, 0, 88, 0, 86, 84, 83, 0, 81, 79, 77, 0, 81, 0, 79, 0, 0, 0],
       },
+      // the Tank Range: a jaunty march in F; its tank battles: a driving tune in E minor
+      march: {
+        bpm: 132, drums: 'march', chords: [41, 46, 41, 48, 41, 46, 48, 41],
+        lead: [72, 0, 72, 77, 81, 0, 77, 0, 82, 0, 81, 79, 77, 0, 74, 0, 72, 0, 77, 81, 84, 0, 81, 0, 79, 81, 79, 77, 76, 0, 72, 0,
+          77, 0, 77, 81, 84, 0, 89, 0, 86, 0, 84, 82, 81, 0, 77, 0, 79, 0, 76, 79, 84, 0, 79, 76, 77, 0, 72, 0, 77, 0, 0, 0],
+      },
+      battle: {
+        bpm: 160, drums: 'boss', chords: [40, 40, 36, 38, 40, 40, 35, 35],
+        lead: [76, 0, 76, 79, 83, 0, 79, 76, 78, 0, 78, 81, 84, 0, 83, 81, 79, 0, 79, 84, 88, 0, 84, 79, 81, 83, 81, 78, 74, 0, 0, 0,
+          76, 0, 83, 0, 88, 86, 84, 83, 81, 0, 79, 0, 78, 79, 81, 83, 84, 0, 83, 81, 79, 0, 78, 0, 75, 0, 78, 0, 83, 0, 76, 0],
+      },
       race: {
         bpm: 158, drums: 'pop', chords: [48, 43, 45, 41, 48, 43, 41, 43],
         lead: [72, 76, 79, 76, 84, 0, 79, 0, 71, 74, 79, 74, 83, 0, 79, 0, 69, 72, 76, 72, 81, 0, 76, 0, 77, 76, 74, 72, 74, 0, 0, 0,
@@ -3086,7 +3220,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     function setRoom(v) { room = v; if (ctx) { verbSfx.gain.setTargetAtTime(v, ctx.currentTime, .1); verbMus.gain.setTargetAtTime(v * 1.3, ctx.currentTime, .1); } }
 
     // an engine hum for the kart and the jet ski: a sawtooth through a low-pass, louder and higher with speed.
-    // A slow wave (lfo) chops its volume into the helicopter's thud-thud, or wobbles its pitch into the UFO's warble.
+    // A slow wave (lfo) chops its volume into the helicopter's thud-thud, or wobbles its pitch into the UFO's warble,
+    // or rattles it fast and shallow into a tank's clattering tracks.
     let motorO = null, motorG = null, motorF = null, lfo = null, lfoVol = null, lfoPitch = null;
     function motor(k, pitch, wob) {
       if (!ctx || (!motorO && k <= 0)) return;
@@ -3100,13 +3235,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       }
       const t = ctx.currentTime, on = k > 0 && !muted;
       motorG.gain.setTargetAtTime(on ? .05 * k : 0, t, .08);
-      lfoVol.gain.setTargetAtTime(on && wob === 'chop' ? .045 * k : 0, t, .08);
+      lfoVol.gain.setTargetAtTime(on && wob === 'chop' ? .045 * k : on && wob === 'tread' ? .022 * k : 0, t, .08);
       lfoPitch.gain.setTargetAtTime(on && wob === 'warble' ? 40 : 0, t, .1);
       if (on) {
         const shape = wob === 'warble' ? 'triangle' : 'sawtooth';
         if (motorO.type !== shape) motorO.type = shape;
         motorO.frequency.setTargetAtTime((48 + k * 70) * pitch, t, .1); motorF.frequency.setTargetAtTime(300 + k * 900, t, .1);
-        lfo.frequency.setTargetAtTime(wob === 'chop' ? 8 + k * 8 : 5, t, .1);
+        lfo.frequency.setTargetAtTime(wob === 'chop' ? 8 + k * 8 : wob === 'tread' ? 9 + k * 14 : 5, t, .1);
       }
     }
     // ambience: a filtered noise bed plus occasional events (birdsong, lava bubbles, candy chimes)
@@ -3192,6 +3327,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return out;
   }
   const CYL_HI = shared(new T.CylinderGeometry(1, 1, 1, 32));
+  // a hangar's round roof (half a tube, open at the ends) and its ends (half discs)
+  const QUONSET = shared(new T.CylinderGeometry(1, 1, 1, 18, 1, true, -Math.PI / 2, Math.PI)), HALF_DISC = shared(new T.CircleGeometry(1, 18, 0, Math.PI));
   // a dust devil's funnel: wide at the top, narrow at the foot, with a wobble up its height
   const TORNADO_GEO = (() => {
     const g = new T.CylinderGeometry(2.8, .5, 10, 20, 10, true); g.translate(0, 5, 0);
@@ -4022,12 +4159,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // buoys bobbing on the water, solar panels
       beacons(cfg, spots) {
         const q = Object.assign({ on: false, t: 0, lit: 0, limit: 40, style: 'lamp', list: [] }, cfg), done = questDone(q.star);
-        const geo = GEO.beacon[q.style], bulbY = { lamp: 2.48, buoy: 1.72, panel: 1.62, brazier: 2.5 }[q.style], big = q.style === 'brazier';
+        const geo = GEO.beacon[q.style], bulbY = { lamp: 2.48, buoy: 1.72, panel: 1.62, brazier: 2.5, target: TARGET_Y }[q.style], big = q.style === 'brazier', tgt = q.style === 'target';
         spots.forEach(([x, top, d], i) => {
-          const z = -d, g = new T.Group(); g.position.set(x, top, z); g.rotation.y = R() * 6.3; add(g);
+          const z = -d, g = new T.Group(); g.position.set(x, top, z); g.rotation.y = tgt ? 0 : R() * 6.3; add(g); // targets face the firing line to the south
           const m = new T.Mesh(geo, MAT.char); m.castShadow = true; g.add(m);
-          const bulb = new T.Mesh(SPH_HI, done ? MAT.lampOn : MAT.lampOff); bulb.scale.set(big ? .5 : .22, big ? .38 : .22, big ? .5 : .22); bulb.position.set(0, bulbY, q.style === 'panel' ? -.5 : 0); g.add(bulb);
-          if (q.style !== 'buoy') addSolid(x - (big ? .4 : .2), top, z - (big ? .4 : .2), x + (big ? .4 : .2), top + (q.style === 'lamp' || big ? 2.3 : 1.2), z + (big ? .4 : .2), 'hard');
+          const bulb = new T.Mesh(SPH_HI, done ? MAT.lampOn : MAT.lampOff); bulb.scale.set(big ? .5 : .22, big ? .38 : .22, big ? .5 : tgt ? .1 : .22); bulb.position.set(0, bulbY, q.style === 'panel' ? -.5 : tgt ? .12 : 0); g.add(bulb);
+          if (tgt) addSolid(x - .85, top + .75, z - .25, x + .85, top + 2.4, z + .25, 'hard'); // the board, for shells to burst on
+          else if (q.style !== 'buoy') addSolid(x - (big ? .4 : .2), top, z - (big ? .4 : .2), x + (big ? .4 : .2), top + (q.style === 'lamp' || big ? 2.3 : 1.2), z + (big ? .4 : .2), 'hard');
           q.list.push({ i, x, y: top, z, g, bulb, lit: done });
         });
         ISL.beacons = q; return q;
@@ -4266,7 +4404,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       },
       // a glowing ring on the ground: the shop's golden one, or a blue one that lends a ride (`data` names it)
       pad(kind, x, top, d, data) {
-        const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' ? 0xff4a2a : 0xffd23f, emissiveIntensity: .8, roughness: .6 }));
+        const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' ? 0xff4a2a : 0xffd23f, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
       },
@@ -4361,6 +4499,59 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         ISL.cup = Object.assign({ phase: 'off', rings: course }, cfg);
         for (const c of course) { const m = new T.Mesh(RACE_RING_GEO, MAT.ringDim); m.position.set(c.x, c.y, c.z); m.rotation.y = c.yaw; m.scale.setScalar(k); add(m); L.cupRings.push(m); }
         this.pad('cup', cfg.pad[0], cfg.pad[1], cfg.pad[2]);
+      },
+      // ---------- the Tank Range ----------
+      // a hangar: a round roof of ribbed steel running along d, a big door in its south end; solid in steps like an igloo
+      hangar(x, d, w, len, col = 0x7f9a5a) {
+        const z = -d, r = w / 2, dark = new T.Color(col).multiplyScalar(.72).getHex();
+        near.add(QUONSET, col, M4(x, 0, z, r, len, r, -Math.PI / 2, 0, 0));
+        for (let i = 0; i <= 6; i++) near.add(RING_GEO, dark, M4(x, 0, z - len / 2 + i * len / 6, r + .03, r + .03, 2));
+        near.add(HALF_DISC, dark, M4(x, 0, z + len / 2, r, r, 1)); near.add(HALF_DISC, dark, M4(x, 0, z - len / 2, r, r, 1, 0, Math.PI, 0));
+        near.add(BOX, 0x3b3f50, M4(x, r * .4, z + len / 2 + .04, r * 1.05, r * .8, .08)); near.add(BOX, 0xffc53d, M4(x, r * .82, z + len / 2 + .06, r * 1.12, .14, .06));
+        for (let i = 0; i < 4; i++) near.add(BOX, 0x2b2f4a, M4(x - r * .39 + i * r * .26, r * .4, z + len / 2 + .09, .04, r * .74, .04));
+        addSolid(x - r * .95, 0, z - len / 2, x + r * .95, r * .55, z + len / 2, 'hard');
+        addSolid(x - r * .78, r * .55, z - len / 2, x + r * .78, r * .82, z + len / 2, 'hard');
+        addSolid(x - r * .45, r * .82, z - len / 2, x + r * .45, r * .98, z + len / 2, 'hard');
+      },
+      // a tank trap: three rusty beams crossed like a jack
+      tankTrap(x, top, d, s = 1) {
+        const z = -d, c = [0x8a6a5a, 0x7a5a4a][(Math.abs(x + d) | 0) % 2], ry = (x * 7 + d * 3) % 3;
+        for (const [rx, rz] of [[0, .8], [0, -.8], [.8, 0]]) near.add(BOX, c, M4(x, top + .55 * s, z, .14 * s, 1.7 * s, .14 * s, rx, ry, rz));
+        addSolid(x - .5 * s, top, z - .5 * s, x + .5 * s, top + 1.1 * s, z + .5 * s, 'hard');
+      },
+      // a low wall of sandbags between two points (along x or along d), three rows of fat pillows; tanks hide behind it
+      sandbags(x0, x1, d0, d1, top = 0, rows = 3) {
+        const alongX = x1 - x0 >= d1 - d0, len = alongX ? x1 - x0 : d1 - d0, n = Math.max(1, Math.round(len / .8));
+        for (let r = 0; r < rows; r++) for (let i = 0; i < n - (r % 2); i++) {
+          const o = (i + .5 + (r % 2) * .5) / n, px = alongX ? lerp(x0, x1, o) : (x0 + x1) / 2, pd = alongX ? (d0 + d1) / 2 : lerp(d0, d1, o);
+          near.add(SPH, [0xc9b27a, 0xbfa46a, 0xd6c08a][(i + r) % 3], M4(px, top + .2 + r * .34, -pd, alongX ? .46 : .4, .21, alongX ? .4 : .46));
+        }
+        addSolid(x0, top, -d1, x1, top + .22 + rows * .34, -d0, 'hard');
+      },
+      // a stack of old tyres
+      tyres(x, top, d, n = 3) {
+        const z = -d;
+        for (let i = 0; i < n; i++) near.add(DONUT, 0x2b2f4a, M4(x + (i % 2) * .06, top + .17 + i * .3, z, .42, .42, .36, Math.PI / 2, 0, 0));
+        addSolid(x - .6, top, z - .6, x + .6, top + n * .3 + .05, z + .6, 'hard');
+      },
+      // a flag on a pole, in the range's colours
+      flag(x, top, d, col = 0x6fbf4a, h = 5) {
+        const z = -d;
+        near.add(CYL, 0xdfe3ee, M4(x, top + h / 2, z, .07, h, .07)); near.add(SPH, 0xffd23f, M4(x, top + h + .08, z, .12, .12, .12));
+        near.add(BOX, col, M4(x + .65, top + h - .45, z, 1.2, .7, .04)); near.add(BOX, 0xffd23f, M4(x + .65, top + h - .45, z + .01, 1.2, .14, .04));
+        addSolid(x - .1, top, z - .1, x + .1, top + h, z + .1, 'hard');
+      },
+      // the tank battle's ground (its walls are the world's business): a striped barrier that rises across the way in while
+      // a battle is on, and a red pad that starts one. cfg: the ground's bounds, its middle, which way the tanks come from
+      // (face), the way in (gate), who runs it, the hangar doors the grumpy tanks roll out of, spots for hearts, the stars
+      // for three and five waves
+      tankArena(cfg) {
+        const [gx0, gx1, gd0, gd1] = cfg.gate, h = cfg.gateH || 3.4, w = gx1 - gx0, dd = gd1 - gd0;
+        const m = new T.Mesh(boxGeo(w, h, dd, 2), MAT.hazard); m.castShadow = m.receiveShadow = true; m.visible = false; add(m);
+        m.position.set((gx0 + gx1) / 2, cfg.top - h / 2, -(gd0 + gd1) / 2);
+        const s = addSolid(gx0, cfg.top, -gd1, gx1, cfg.top + h, -gd0, 'hard'); s.active = false;
+        this.pad('battle', cfg.cx, cfg.top, cfg.cd);
+        ISL.tb = Object.assign({}, cfg, { phase: 'off', cz: -cfg.cd, z0: -cfg.d1, z1: -cfg.d0, gate: { m, s, h, k: 0, y1: cfg.top + h / 2 } });
       },
       finish() {
         // scatter grass tufts, flowers and bushes where nothing stands
@@ -5230,7 +5421,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         next ? 'У тебя ' + n + ' ★. Врата «' + next.name + '» откроются при ' + next.need + ' ★.' : 'У тебя ' + n + ' ★. Все врата уже открыты!',
         'За вратами целые миры: пустыня, ледяные пики, конфетная страна и завод в небе. И в каждом свои звёзды!',
         'А ещё есть Морские врата в конце пирса и Звёздные врата высоко над лесом: там море с нырянием и Луна!',
-        'На мысу за огородом Фомы новые врата, открытые сразу: в Долину динозавров и на Драконьи пики!',
+        'На мысу за огородом Фомы новые врата, открытые сразу: в Долину динозавров, на Драконьи пики и на Танковый полигон!',
         'Звёзды дают за помощь жителям. Кто-то просит что-то отнести, кто-то убегает, а кто-то ждёт, когда зажгутся огни.',
       ];
     });
@@ -5357,12 +5548,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('robot', 0, 1.5, 49.5, 'Страж врат', ['Это Врата миров. Каждые врата открываются, когда у тебя хватает звёзд.',
       'Первые врата ведут в уровни Зелёного края, а остальные в целые миры: там свои жители, звёзды и уровни.', 'За каждый пройденный уровень тоже дают звезду.',
       'Ещё двое врат стоят не здесь: Морские в конце пирса, а Звёздные на облачном островке над лесом.',
-      'А на мысу за огородом Фомы Древние врата к динозаврам и Драконьи врата. Туда можно сразу!']);
+      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи врата и Танковые. Туда можно сразу!']);
     B.tree(-16.6, 1.5, 47, 1, 'pillar'); B.tree(16.6, 1.5, 47, 1, 'pillar');
     // the cape past Foma's garden: the Ancient Gate to Dino Valley and the Dragon Gate, both open from the start
     B.ground(46, 64, 18, 46, 0, 12);
+    B.ground(46, 64, 2, 18, 0, 12);
     B.gate(59, 26, 0, 'world', 7, -Math.PI / 2, 8);
     B.gate(59, 38, 0, 'world', 8, -Math.PI / 2, 8);
+    B.gate(59, 12, 0, 'world', 9, -Math.PI / 2, 8);
+    B.sign(51, 0, 6, ['Танковый', 'полигон'], -Math.PI / 2);
+    const toy = tankModel('tank'); toy.position.set(57, 0, -4.5); toy.rotation.y = -Math.PI * .65; toy.userData.turret.rotation.y = -.6; L.group.add(toy);
+    addSolid(55.6, 0, -5.9, 58.4, 1.4, -3.1, 'hard');
     B.sign(51, 0, 32, ['Динозавры', 'и драконы'], -Math.PI / 2);
     B.nest(55, 0, 20.5, 1.1, 3);
     const guard = rideModel('drRed'); guard.position.set(60, 0, -44); guard.rotation.y = -Math.PI * .75; L.group.add(guard);
@@ -6749,6 +6945,153 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sceneryDragonHub(B);
   }
 
+  // ---------- the Tank Range ----------
+  // A training ground on a grassy plain ringed by cliffs. The base to the south: the gate home, two hangars, the shop, a pad
+  // that lends tanks, the watchtower to the west. In the middle the tank ground inside earth walls, entered from the south:
+  // the tank battles against the grumpy tanks, who roll out of the hangar doors in its walls. To the east the shooting range
+  // with its targets, to the west a pond with a sandy shore, and the rings of the tank race all round the tank ground.
+  function sceneryTanksHub(B) {
+    const R = B.R, greens = [0x5fae45, 0x6fbf4a, 0x4f9a3a];
+    for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2 + R() * .2, r = 160 + R() * 40; B.hill(Math.cos(a) * r, -16, Math.sin(a) * r - 47, 30 + R() * 26, greens[i % 3]); }
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + R() * .3, r = 235 + R() * 40; B.mountain(Math.cos(a) * r, -20, Math.sin(a) * r - 47, 60 + R() * 40); }
+    for (let i = 0; i < 18; i++) B.cloud(-200 + R() * 400, 36 + R() * 22, -240 + R() * 380, 1 + R() * 1.3);
+  }
+  function buildTanks(B) {
+    const R = B.R;
+    B.start(0, 0, -6);
+    L.modeSpot = { x: 0, y: 0, z: -18, face: Math.PI }; // where "Tanks" on the title puts the hero: before the tank ground's gate
+    L.modeHint = 'Танкодром впереди: встань на красный коврик';
+    rimWalls(B, -70, 70, -26, 120, 'cliff', 8, 16);
+    // the plain, with the tank ground's dirt, the range's firing line, the pond's basin and its shore cut out of the grass
+    B.groundCut(-70, 70, -26, 120, 0, 12, 'grass', [[-30, 30, 30, 86], [36, 70, 2, 12], [-68, -52, 42, 70], [-68, -48, 70, 84]]);
+    B.ground(-30, 30, 30, 86, 0, 12, 'dirt', true);
+    B.ground(36, 70, 2, 12, 0, 12, 'dirt', true);
+    B.ground(-68, -52, 42, 70, -3.5, 8.5, 'sand', true);
+    B.water(-68, -52, 42, 70, -.4);
+    B.ground(-68, -48, 70, 84, 0, 12, 'sand');
+
+    // --- the base ---
+    B.warp('island', 0, -16, 0, Math.PI);
+    B.sign(-3.5, 0, -9, ['Танковый', 'полигон']);
+    B.flag(-5, 0, -13, 0x6fbf4a); B.flag(4.2, 0, -13, 0x4262ff);
+    B.path(-1.5, 1.5, -12, 28);
+    B.hangar(-24, 6, 9, 12, 0x7f9a5a); B.hangar(-12.5, 6, 9, 12, 0x8aa866);
+    B.npc('robot', 4, 0, -2, 'Промобот', () => [
+      'Добро пожаловать на Танковый полигон! Тут учатся водить танки, а ещё тут идут танковые бои.',
+      'Танк дают на синем коврике у ангаров. Красная кнопка стреляет, пушка сама поворачивается к цели.',
+      'Танкодром прямо на север. Командир Мишка у ворот расскажет про бой.',
+      'На востоке стрельбище с мишенями, на западе вышка и пруд. А вокруг танкодрома гоняет Пинг.',
+      SAVE.tb ? 'Твой рекорд в танковом бою: ' + SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') + '.' : 'Танк можно купить у кота Болта: он поедет с тобой в любой открытый мир!',
+    ]);
+    B.pad('rent', 7, 0, 4, 'tank'); B.sign(10.5, 0, 2.5, ['Танки', 'напрокат']);
+    const show = tankModel('tank'); show.position.set(13.5, 0, -9); show.rotation.y = -Math.PI / 2; show.userData.turret.rotation.y = .5; L.group.add(show);
+    addSolid(12.2, 0, -10.4, 14.8, 1.4, -7.6, 'hard');
+    B.stall(22, 0); B.pad('shop', 19.6, 0, 0, 'tank');
+    B.npc('cat', 23.4, 0, 0, 'Кот Болт', ['Мур-р-р! Я кузен Мурра, живу при гараже. Лапы в масле, зато танк блестит!', 'Танк есть и у меня в лавке, навсегда. Поедет с тобой в любой открытый мир!',
+      'А за медали я модернизирую танк: пушку, снаряды, броню и мотор. Медали дают за победы в танковых боях.'], { yaw: -Math.PI / 2 });
+    for (const [x, d] of [[16, -4], [26, 6], [-6, 14], [6, 14]]) B.barrel(x, 0, d);
+    B.crate(-30.5, 0, 16, 1.3); B.crate(-30.5, 1.3, 16, .9); B.crate(-5.5, 0, 2, 1.2); B.tyres(18.5, 0, 13); B.tyres(-3.5, 0, 16, 2);
+    for (let d = 1; d <= 13; d += 2) B.coin(0, 1.2, d);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; B.coin(13.5 + Math.cos(a) * 3.2, 1.2, 9 + Math.sin(a) * 3.2); }
+
+    // --- the watchtower: platforms round a wooden column, a lookout with a roof on top ---
+    B.slab(-41.5, -38.5, 6.5, 9.5, 0, 13, 'deck');
+    for (const [x, top, d] of [[-37, 2.2, 6.5], [-37, 4.4, 11], [-43, 6.6, 11], [-43, 8.8, 5], [-37, 11, 3.5]]) B.platform(x, top, d, 3, 3);
+    for (const [x, d] of [[-41.4, 6.6], [-38.6, 6.6], [-41.4, 9.4], [-38.6, 9.4]]) B.decor(CYL, 0x8a5a33, x, 14.2, d, .08, 2.4, .08);
+    B.decor(CONE, 0x4f9a3a, -40, 16.1, 8, 2.6, 1.4, 2.6); B.decor(BOX, 0xffd23f, -40, 13.5, 6.5, 3, .1, .1); B.decor(BOX, 0xffd23f, -40, 13.5, 9.5, 3, .1, .1);
+    B.star('tk.tower', -40, 14.4, 8);
+    for (const [x, y, d] of [[-37, 3.4, 6.5], [-37, 5.6, 11], [-43, 7.8, 11], [-43, 10, 5], [-37, 12.2, 3.5]]) B.coin(x, y, d);
+    B.sign(-34, 0, 1, ['Вышка'], Math.PI / 2);
+
+    // --- the tank ground: earth walls round a field of dirt, the way in from the south, hangar doors in the walls ---
+    const berm = (x0, x1, d0, d1) => mesa(B, x0, x1, d0, d1, 4.5, 'cliff', -2);
+    berm(-32, -4, 28, 30); berm(4, 32, 28, 30); berm(-32, 32, 86, 88); berm(-32, -30, 30, 86); berm(30, 32, 30, 86);
+    const door = (x, d, yaw) => { // a hangar door in a wall, facing into the ground
+      B.decor(BOX, 0x3b3f50, x, 1.6, d, 4, 3.2, .12, 0, yaw, 0); B.decor(BOX, 0xffc53d, x, 3.3, d, 4.4, .2, .16, 0, yaw, 0);
+      for (const k of [-1, 1]) B.decor(BOX, 0xffc53d, x + Math.cos(yaw) * k * 2.1, 1.6, d - Math.sin(yaw) * k * 2.1, .2, 3.2, .16, 0, yaw, 0);
+    };
+    for (const x of [-20, -6, 8, 22]) door(x, 85.9, 0);
+    door(-29.9, 60, Math.PI / 2); door(29.9, 60, Math.PI / 2);
+    // cover: concrete blocks, sandbags, tank traps, crates and tyres
+    for (const [x, d] of [[-18, 44], [16, 46], [-4, 56], [10, 62], [-22, 64], [22, 68], [-8, 72], [4, 76]]) B.slab(x - 1.2, x + 1.2, d - 1.2, d + 1.2, 0, 1.9, 'stone');
+    B.sandbags(-8, 0, 47.5, 48.5); B.sandbags(18, 26, 56, 57); B.sandbags(-28, -20, 54, 55); B.sandbags(0, 8, 67, 68); B.sandbags(-18, -17, 76, 82);
+    for (const [x, d] of [[-12, 37], [12, 39], [0, 64], [-14, 60], [16, 80], [26, 36]]) B.tankTrap(x, 0, d);
+    B.crate(-25, 0, 38, 1.4); B.crate(-25, 1.4, 38, 1); B.crate(25, 0, 76, 1.4); B.crate(-25, 0, 78, 1.4); B.crate(-23.6, 0, 78, 1.2);
+    for (const [x, d] of [[20, 32], [-20, 32], [28, 52], [-28, 70]]) B.tyres(x, 0, d);
+    const bear = B.npc('commander', -6, 0, 24.5, 'Командир Мишка', () => [
+      'Здравия желаю! Это танкодром. Встань на красный коврик в воротах, и начнётся танковый бой.',
+      'Танки противника выезжают из ворот ангаров волнами. Подбей все, и придёт следующая волна.',
+      'Пушка сама наводится на того, кто перед тобой. Жми красную кнопку! Ядра врагов можно сбить выстрелом.',
+      'Прячься за бетонными блоками и мешками с песком. Сердечки на поле чинят броню.',
+      'За каждую отбитую волну медаль! Медали кот Болт у ангаров меняет на модернизацию танка.',
+      SAVE.tb ? 'Твой рекорд: ' + SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') + '. Три волны, и звезда твоя. Пять волн, ещё одна!' : 'Продержишься три волны, дам звезду. Пять волн, ещё одну!',
+    ]);
+    B.tankArena({ x0: -30, x1: 30, d0: 30, d1: 86, top: 0, cx: 0, cd: 42, face: Math.PI, gate: [-4, 4, 28, 30], owner: bear, star3: 'tk.win3', star5: 'tk.win5',
+      spawns: [[-20, 82], [-6, 82], [8, 82], [22, 82], [-26, 60], [26, 60]],
+      heartAt: [[-12, 50], [12, 52], [0, 62], [-20, 72], [20, 74], [-24, 44], [24, 44]] });
+    B.star('tk.win3', -3.5, 2.2, 40, !questDone('tk.win3'));
+    B.star('tk.win5', 3.5, 2.2, 40, !questDone('tk.win5'));
+    B.sign(6.5, 0, 25, ['Танкодром']);
+    B.flag(-5, 4.5, 29, 0x6fbf4a, 3.5); B.flag(5, 4.5, 29, 0x4262ff, 3.5);
+
+    // --- the tank race: Ping's rings all round the tank ground ---
+    const ping = B.npc('penguin', -16, 0, 17, 'Пинг', () => (questDone('tk.race')
+      ? [hasStar('tk.race') ? 'Танк, а быстрый! Вот это гонка!' : 'Звезда ждёт у последнего кольца, забирай!', 'Танку ямы не страшны!']
+      : ['Танковые гонки! Все кольца вокруг танкодрома за 35 секунд. Старт в первом кольце, рядом со мной.', 'Танк дают на синем коврике у ангаров. Он медленный на поворотах, срезай углы!']), { yaw: Math.PI / 2 });
+    B.race({ star: 'tk.race', owner: ping, limit: 35, where: 'Пинг ждёт у ворот танкодрома', fail: 'Эх, чуть-чуть! Срезай углы!', win: 'Танковый рекорд! Звезда твоя!' },
+      [[-12, 1.4, 21], [-28, 1.4, 22], [-40, 1.4, 34], [-44, 1.4, 58], [-40, 1.4, 84], [-22, 1.4, 98], [0, 1.4, 101], [22, 1.4, 98], [35, 1.4, 84], [35, 1.4, 62],
+        [35, 1.4, 40], [22, 1.4, 22]]);
+    B.star('tk.race', 18, 1.8, 20, !questDone('tk.race'));
+
+    // --- the shooting range: targets to hit before the time runs out, a backstop of earth behind them ---
+    B.slab(36, 70, 1.6, 2, 0, .3, 'stone'); // the firing line
+    mesa(B, 38, 70, 72, 76, 4.5, 'cliff', -2); mesa(B, 56, 60, 44, 48, 2, 'cliff'); mesa(B, 54, 58, 64, 68, 3, 'cliff');
+    const hedgy = B.npc('hedgehog', 41, 0, 7, 'Ёжик Меткий', () => (questDone('tk.range')
+      ? [hasStar('tk.range') ? 'В яблочко! Все мишени твои!' : 'Звезда у меня, забирай!', 'Хочешь, стреляй ещё: мишеням не больно.']
+      : ['Это стрельбище! Попади во все восемь мишеней за 40 секунд. Время пойдёт с первого попадания.',
+        'Нужен танк: он на синем коврике рядом. Подъезжай ближе, пушка сама наведётся на мишень.']), { yaw: -Math.PI / 2 });
+    B.beacons({ key: 'tk.range', star: 'tk.range', owner: hedgy, style: 'target', limit: 40, label: 'Мишени', where: 'Ёжик Меткий ждёт на стрельбище',
+      fail: 'Не все мишени… Давай ещё раз!', win: 'Все мишени! Держи звезду!' },
+      [[42, 0, 26], [52, 0, 22], [63, 0, 30], [48, 0, 40], [58, 2, 46], [66, 0, 54], [44, 0, 60], [56, 3, 66]]);
+    B.star('tk.range', 44, 2.2, 7, !questDone('tk.range'));
+    B.pad('rent', 47, 0, 6, 'tank'); B.sign(38, 0, 12, ['Стрельбище'], -Math.PI / 2);
+    for (const d of [18, 32, 46, 60]) B.tankTrap(68.5, 0, d, .9);
+    B.flag(37, 0, 3, 0xf0503a, 4); B.flag(69, 0, 3, 0xf0503a, 4);
+
+    // --- the pond and Captain Claw's treasure on its shore ---
+    const claw = B.npc('crab', -50, 0, 80, 'Капитан Клешня', () => (questDone('tk.dig')
+      ? [hasStar('tk.dig') ? 'Клад танкистов! Там даже был старый гаечный ключ.' : 'Звезда из сундука ждёт на берегу, бери!']
+      : ['Йо-хо! Я зарыл сундук на песчаном берегу пруда. Никто не догадается!', 'Найди крестик, подпрыгни и ударь с неба! На танке не выйдет, только пешком.']), { yaw: -Math.PI / 2 });
+    B.xmark(-60, 0, 79, 'tk.dig', claw, 'Клад у пруда! Бери звезду, юнга!');
+    B.star('tk.dig', -60, 1.9, 79, !questDone('tk.dig'));
+    for (const [x, d] of [[-56, 48], [-62, 60], [-58, 66], [-64, 50]]) B.decor(CYL, 0x52b84a, x, -.37, d, .8, .03, .8);
+    for (const [x, d, s] of [[-66, 76, 1], [-52, 82, .9], [-64, 38, 1.1], [-50, 40, .9]]) B.tree(x, 0, d, s);
+    B.sign(-47, 0, 66, ['Пруд'], Math.PI / 2);
+
+    // --- red badges ---
+    B.itemSet({ key: 'tk.red', star: 'tk.red' });
+    for (const [i, x, y, d] of [[0, -24, 5.8, 6], [1, -43, 7.8, 11], [2, -27, 1.2, 83], [3, 27, 1.2, 33], [4, 66, 5.7, 74], [5, -60, .6, 56], [6, 0, 1.2, 114], [7, 27, 1.2, -18]]) B.collect('tk.red', i, x, y, d);
+    B.star('tk.red', -6, 2.2, 8, setOf('tk.red').length < RED_N);
+
+    // --- badges, flags, trees on the plain ---
+    for (const [x, d] of [[-34, 46], [-46, 72], [-30, 104], [12, 108], [46, 96], [60, 84], [34, 26]]) B.coinArc(x, 1.2, d - 2, d + 2, 3, .8);
+    for (let x = -24; x <= 24; x += 3) B.coin(x, 1.2, 94);
+    for (const [x, top, d] of [[6, 0, 18], [-36, 0, 1], [-46, 0, 44], [-54, 0, 88], [0, 0, 108], [40, 0, 16], [58, 0, 92]]) B.checkpoint(x, top, d);
+    const keepOut = [[-34, 34, 26, 90], [33, 71, -1, 78], [-70, -45, 38, 87], [-34, 30, -26, 26], [-47, -32, -2, 16], [-8, 8, -26, -8]];
+    const rings = [[-12, 21], [-28, 22], [-40, 34], [-44, 58], [-40, 84], [-22, 98], [0, 101], [22, 98], [35, 84], [35, 62], [35, 40], [22, 22]];
+    const nearRace = (x, d) => rings.some((a, i) => {
+      const b = rings[i + 1]; if (!b) return false;
+      const vx = b[0] - a[0], vd = b[1] - a[1], k = clamp(((x - a[0]) * vx + (d - a[1]) * vd) / (vx * vx + vd * vd), 0, 1);
+      return Math.hypot(x - a[0] - vx * k, d - a[1] - vd * k) < 5;
+    });
+    for (let i = 0, n = 0; i < 400 && n < 46; i++) {
+      const x = -66 + R() * 132, d = -22 + R() * 138;
+      if (keepOut.some(([x0, x1, d0, d1]) => x > x0 && x < x1 && d > d0 && d < d1) || nearRace(x, d)) continue;
+      if (R() < .25) B.bush(x, 0, d, .9 + R() * .5); else if (R() < .1) B.rock(x, 0, d, .7 + R() * .5); else { B.tree(x, 0, d, .85 + R() * .5, R() < .4 ? 'pine' : 'round'); n++; }
+    }
+    sceneryTanksHub(B);
+  }
+
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
       sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc, glow: [0xfff6d8, .45] },
@@ -6797,6 +7140,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // open from the start: the survival game with the dinosaurs, and the dragons
     { n: 8, name: 'Долина динозавров', need: 0, levels: [], col: 0x7ab648, hub: 'dino', where: 'Древние врата на мысу к востоку от огорода Фомы.' },
     { n: 9, name: 'Драконьи пики', need: 0, levels: [], col: 0xff7a3a, hub: 'dragon', where: 'Драконьи врата на мысу к востоку от огорода Фомы, рядом с Древними.' },
+    { n: 10, name: 'Танковый полигон', need: 0, levels: [], col: 0x5f8fd6, hub: 'tanks', where: 'Танковые врата на том же мысу, ближе к морю.' },
   ];
   const worldOf = (li) => WORLDS.findIndex((w) => w.levels.includes(li));
   const hubOfLevel = (li) => WORLDS[worldOf(li)].hub || 'island';
@@ -6939,6 +7283,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         { id: 'dr.balloons', name: 'Шарики', hint: 'Дедушка Дымок учит драконов метко дышать: лопни все десять шариков над облачным замком на востоке.' },
         { id: 'dr.red', name: 'Красные значки', hint: 'Восемь красных значков висят в небе: в каменном кольце, у пика, в каньоне, под гнездовьем…', prog: ['dr.red', 8] },
       ] },
+    // the Tank Range: the tank battles, the shooting range, a race on tanks
+    tanks: { id: 'hub-tanks', key: 'tanks', name: 'Танковый полигон', to: 'На Танковый полигон', shop: 'Лавка кота Болта', col: 0x5f8fd6, hub: true, seed: 1001, killY: -30,
+      music: 'march', theme: 'grass', build: buildTanks, scatter: 12, amb: 'birds',
+      sky: [[0, '#3f8fd8'], [.55, '#9fd0ee'], [1, '#f6ecd0']], fog: [0xe8ecd8, 95, 250], hemi: [0xf4f4e6, 0x6b7a4a, .84], sun: 0xfff2d8, glow: [0xffe0a0, .5, true],
+      stars: [
+        { id: 'tk.win3', name: 'Три волны', hint: 'Командир Мишка у ворот танкодрома. Встань на красный коврик в воротах и подбей все танки трёх волн.' },
+        { id: 'tk.win5', name: 'Пять волн', hint: 'Продержись на танкодроме пять волн. В четвёртой приедет большой танк: в него надо попасть шесть раз.' },
+        { id: 'tk.range', name: 'Стрельбище', hint: 'Ёжик Меткий на востоке: попади во все восемь мишеней за 40 секунд. Танк дают на синем коврике рядом.' },
+        { id: 'tk.race', name: 'Танковые гонки', hint: 'Пинг ждёт у ворот танкодрома: все кольца вокруг него за 35 секунд. Танк дают у ангаров.' },
+        { id: 'tk.tower', name: 'Наблюдательная вышка', hint: 'Вышка на западе базы: прыгай по площадкам вокруг неё до самого верха.' },
+        { id: 'tk.dig', name: 'Клад у пруда', hint: 'Капитан Клешня зарыл клад на берегу пруда на западе. Найди крестик и ударь по нему с неба.' },
+        { id: 'tk.red', name: 'Красные значки', hint: 'Восемь красных значков спрятаны по всему полигону: на ангаре, на вышке, на танкодроме, в пруду…', prog: ['tk.red', 8] },
+      ] },
   };
 
   function spawnEnemy(type, x, y, z, axis = 'x', range = 3, speed = 1.5, phase = 0) {
@@ -7026,6 +7383,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     moon: { weather: 'stardust', amb: 'space', dust: 0xdedbe7 },
     jungle: { weather: 'spores', amb: 'jungle', dust: 0xc9a878 },
     crag: { weather: 'wisps', amb: 'wind', dust: 0xe4e0ee },
+    dirt: { weather: 'pollen', amb: 'birds', dust: 0xd6c09a },
   };
 
   // ================= game state =================
@@ -7049,7 +7407,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     flipDur: .5, flipAxis: 'x', flipDir: 1, jumpN: 0, landedT: 1, skidT: 0, wallN: new T.Vector3(), wallT: 0, wallLock: 0, wallSlide: false, wallKickT: 0, inFan: false,
     swim: false, swimT: 0, swimK: 0, dashCd: 0, cheerT: 0, veh: null, vehId: '', rideCd: 0, sand: false, dive: false, jetT: 0, dashHitT: 0, rent: '', waveT: 0,
     // on a dragon: in flight or not, speed along the way, the nose's pitch, the bank, a flap's lift, cooldowns; where the saddle is
-    flyOn: false, flySpd: 0, flyPitch: 0, flyBank: 0, flapV: 0, flapCd: 0, breathCd: 0, bumpCd: 0, seat: new T.Vector3() };
+    flyOn: false, flySpd: 0, flyPitch: 0, flyBank: 0, flapV: 0, flapCd: 0, breathCd: 0, bumpCd: 0, seat: new T.Vector3(),
+    // in a tank: where the turret points, what it is aimed at (and when to look again), the reload
+    aim: 0, aimAt: null, aimT: 0, tankCd: 0 };
   const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null, tight: false };
   let time = 0;
 
@@ -7227,6 +7587,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function knockEnemy(e, dx = 0, dz = 0, pts = 100, byHero = false) {
     if (e.tough) { toughClink(e); return; }
     if (e.type === 'balloon') { popBalloon(e, byHero); return; }
+    if (e.tank && e.hp > 1) { tankFoeHit(e, dx, dz); return; }
+    if (e.tank) tankFoeDown(e);
     e.alive = false; e.flip = true; e.vy = 9; e.dead = 1.6; addScore(pts);
     const l = Math.hypot(dx, dz); e.kick = l > .01; e.kvx = e.kick ? dx / l * 8 : 0; e.kvz = e.kick ? dz / l * 8 : 0;
     popup(String(pts), e.x, e.y + 1.4, e.z);
@@ -7272,15 +7634,21 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (survOn()) survHit();
       return;
     }
+    if (P.veh && P.veh.cannon) { // a tank's armour takes the hit: a jolt and a clang (in a tank battle it costs a heart)
+      P.inv = 1.6; P.hurtT = .5; P.vel.x = dx / l * 4; P.vel.z = dz / l * 4;
+      Snd.sfx.clang(); emit(P.pos.x, P.pos.y + 1.4, P.pos.z, 0xfff3a0, 12, 5, 1, 6, .3, .2); puff(P.pos.x, P.pos.y + 1.2, P.pos.z, 0x8a8a9a, 5, 2, .6, .6, 1);
+      if (tbOn()) tbHit(); else if (survOn()) survHit(); else popup('Броня!', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold');
+      return;
+    }
     if (P.veh) { // a hit knocks the hero off the ride, like off the dino
       rideOff(true, false); P.inv = 2; P.hurtT = .7;
       P.vel.set(dx / l * 5, 9, dz / l * 5); P.noCut = true; P.onGround = false;
       Snd.sfx.yelp();
       return;
     }
-    if (survOn()) { // the survival game counts hearts instead: knocked back, a heart less
+    if (survOn() || tbOn()) { // the survival game (and the tank battle) counts hearts instead: knocked back, a heart less
       P.inv = 2.2; P.hurtT = .7; P.vel.set(dx / l * 6, 8, dz / l * 6); P.noCut = true; P.onGround = false; P.pound = null;
-      Snd.sfx.yelp(); survHit();
+      Snd.sfx.yelp(); if (tbOn()) tbHit(); else survHit();
       return;
     }
     if (P.fire) { // the pepper burns off first, the hero stays big
@@ -7300,7 +7668,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // Super mushroom: small hero grows, breaks bricks and survives one hit
   function applySize() {
     if (P.riding) { HW = HW_RIDE; PH = PH_RIDE; }
-    else if (P.veh) { HW = P.veh.wings ? .7 : .5; PH = (P.big ? PH_BIG : PH_SMALL) + P.veh.y; }
+    else if (P.veh) { HW = P.veh.wings ? .7 : P.veh.hw || .5; PH = (P.big ? PH_BIG : PH_SMALL) + P.veh.y; }
     else { HW = P.big ? HW_BIG : HW_SMALL; PH = P.big ? PH_BIG : PH_SMALL; }
   }
   function setBig(on, animate) {
@@ -7320,11 +7688,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // what the touch buttons say: jump and hit, fire with the pepper, on a dragon a beat of the wings and its breath
   let btnMode = '';
   function updateButtons() {
-    const W = P.veh && P.veh.wings, mode = W ? W.breath : P.fire ? 'fire' : '';
+    const W = P.veh && P.veh.wings, gun = !!(P.veh && P.veh.cannon), mode = W ? W.breath : gun ? 'gun' : P.fire ? 'fire' : '';
     if (mode === btnMode) return;
     btnMode = mode;
-    const act = W ? BREATH[W.breath].name : P.fire ? 'ОГОНЬ' : 'УДАР';
-    btnAct.classList.toggle('fire', !!mode); actLbl.textContent = act; btnAct.setAttribute('aria-label', act[0] + act.slice(1).toLowerCase());
+    const act = W ? BREATH[W.breath].name : gun || P.fire ? 'ОГОНЬ' : 'УДАР';
+    btnAct.classList.toggle('fire', !!mode); actLbl.textContent = act; btnAct.setAttribute('aria-label', gun ? 'Выстрел' : act[0] + act.slice(1).toLowerCase());
     jumpLbl.textContent = W ? 'ВЗМАХ' : 'ПРЫЖОК'; btnJump.setAttribute('aria-label', W ? 'Взмах крыльями' : 'Прыжок');
   }
   function spawnItem(kind, x, top, z) {
@@ -7411,6 +7779,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (P.pound || G.state !== 'playing') return;
     if (P.swim) { swimDash(); return; }
     if (P.veh && P.veh.wings) { breathe(); return; }
+    if (P.veh && P.veh.cannon) { tankFire(); return; }
     if (P.fire) { throwFire(); return; }
     if (P.onGround || P.coyote > 0 || P.veh || P.sand) { spin(); return; } // on a ride or in quicksand the button always spins
     const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, HW * .8);
@@ -7515,6 +7884,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function killFireball(i, fizz) {
     const f = L.fireballs[i];
     L.group.remove(f.m); L.fireballs.splice(i, 1);
+    if (f.shell) { shellBoom(f); return; }
     puff(f.x, f.y, f.z, 0x6d6874, 3, 1.2, .8, .5, .6); glow(f.x, f.y, f.z, 0xffb03a, 8, 3, .5, 2, .25, .25);
     if (fizz) Snd.at(f.x, f.y, f.z).fizz();
   }
@@ -7533,18 +7903,27 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (f.y < L.killY || (L.lavaY !== null && f.y < L.lavaY + .1)) { killFireball(i, true); continue; }
       if (L.waters.length) { const fw = waterAt(f.x, f.z); if (fw !== null && f.y < fw) { killFireball(i, true); continue; } }
       f.m.position.set(f.x, f.y, f.z);
-      f.m.scale.setScalar((f.air ? .34 : .22) + Math.sin(time * 40) * .03);
-      const cols = f.cols || [0xff8a2a, 0xffd35a];
-      glow(f.x, f.y, f.z, cols[Math.random() < .5 ? 0 : 1], f.air ? 2 : 1, .6, .6, 0, .28, f.air ? .4 : .3);
-      if (f.air && ISL.beacons) { // it lights a beacon it flies past
-        const q = ISL.beacons;
-        for (const b of q.list) if (!b.lit && b.bulb.getWorldPosition(_bv).distanceTo(_fv.set(f.x, f.y, f.z)) < 1.8) lightBeacon(q, b);
+      if (f.shell) { // a tank's shell trails smoke, a fiery one fire
+        if (f.hot) glow(f.x - f.vx * .01, f.y, f.z - f.vz * .01, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 2, .5, .3, 0, .3, .35);
+        else if (Math.random() < .6) puff(f.x - f.vx * .01, f.y, f.z - f.vz * .01, 0xeeeef4, 1, .15, .2, .3, .4);
       }
+      else {
+        f.m.scale.setScalar((f.air ? .34 : .22) + Math.sin(time * 40) * .03);
+        const cols = f.cols || [0xff8a2a, 0xffd35a];
+        glow(f.x, f.y, f.z, cols[Math.random() < .5 ? 0 : 1], f.air ? 2 : 1, .6, .6, 0, .28, f.air ? .4 : .3);
+      }
+      if (f.ghost) continue; // a friend's shell only flies and bursts: what it hits is for the friend's screen to say
       let hit = false;
-      const reach = f.air ? .6 : .25;
-      for (const e of L.enemies) {
+      if (f.air && ISL.beacons) { // it lights a beacon it flies past (a shell bursts on the target it hits)
+        const q = ISL.beacons;
+        for (const b of q.list) if (!b.lit && b.bulb.getWorldPosition(_bv).distanceTo(_fv.set(f.x, f.y, f.z)) < (f.shell ? 1.4 : 1.8)) { lightBeacon(q, b); if (f.shell) { hit = true; break; } }
+      }
+      if (!hit && f.shell && duelTanking()) hit = shellHitsFriend(f);
+      const reach = f.shell ? .45 : f.air ? .6 : .25;
+      if (!hit) for (const e of L.enemies) {
         if (!e.alive || Math.abs(e.x - f.x) > e.hw + reach || Math.abs(e.z - f.z) > e.hw + reach || f.y < e.y - .2 || f.y > e.y + e.h + .2) continue;
-        knockEnemy(e, f.vx, f.vz, 200, true); hit = true; break;
+        knockEnemy(e, f.vx, f.vz, 200, true); if (f.dmg > 1 && e.alive && e.tank) knockEnemy(e, f.vx, f.vz, 200, true);
+        hit = true; f.hitE = e; break;
       }
       if (!hit) for (const b of L.balls) if (Math.hypot(b.x - f.x, b.z - f.z) < .6 && Math.abs(b.y - f.y) < .6) { popBall(b, 200); hit = true; break; }
       const bs = L.boss;
@@ -7833,7 +8212,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- footsteps: a sound per surface and a little dust ----------
   // grounds that sound like another: canyon rock like sand, steel like stone, blue ice like ice
   const STEP_AS = { canyon: 'sand', sandstone: 'stone', glacier: 'ice', choco: 'candy', metal: 'stone', cliff: 'grass', cloud: 'snow', deck: 'wood', reef: 'sand', moon: 'snow', mare: 'sand',
-    jungle: 'grass', crag: 'grass', basalt: 'stone' };
+    jungle: 'grass', crag: 'grass', basalt: 'stone', dirt: 'sand' };
   function surfaceOf(s) {
     if (!s) return 'grass';
     if (s.ice) return 'ice';
@@ -7985,6 +8364,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // a ride's top speed right now: the jet ski is fast on water, the snowboard on snow, ice and sand, the skis on snow and ice
   // (kept through a jump)
   function rideSpeed(V) {
+    if (V.cannon) return V.spd + tankMod(3); // a tank: as fast as its engine
     if (P.onGround) P.rideFast = (V.water && (P.ground === SURF_FLOAT || !!P.ground.wet)) || (V.snow && !!P.ground && (P.ground.ice || V.surfs.includes(P.ground.surf)));
     return P.rideFast ? V.water || V.snow || V.spd : V.spd; // a ride called in the air after a fast one has neither
   }
@@ -8099,6 +8479,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const icy = P.onGround && P.ground && P.ground.ice, slide = P.onGround && P.ground && P.ground.slide, grip = V && !!V.snow;
       let acc = mag > .01 ? (P.onGround ? (icy ? ACC_ICE : ACC_G) : ACC_A) : (P.onGround ? (icy ? DEC_ICE : DEC_G) : DEC_A);
       if (V) acc = mag > .01 ? V.acc * (P.onGround ? (icy && !grip ? .45 : 1) : V.fly ? 1 : .55) : P.onGround ? V.acc * (icy && !grip ? .25 : .7) : V.fly ? V.acc * .5 : DEC_A;
+      if (V && V.cannon) acc *= 1 + tankMod(3) * .15; // a tank's engine upgrades
       else if (P.skidT > 0) acc = 26;
       if (P.wallLock > 0) acc *= .2; // right after a wall kick the hero flies away from the wall
       if (P.swim) acc = mag > .01 ? 14 : 5;
@@ -8106,13 +8487,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (slide && !grip) acc = mag > .01 ? 10 : 2.5;
       let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1);
       if (slide) spdMax = Math.max(spdMax, 14); // steering down a slide must not brake it
-      let dvx = wx * spdMax - P.vel.x, dvz = wz * spdMax - P.vel.z;
+      let tx = wx, tz = wz;
+      if (V && V.cannon && mag > .08) { // a tank turns on its tracks at its own pace, and drives only the way it faces
+        const d = wrapPi(Math.atan2(wx, wz) - P.facing), turn = (TANK_TURN + tankMod(3) * .45) * dt, k = mag * Math.max(0, Math.cos(d));
+        P.facing += clamp(d, -turn, turn); tx = Math.sin(P.facing) * k; tz = Math.cos(P.facing) * k;
+      }
+      let dvx = tx * spdMax - P.vel.x, dvz = tz * spdMax - P.vel.z;
       const dl = Math.hypot(dvx, dvz), md = acc * dt;
       if (dl > md) { dvx *= md / dl; dvz *= md / dl; }
       P.vel.x += dvx; P.vel.z += dvz;
       if (slide) slidePull(dt);
       if (P.wallSlide) P.facing = angleDamp(P.facing, Math.atan2(-P.wallN.x, -P.wallN.z), 18, dt);
-      else if (mag > .08 && P.wallLock <= 0) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), V && V.pose === 'sit' ? 9 : 16, dt);
+      else if (mag > .08 && P.wallLock <= 0 && !(V && V.cannon)) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), V && V.pose === 'sit' ? 9 : 16, dt);
     }
 
     if (input.jumpQueued) { P.jumpBuf = .14; input.jumpQueued = false; }
@@ -8311,8 +8697,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         }
         continue;
       }
-      if (Math.abs(e.z - P.pos.z) > 75 && !e.surv) continue;
+      if (Math.abs(e.z - P.pos.z) > 75 && !e.surv && !e.tank) continue;
       if (e.type === 'flyer' || e.type === 'ptero') updateFlyer(e, dt);
+      else if (e.tank) updateTankFoe(e, dt);
       else if (e.ai) updateFoe(e, dt);
       else if (e.type === 'balloon') { // a balloon bobs on its string
         e.y = e.hy + Math.sin(time * 1.2 + e.hopOff * 5) * .35; e.mesh.position.set(e.x, e.y, e.z); e.mesh.rotation.y += dt * .3;
@@ -8361,6 +8748,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           const falling = P.vel.y <= .5 || P.prevY > p.y;
           // the kart (and the stone car, and a dragon) bowls enemies over at speed; the pogo stick, the dino and a ground
           // pound squash even spiky shells; the tyrannosaur only bounces whoever lands on it
+          if (e.tank) { tankTouch(e, falling); continue; }
           if (e.tough) { if (falling && P.prevY >= e.y + e.h * .55) toughBounce(e); else hurt(e); continue; }
           if (P.veh && (P.veh.bump || P.veh.wings) && Math.hypot(P.vel.x, P.vel.z) > 4) { knockEnemy(e, e.x - p.x, e.z - p.z, 200, true); continue; }
           const stompable = e.type !== 'spiky' || P.riding || P.pound === 'drop' || (P.veh && P.veh.pogo);
@@ -8816,8 +9204,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // perks (each can be switched off), costumes, caps, hats and rides.
   const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'classic',
     caps: ['auto', 'classic'], cap: 'auto', hats: [], hat: '', rides: [], ride: '',
-    // the best survival game (waves lasted through, seconds), and the dragon last picked at the roost
-    surv: 0, survT: 0, dragon: '' });
+    // the best survival game (waves lasted through, seconds), the dragon last picked at the roost, the best tank battle (waves,
+    // tanks knocked out)
+    surv: 0, survT: 0, dragon: '', tb: 0, tbK: 0,
+    // medals for victories in tank battles, and the tank's upgrades: levels of the gun, the shells, the armour, the engine
+    medals: 0, tkMods: [0, 0, 0, 0] });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
   // older saves: the island's red badges and froglets had lists of their own, and the turquoise cap was the default
   if (SAVE.red) { SAVE.sets.red = SAVE.red; delete SAVE.red; }
@@ -8846,7 +9237,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const ISL = {};
   function resetIsland() {
     Object.assign(ISL, { trail: [], lost: null, sets: {}, race: null, clears: [], switches: null, magicT: 0, cp: null, deliveries: [], chases: [], beacons: null, carry: null,
-      surv: null, cup: null });
+      surv: null, cup: null, tb: null });
   }
   resetIsland();
   function awardStar(id) {
@@ -9229,6 +9620,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (q.t <= 0) { resetBeacons(); Snd.sfx.locked(); toast('Время вышло!', q.where); npcSay(q.owner, q.fail); return; }
       if (q.t < 6 && Math.ceil(q.t) !== Math.ceil(before)) Snd.sfx.tock(true);
     }
+    if (q.style === 'target') return; // targets light up only when a shot hits them
     const r = P.veh && P.veh.wings ? 3.6 : 2.3; // a dragon is big: it lights them from further off
     for (const b of q.list) {
       if (b.lit) continue;
@@ -9294,7 +9686,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const survOn = () => !!ISL.surv && ['count', 'wave', 'rest'].includes(ISL.surv.phase);
   function survStart() {
     const S = ISL.surv;
-    if (!S || survOn() || duelOn() || duelPending() || cupOn()) return;
+    if (!S || survOn() || duelOn() || duelPending() || cupOn() || tbOn()) return;
     if (ISL.carry) dropCarry('fall');
     if (ISL.race && ISL.race.on) resetRace();
     Object.assign(S, { phase: 'count', t: 3.6, tick: 4, wave: 0, max: 3 + (perkOn('heart') ? 1 : 0), kills: 0, time: 0, spawnT: 0, heartT: 14, meteorT: 3, foes: [],
@@ -9428,8 +9820,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
   }
   // a heart on the grass for a while: one more heart
-  function survHeart() {
-    const S = ISL.surv, [x, d] = S.heartAt[(Math.random() * S.heartAt.length) | 0];
+  function survHeart(S = ISL.surv) {
+    const [x, d] = S.heartAt[(Math.random() * S.heartAt.length) | 0];
     const m = new T.Mesh(GEO.heart, MAT.char); m.castShadow = true; L.group.add(m);
     L.hearts.push({ m, x, y: groundAt(x, -d, S.top + 6) + 1, z: -d, t: 0 });
     Snd.at(x, 1, -d).sprout(); glow(x, S.top + 1, -d, 0xff8aa0, 16, 3, 1, 2, .6, .3);
@@ -9440,7 +9832,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       h.m.position.set(h.x, h.y + Math.sin(h.t * 3) * .15, h.z); h.m.rotation.y += dt * 2.4;
       h.m.visible = h.t < 12 || Math.floor(time * 8) % 2 === 0;
       if (Math.random() < dt * 5) glow(h.x + (Math.random() - .5) * .6, h.y, h.z, 0xff8aa0, 1, .2, .6, 0, .6, .2);
-      const S = ISL.surv, take = G.state === 'playing' && survOn() && Math.hypot(P.pos.x - h.x, P.pos.z - h.z) < 1.4 + (P.veh ? .6 : 0) && Math.abs(P.pos.y + 1 - h.y) < 2;
+      const S = survOn() ? ISL.surv : tbOn() ? ISL.tb : null; // the survival game's hearts, or the tank battle's
+      const take = G.state === 'playing' && !!S && Math.hypot(P.pos.x - h.x, P.pos.z - h.z) < 1.4 + (P.veh ? .6 : 0) && Math.abs(P.pos.y + 1 - h.y) < 2;
       if (!take && h.t < 15) continue;
       L.group.remove(h.m); L.hearts.splice(i, 1);
       if (!take) continue;
@@ -9488,7 +9881,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const cupFrozen = () => !!ISL.cup && ISL.cup.phase === 'count';
   function cupStart() {
     const C = ISL.cup;
-    if (!C || cupOn() || survOn() || duelOn() || duelPending()) return;
+    if (!C || cupOn() || survOn() || duelOn() || duelPending() || tbOn()) return;
     if (ISL.carry) dropCarry('fall');
     const n = C.rings.length, k = L.def.ringK || 1;
     Object.assign(C, { phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, next: 0, fin: 0, runAt: 0, firstAt: 0, laps: C.laps || 2, lapLen: n,
@@ -9623,12 +10016,419 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       yes: 'Ещё раз', onYes: () => { if (G.state === 'paused') resume(); cupStart(); } });
   }
 
+  // ---------- the Tank Range: the tank's gun, the grumpy tanks, the tank battle ----------
+  // The gun turns by itself to whatever is worth a shell in front of the camera (or, with nothing there, in front of the
+  // tank): enemies and balloons, the targets of the range, the friends' tanks in a tank battle. With nothing about it points
+  // where the camera looks. A red ring and a chevron mark what it is aimed at. A shell flies straight, bursts on whatever it
+  // meets and knocks over what stands close by; a grumpy tank takes a few shells (its hearts float over it).
+  const TANK_TURN = 2.6, SHELL_V = 40, SHELL_R = 2.4, TANK_REACH = 44, TANK_CONE = .55;
+  // Upgrading the tank. Medals come for victories: every wave of a tank battle knocked out, a tank battle with friends won
+  // (three, one for a draw). They buy upgrades in the shops' "Tank" tab, three levels each: the gun reloads faster; the
+  // shells burst wider, then come out of a pair of guns, then hit twice as hard; the armour gives the tank battle more
+  // hearts; the engine drives faster, turns faster, then gets rocket boosters. Every level shows on the tank. In games with
+  // friends everyone's tank is the same (only the looks stay), as everyone's ride is the same in a race.
+  const TANK_MODS = [
+    { name: 'Пушка', lv: ['Быстрее перезаряжается', 'Ещё быстрее, и ствол толще', 'Скорострельная пушка'] },
+    { name: 'Снаряды', lv: ['Взрыв шире', 'Два ствола: двойной выстрел', 'Огненные снаряды: бьют вдвое'] },
+    { name: 'Броня', lv: ['+1 сердечко в танковом бою', '+2 сердечка в бою', '+3 сердечка и золотые звёзды'] },
+    { name: 'Мотор', lv: ['Быстрее ездит', 'Быстрее разворачивается', 'Турбо: ракетные ускорители'] },
+  ];
+  const MOD_COST = [1, 2, 3], TANK_RELOADS = [.75, .6, .48, .38];
+  const tankMod = (i) => (duelOn() ? 0 : SAVE.tkMods[i] || 0); // what counts in play: nothing in games with friends
+  function giveMedals(n, why) {
+    SAVE.medals += n; saveGame();
+    popup('+' + n + ' 🎖', P.pos.x, P.pos.y + PH + 1.5, P.pos.z, 'gold');
+    if (!G.medalHint) { G.medalHint = true; setTimeout(() => toast(why || 'Медаль!', 'Медали тратятся на модернизацию танка: в лавке, вкладка «Танк»'), 2600); }
+  }
+  MAT.hpOn = std({ color: 0xff5a6a, emissive: 0xff2a4a, emissiveIntensity: .9, roughness: .4 });
+  MAT.hpOff = std({ color: 0x3b3f50, roughness: .8, transparent: true, opacity: .5 });
+  const retRing = new T.Mesh(RING_GEO, MAT.reticle), retArrow = new T.Mesh(GEO.arrow, MAT.reticle), reticle = new T.Group();
+  retRing.rotation.x = Math.PI / 2; retArrow.rotation.x = Math.PI / 2; retRing.renderOrder = retArrow.renderOrder = 6;
+  reticle.add(retRing, retArrow); reticle.visible = false; scene.add(reticle);
+  // The sight: a ring with four ticks standing where a shell would burst (on what the gun is aimed at, or on the first solid
+  // thing along the barrel), and a dotted line out of the gun to it. Aimed at something it turns red; while the gun reloads
+  // it is small and dim, and it pops once the gun is loaded. It keeps its size on the screen however far it is.
+  MAT.sight = new T.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: .9, depthTest: false, depthWrite: false });
+  MAT.sightDot = new T.MeshBasicMaterial({ color: 0xffe07a, transparent: true, opacity: .65, depthWrite: false }); // (the hero hides the dots behind him)
+  const SIGHT_N = 18, sight = new T.Mesh(GEO.sight, MAT.sight), sightDots = new T.InstancedMesh(SPH, MAT.sightDot, SIGHT_N), _sm = new T.Matrix4(), _sv3 = new T.Vector3();
+  sight.renderOrder = sightDots.renderOrder = 7; sight.visible = sightDots.visible = false; sightDots.frustumCulled = false; scene.add(sight, sightDots);
+  let sightPop = 0;
+  function updateSight(dt) {
+    const on = !!(P.veh && P.veh.cannon) && (G.state === 'playing' || G.state === 'paused' || G.state === 'menu');
+    sight.visible = sightDots.visible = on;
+    if (!on) { reticle.visible = false; return; }
+    const at = P.aimAt ? P.aimAt() : null, [mx, my, mz] = muzzleAt(P.pos.x, P.pos.y, P.pos.z, P.facing, P.aim, 1, gunLen());
+    let tx = mx, ty = my, tz = mz;
+    if (at) { tx = at[0]; ty = at[1]; tz = at[2]; }
+    else {
+      const dx = Math.sin(P.aim), dz = Math.cos(P.aim);
+      let d = .5;
+      while (d < TANK_REACH && !pointHits(mx + dx * d, my, mz + dz * d, .08)) d += .5;
+      d = Math.max(.5, d - .3); tx = mx + dx * d; tz = mz + dz * d;
+    }
+    const ready = P.tankCd <= 0, cd = camera.position.distanceTo(_sv3.set(tx, ty, tz));
+    sightPop = Math.max(0, sightPop - dt * 3);
+    sight.position.set(tx, ty, tz); sight.quaternion.copy(camera.quaternion);
+    sight.scale.setScalar(cd * .024 * (ready ? 1 + sightPop * .7 : .7));
+    MAT.sight.color.setHex(at ? 0xff4a3a : 0xfff3a0); MAT.sight.opacity = ready ? .95 : .4;
+    MAT.sightDot.color.setHex(at ? 0xff6a4a : 0xffe07a); MAT.sightDot.opacity = ready ? .65 : .3;
+    const len = Math.hypot(tx - mx, ty - my, tz - mz), n = Math.min(SIGHT_N, Math.floor(len / 1.4));
+    for (let i = 0; i < n; i++) {
+      const f = (i + 1) / (n + 1), px = lerp(mx, tx, f), py = lerp(my, ty, f), pz = lerp(mz, tz, f), s = camera.position.distanceTo(_sv3.set(px, py, pz)) * .005;
+      _sm.makeScale(s, s, s).setPosition(px, py, pz); sightDots.setMatrixAt(i, _sm);
+    }
+    sightDots.count = n; sightDots.instanceMatrix.needsUpdate = true;
+  }
+  // nothing solid on the straight line between two points (a few samples along it)
+  function clearShot(x0, y0, z0, x1, y1, z1) {
+    const n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 2);
+    for (let i = 1; i < n; i++) { const k = i / n; if (pointHits(lerp(x0, x1, k), lerp(y0, y1, k), lerp(z0, z1, k), .05)) return false; }
+    return true;
+  }
+  // What the gun turns to within a cone round the yaw `mid`: nearest the middle first, then the nearest, with nothing solid in
+  // the way. A pick is a function that finds the spot again as it moves: [x, middle y, z, size, feet y], or null once it is gone.
+  function tankPick(mid) {
+    const x0 = P.pos.x, y0 = P.pos.y + 1.1, z0 = P.pos.z, list = [];
+    const add = (x, y, z, get) => {
+      const dx = x - x0, dz = z - z0, d = Math.hypot(dx, dz);
+      if (d < 2 || d > TANK_REACH || Math.abs(y - y0) > 14) return;
+      const off = Math.abs(wrapPi(Math.atan2(dx, dz) - mid));
+      if (off < TANK_CONE) list.push({ s: off * 20 + d, get });
+    };
+    for (const e of L.enemies) if (e.alive) add(e.x, e.y + e.h * .5, e.z, () => (e.alive ? [e.x, e.y + e.h * .5, e.z, Math.max(.7, e.hw), e.y] : null));
+    const q = ISL.beacons;
+    if (q && q.style === 'target' && !questDone(q.star)) for (const b of q.list) if (!b.lit) add(b.x, b.y + TARGET_Y, b.z, () => (b.lit ? null : [b.x, b.y + TARGET_Y, b.z, .9, b.y]));
+    if (duelTanking()) for (const id of duel.players) {
+      const g = net.peers.get(id), on = () => g.rig && g.rig.root.visible;
+      if (id !== duelMe() && g && on()) add(g.px, g.py + .1, g.pz, () => (on() ? [g.px, g.py + .1, g.pz, 1.3, g.py - RIDES.tank.y] : null));
+    }
+    list.sort((a, b) => a.s - b.s);
+    for (const c of list.slice(0, 4)) { const p = c.get(); if (clearShot(x0, y0, z0, p[0], p[1], p[2])) return c.get; }
+    return null;
+  }
+  // every step in a tank: the reload, the pick (a few times a second, or at once when it is gone), the turret, the marker
+  function updateTank(dt) {
+    const was = P.tankCd; P.tankCd -= dt;
+    if (!(P.veh && P.veh.cannon) || G.state !== 'playing') { reticle.visible = false; P.aimAt = null; return; }
+    if (was > 0 && P.tankCd <= 0) { Snd.sfx.reload(); sightPop = 1; }
+    P.aimT -= dt;
+    let at = P.aimAt ? P.aimAt() : null;
+    if (P.aimT <= 0 || (P.aimAt && !at)) {
+      P.aimT = .12;
+      const view = wrapPi(cam.yaw + Math.PI);
+      P.aimAt = tankPick(view) || tankPick(P.facing);
+      at = P.aimAt ? P.aimAt() : null;
+    }
+    P.aim = angleDamp(P.aim, at ? Math.atan2(at[0] - P.pos.x, at[2] - P.pos.z) : wrapPi(cam.yaw + Math.PI), at ? 10 : 5, dt);
+    reticle.visible = !!at;
+    if (!at) return;
+    reticle.position.set(at[0], 0, at[2]);
+    retRing.position.y = at[4] + .12; retRing.scale.setScalar(at[3] * 1.3 * (1 + Math.sin(time * 7) * .06));
+    retArrow.position.y = at[1] + at[3] + 1.1 + Math.sin(time * 6) * .15;
+  }
+  // the end of the gun: out along the barrel from the turret ring (a tank at x, y, z facing `face`, its turret turned to `aim`;
+  // the barrel `len` times its length, `side` metres to the side for one of a pair)
+  function muzzleAt(x, y, z, face, aim, s = 1, len = 1, side = 0) {
+    const r = (TANK_GUN[2] + 1.66 * len) * s, c = Math.cos(aim), sn = Math.sin(aim);
+    return [x + Math.sin(face) * TANK_TURRET[2] * s + sn * r + c * side * s, y + (TANK_TURRET[1] + TANK_GUN[1]) * s, z + Math.cos(face) * TANK_TURRET[2] * s + c * r - sn * side * s];
+  }
+  const gunLen = () => 1 + (SAVE.tkMods[0] || 0) * .12; // the barrel as it looks
+  const round2 = (v) => Math.round(v * 100) / 100;
+  function tankFire() {
+    if (P.tankCd > 0 || G.state !== 'playing') return;
+    P.tankCd = TANK_RELOADS[tankMod(0)]; P.throwT = .3;
+    rideGroup(P.vehId).userData.recoil = 1;
+    // a pair of guns fires both at once (with the upgrade), or one after the other (in games with friends, where it counts
+    // as one gun)
+    const twin = (SAVE.tkMods[1] || 0) >= 2, pair = tankMod(1) >= 2;
+    P.gunSide = -(P.gunSide || 1);
+    const sides = pair ? [-TANK_TWIN, TANK_TWIN] : [twin ? P.gunSide * TANK_TWIN : 0], at = P.aimAt ? P.aimAt() : null;
+    for (const side of sides) {
+      const [mx, my, mz] = muzzleAt(P.pos.x, P.pos.y, P.pos.z, P.facing, P.aim, 1, gunLen(), side);
+      const pitch = at ? clamp(Math.atan2(at[1] - my, Math.hypot(at[0] - mx, at[2] - mz)), -.4, .5) : 0, cp = Math.cos(pitch);
+      const v = [Math.sin(P.aim) * cp * SHELL_V, Math.sin(pitch) * SHELL_V, Math.cos(P.aim) * cp * SHELL_V];
+      shellOut(mx, my, mz, v[0], v[1], v[2], false, tankMod(1) >= 3, tankMod(1) >= 1 ? 3.3 : SHELL_R);
+      if (duelTanking()) duelSay({ t: 'shot', p: [mx, my, mz].map(round2), v: v.map(round2) });
+    }
+    Snd.sfx.cannon(); G.shake = Math.max(G.shake, .16);
+  }
+  // a shell out of a gun (ours, or a friend's that only flies and bursts), with the flash and the smoke; a fiery one hits
+  // twice as hard, and `blast` is how far its burst reaches
+  function shellOut(x, y, z, vx, vy, vz, ghost, hot = false, blast = SHELL_R) {
+    const m = new T.Mesh(hot ? GEO.shellHot : GEO.shell, MAT.char); m.rotation.order = 'YXZ'; m.rotation.set(-Math.atan2(vy, Math.hypot(vx, vz)), Math.atan2(vx, vz), 0);
+    m.position.set(x, y, z); L.group.add(m);
+    L.fireballs.push({ m, x, y, z, vx, vy, vz, life: 1.3, bounces: 0, air: true, shell: true, ghost, hot, dmg: hot ? 2 : 1, blast });
+    flashAt(x, y, z, 0xffe07a, 2.6, .12); glow(x, y, z, 0xffb03a, 12, 4, .5, 0, .25, .35); puff(x, y, z, 0xe8e6ee, 6, 2.2, .4, .6, 1);
+  }
+  // a shell bursts: a flash, a ring of fire, smoke and sparks; whatever stands close by is knocked over (a friend's shell
+  // only shows it)
+  function shellBoom(f) {
+    Snd.at(f.x, f.y, f.z).boom();
+    const R = f.blast || SHELL_R;
+    flashAt(f.x, f.y, f.z, 0xfff3b0, 3, .16); wave(f.x, f.y, f.z, 0xffc04a, R, .35);
+    glow(f.x, f.y, f.z, 0xffa12e, 16, 5, 1, 4, .45, .4); emit(f.x, f.y, f.z, 0xffe07a, 10, 6, 2, 8, .5, .2); puff(f.x, f.y, f.z, 0x8a8490, 6, 2.2, .8, .7, 1.2);
+    const d = Math.hypot(P.pos.x - f.x, P.pos.z - f.z); if (d < 12) G.shake = Math.max(G.shake, .18 * (1 - d / 12));
+    if (f.ghost) return;
+    for (const e of L.enemies) {
+      if (!e.alive || e === f.hitE || Math.hypot(e.x - f.x, e.z - f.z) > R + e.hw * .5 || f.y < e.y - 1.2 || f.y > e.y + e.h + 1.2) continue;
+      knockEnemy(e, e.x - f.x, e.z - f.z, 100, true);
+    }
+    for (const b of L.balls) if (!b.dead && Math.hypot(b.x - f.x, b.z - f.z) < R && Math.abs(b.y - f.y) < 2) popBall(b, 100);
+  }
+
+  // ---------- the grumpy tanks ----------
+  // One rolls out of a hangar door, keeps a fair way off the hero and drives round him from cover to cover; its turret
+  // follows him, and when the gun points at him with nothing in between it glows and fires a cannonball (cannonballs can be
+  // dodged, jumped on or shot down). It takes a few shells. The big one is slower and tougher, and fires three at once.
+  const TANK_FOES = {
+    foe: { hp: 2, spd: 4.6, reload: 4.4, windup: .95, ball: 10, range: [9, 16], sc: 1 },
+    boss: { hp: 6, spd: 3.2, reload: 4, windup: 1.1, ball: 9.5, range: [11, 18], sc: 1.4, spread: true },
+  };
+  function spawnTankFoe(look, x, y, z, box, fast = 1) {
+    const F = TANK_FOES[look], g = tankModel(look);
+    g.scale.setScalar(F.sc); g.position.set(x, y, z); L.group.add(g);
+    // its hearts in a row over the turret
+    const bar = new T.Group(); bar.position.y = 2.4; g.add(bar);
+    const pips = Array.from({ length: F.hp }, (_, i) => { const m = new T.Mesh(GEO.heart, MAT.hpOn); m.scale.setScalar(.4); m.position.x = (i - (F.hp - 1) / 2) * .38; bar.add(m); return m; });
+    const e = { type: 'tank', tank: true, look, F, x, y, z, hx: x, hy: y, hz: z, alive: true, dead: 0, flip: false, vy: 0, mesh: g, wings: null, axis: 'x', range: 0, t: 0,
+      hw: 1.05 * F.sc, h: 1.6 * F.sc, face: 0, aim: 0, hp: F.hp, pips, bar, spd: F.spd * fast, reload: F.reload / fast, fast, state: 'drive', st: 0,
+      cool: 2.6 + Math.random() * 2, gx: x, gz: z, goalT: 0, stuck: 0, hitT: 0, kx: 0, kz: 0, onG: true, solids: box.solids, box, kick: false, kvx: 0, kvz: 0,
+      hopOff: Math.random() * 6, noticed: false, rage: 1 };
+    L.enemies.push(e);
+    return e;
+  }
+  function updateTankFoe(e, dt) {
+    const p = P.pos, playing = G.state === 'playing', u = e.mesh.userData, B = e.box, s = e.F.sc;
+    const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz) || 1, toHero = Math.atan2(dx, dz);
+    e.st += dt; e.cool -= dt; e.goalT -= dt; e.hitT -= dt;
+    // where to drive: a spot a fair way off the hero, somewhere round him, picked again now and then or when stuck
+    if (e.goalT <= 0 || Math.hypot(e.gx - e.x, e.gz - e.z) < 2 || e.stuck > .7) {
+      const a = Math.atan2(e.x - p.x, e.z - p.z) + (Math.random() - .5) * 1.8, r = e.F.range[0] + Math.random() * (e.F.range[1] - e.F.range[0]);
+      e.gx = clamp(p.x + Math.sin(a) * r, B.x0, B.x1); e.gz = clamp(p.z + Math.cos(a) * r, B.z0, B.z1);
+      e.goalT = 3 + Math.random() * 2.5; e.stuck = 0;
+    }
+    const want = Math.atan2(e.gx - e.x, e.gz - e.z), dd = wrapPi(want - e.face), turn = 1.9 * dt;
+    e.face += clamp(dd, -turn, turn);
+    const v = e.spd * Math.max(0, Math.cos(dd)) * (e.state === 'aim' ? .3 : 1);
+    // it keeps apart from the other tanks and from the hero, and a shell's shove fades
+    let px = e.kx, pz = e.kz;
+    e.kx = damp(e.kx, 0, 5, dt); e.kz = damp(e.kz, 0, 5, dt);
+    for (const o of L.enemies) {
+      if (o === e || !o.tank || !o.alive) continue;
+      const ox = e.x - o.x, oz = e.z - o.z, od = Math.hypot(ox, oz), need = e.hw + o.hw + .6;
+      if (od < need && od > .01) { px += ox / od * (need - od) * 3; pz += oz / od * (need - od) * 3; }
+    }
+    if (d < e.hw + 2.4) { px -= dx / d * (e.hw + 2.4 - d) * 3; pz -= dz / d * (e.hw + 2.4 - d) * 3; }
+    const before = Math.hypot(e.x - e.gx, e.z - e.gz);
+    foeMove(e, Math.sin(e.face) * v + px, Math.cos(e.face) * v + pz, dt);
+    e.stuck = v > 1 && before - Math.hypot(e.x - e.gx, e.z - e.gz) < v * dt * .25 ? e.stuck + dt : 0;
+    if (e.y < L.killY) { e.alive = false; e.mesh.visible = false; return; }
+    // the turret follows the hero; the gun fires once it points at him and nothing stands in between
+    e.aim = angleDamp(e.aim, toHero, 2.4 * e.fast, dt);
+    if (e.state === 'drive') {
+      if (playing && e.cool <= 0 && d < 34 && Math.abs(wrapPi(toHero - e.aim)) < .12 && Math.abs(p.y - e.y) < 3) {
+        const [mx, my, mz] = muzzleAt(e.x, e.y, e.z, e.face, e.aim, s);
+        if (clearShot(mx, my, mz, p.x, my, p.z)) { e.state = 'aim'; e.st = 0; popup('!', e.x, e.y + e.h + 1.2, e.z, 'gold'); Snd.at(e.x, e.y + 1, e.z).charge(); }
+        else { e.cool = .5; e.goalT = 0; } // something in the way: round it
+      }
+    } else if (e.state === 'aim') {
+      u.gun.scale.setScalar(1 + Math.sin(time * 40) * .06);
+      if (Math.random() < dt * 20) { const m = muzzleAt(e.x, e.y, e.z, e.face, e.aim, s); glow(m[0], m[1], m[2], 0xffc04a, 1, 1, 0, 0, .25, .25); }
+      if (e.st > e.F.windup) { tankFoeFire(e); e.state = 'drive'; e.cool = e.reload * (.8 + Math.random() * .5); u.gun.scale.setScalar(1); }
+    }
+    // the look: the hull along the way, the turret on the hero, a bump when hit, its hearts facing the camera
+    e.mesh.position.set(e.x, e.y, e.z); e.mesh.rotation.y = e.face; u.turret.rotation.y = wrapPi(e.aim - e.face);
+    spinRide(e.mesh, dt, 1);
+    e.mesh.rotation.x = -u.recoil * .08; e.mesh.scale.setScalar(s * (1 + Math.max(0, e.hitT) * .25));
+    e.bar.rotation.y = wrapPi(cam.yaw - e.face);
+    if (v > 1 && Math.random() < dt * 5) puff(e.x - Math.sin(e.face) * 1.5 * s, e.y + .85 * s, e.z - Math.cos(e.face) * 1.5 * s, 0x9a9aa8, 1, .4, .8, .6, .5);
+  }
+  function tankFoeFire(e) {
+    const s = e.F.sc, [mx, my, mz] = muzzleAt(e.x, e.y, e.z, e.face, e.aim, s);
+    for (const k of e.F.spread ? [-.2, 0, .2] : [0]) fireBall(mx, my, mz, e.aim + k, e.F.ball * e.fast, null);
+    e.mesh.userData.recoil = 1;
+    Snd.at(mx, my, mz).cannon(); flashAt(mx, my, mz, 0xffe07a, 2.2, .12); puff(mx, my, mz, 0xe8e6ee, 5, 2, .4, .6, 1);
+    const d = Math.hypot(P.pos.x - e.x, P.pos.z - e.z); if (d < 14) G.shake = Math.max(G.shake, .12 * (1 - d / 14));
+  }
+  // a shell that does not finish it: a clang, sparks, a heart less, a shove, and off it goes somewhere else
+  function tankFoeHit(e, dx, dz) {
+    e.hp--; e.hitT = .3; e.pips[e.hp].material = MAT.hpOff; addScore(50);
+    Snd.at(e.x, e.y + 1, e.z).clang(); emit(e.x, e.y + e.h, e.z, 0xfff3a0, 10, 5, 1, 6, .3, .2); puff(e.x, e.y + e.h * .7, e.z, 0x8a8490, 3, 1.5, .8, .6, .9);
+    popup('Бум!', e.x, e.y + e.h + .8, e.z, 'gold');
+    const l = Math.hypot(dx, dz); if (l > .01) { e.kx = dx / l * 5; e.kz = dz / l * 5; }
+    e.goalT = 0;
+  }
+  // the last one: it bursts into smoke and sparks and tumbles away (knockEnemy flips it)
+  function tankFoeDown(e) {
+    e.bar.visible = false;
+    Snd.at(e.x, e.y + 1, e.z).boom(); popup('Бабах!', e.x, e.y + e.h + 1, e.z, 'gold');
+    puff(e.x, e.y + 1.2, e.z, 0x5a5660, 10, 3, 1.5, 1, 1.6); glow(e.x, e.y + 1, e.z, 0xffa12e, 20, 6, 2, 4, .5, .4); emit(e.x, e.y + 1.5, e.z, 0xffe07a, 16, 7, 3, 8, .7, .22);
+    const d = Math.hypot(P.pos.x - e.x, P.pos.z - e.z); if (d < 18) G.shake = Math.max(G.shake, .3 * (1 - d / 18));
+  }
+  // the hero touches a grumpy tank: from above it is a bounce and a dent, from the side just a push apart
+  function tankTouch(e, falling) {
+    if (falling && P.prevY >= e.y + e.h * .6) {
+      P.vel.y = jumpHeld() ? 16.5 : 12; P.onGround = false; P.noCut = true; P.pound = null;
+      knockEnemy(e, 0, 0, 200, true); Snd.sfx.stomp(); wave(P.pos.x, P.pos.y, P.pos.z, 0xffffff, 1.8, .3);
+      return;
+    }
+    const ox = P.pos.x - e.x, oz = P.pos.z - e.z, need = HW + e.hw + .02;
+    if (Math.abs(ox) > Math.abs(oz)) moveH('x', e.x + Math.sign(ox || 1) * need - P.pos.x, false); else moveH('z', e.z + Math.sign(oz || 1) * need - P.pos.z, false);
+    P.vel.x *= .5; P.vel.z *= .5;
+  }
+
+  // ---------- the tank battle on the Tank Range ----------
+  // The red pad in the tank ground puts the hero in a tank (lent for the battle) and a striped barrier closes the way in.
+  // The grumpy tanks come in waves out of the hangar doors, one after another; once every tank of a wave is knocked out the
+  // next one comes after a breather (+1 heart, +10 badges). The tank's armour counts hearts: three, four with the spare
+  // heart; a hit costs one, and hearts turn up on the ground now and then. Three and five waves bring out a star each. The
+  // battle is over when the hearts are gone or the hero leaves the tank ground; the best one is kept.
+  const TB_WAVES = [
+    { foe: 2, say: 'Два танка! Наведи пушку и жми красную кнопку' },
+    { foe: 3, say: 'Три танка! Прячься за блоками' },
+    { foe: 3, fast: 1.15, say: 'Быстрые танки!' },
+    { foe: 2, boss: 1, say: 'Большой танк! В него надо попасть шесть раз' },
+    { foe: 4, boss: 1, fast: 1.2, say: 'Все сразу!' },
+  ];
+  function tbWaveOf(n) {
+    if (n <= TB_WAVES.length) return TB_WAVES[n - 1];
+    const k = n - TB_WAVES.length;
+    return { foe: Math.min(6, 4 + (k >> 1)), boss: Math.min(3, 1 + (k >> 1)), fast: Math.min(1.5, 1.2 + k * .05), say: 'Ещё больше танков!' };
+  }
+  const tbOn = () => !!ISL.tb && ['count', 'wave', 'rest'].includes(ISL.tb.phase);
+  const tankLocked = () => tbOn() || duelTanking(); // no getting out of the tank in a battle
+  // into a tank right away: the one the hero is in, or one lent for the battle
+  function tankUp() {
+    if (P.veh && P.veh.cannon) return true;
+    if (P.veh) rideOff(false, true);
+    P.rent = 'tank'; P.rideCd = 0; rideOn('tank');
+    if (!P.veh) P.rent = '';
+    return !!P.veh;
+  }
+  function tbStart() {
+    const S = ISL.tb;
+    if (!S || tbOn() || survOn() || cupOn() || duelOn() || duelPending()) return;
+    if (ISL.carry) dropCarry('fall');
+    if (ISL.race && ISL.race.on) resetRace();
+    if (!tankUp()) return;
+    const solids = nearSolids(S.cx, S.cz, 45);
+    Object.assign(S, { phase: 'count', t: 3.6, tick: 4, wave: 0, max: 3 + (perkOn('heart') ? 1 : 0) + tankMod(2), medals: 0, kills: 0, time: 0, heartT: 12, foes: [], queue: [], spawnT: 0, mountT: 0,
+      box: { x0: S.x0 + 3, x1: S.x1 - 3, z0: S.z0 + 3, z1: S.z1 - 3, solids } });
+    S.hearts = S.max;
+    const gs = S.gate.s; gs.active = true; if (overlapP(gs, P.pos.x, P.pos.y, P.pos.z)) pushOut(gs);
+    cam.yawGoal = wrapPi(S.face - Math.PI); // turned to where the tanks will come from
+    Snd.startMusic('battle'); Snd.sfx.whistle(); G.shake = Math.max(G.shake, .25);
+    npcSay(S.owner, 'По танкам! Бой начинается!');
+  }
+  // a grumpy tank out of a hangar door away from the hero (false while that door is still busy)
+  function tbSpawn(look, W) {
+    const S = ISL.tb, far = S.spawns.filter(([x, d]) => Math.hypot(x - P.pos.x, -d - P.pos.z) > 16), list = far.length ? far : S.spawns;
+    const [x, d] = list[(Math.random() * list.length) | 0];
+    if (L.enemies.some((e) => e.tank && e.alive && Math.hypot(e.x - x, e.z + d) < 4)) return false;
+    const e = spawnTankFoe(look, x, S.top, -d, S.box, W.fast || 1);
+    e.face = e.aim = Math.atan2(S.cx - x, S.cz + d);
+    puff(x, S.top + 1, -d, 0xd6d0c0, 10, 2.5, .6, .6, 1.4); Snd.at(x, 1, -d).rumble();
+    if (look === 'boss') { popup('Большой танк!', x, S.top + 4.5, -d, 'gold'); G.shake = Math.max(G.shake, .3); }
+    S.foes.push(e);
+    return true;
+  }
+  function tbBeginWave() {
+    const S = ISL.tb, W = tbWaveOf(S.wave);
+    S.phase = 'wave'; S.W = W; S.spawnT = .3;
+    S.queue = Array(W.foe).fill('foe').concat(Array(W.boss || 0).fill('boss'));
+    toast('Волна ' + S.wave, W.say); Snd.sfx.warn();
+  }
+  // the tanks still about drive off in a puff of smoke, the cannonballs in the air are gone (a breather, or the end)
+  function tbClear() {
+    const S = ISL.tb;
+    for (const e of S.foes) {
+      if (!e.alive) continue;
+      e.alive = false; e.dead = 0; e.counted = true; e.mesh.visible = false;
+      puff(e.x, e.y + 1, e.z, 0xcfd2da, 8, 2, .6, .6, 1.4);
+    }
+    for (const b of L.balls) b.dead = true;
+  }
+  function tbPrune() {
+    const S = ISL.tb, gone = (e) => !e.alive && e.dead <= 0;
+    for (const e of S.foes) if (gone(e)) L.group.remove(e.mesh);
+    S.foes = S.foes.filter((e) => !gone(e)); L.enemies = L.enemies.filter((e) => !e.tank || !gone(e));
+  }
+  function tbWaveDone() {
+    const S = ISL.tb;
+    for (const b of L.balls) b.dead = true;
+    S.phase = 'rest'; S.t = 6;
+    S.hearts = Math.min(S.max + 2, S.hearts + 1); SAVE.bank += 10;
+    if (S.wave > SAVE.tb) SAVE.tb = S.wave;
+    S.medals++; giveMedals(1, 'Первая медаль!');
+    toast('Волна ' + S.wave + ' отбита!', 'Передышка. +1 сердечко, 10 значков и медаль'); Snd.sfx.clear(); P.happyT = 1.5; P.cheerT = 1.2;
+    const o = S.owner;
+    if (S.wave === 3) { npcSay(o, 'Три волны! Вот это меткость! Держи звезду!'); revealStar(S.star3, o.x, o.y + o.h, o.z); }
+    else if (S.wave === 5) { npcSay(o, 'Пять волн! Такого боя полигон ещё не видел! Держи звезду!'); revealStar(S.star5, o.x, o.y + o.h, o.z); }
+  }
+  function tbHit() {
+    const S = ISL.tb;
+    S.hearts = Math.max(0, S.hearts - 1);
+    popup(S.hearts ? '−❤' : 'Ой-ой!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold');
+    if (S.hearts <= 0) tbEnd('');
+  }
+  function tbEnd(why) {
+    const S = ISL.tb;
+    if (!tbOn()) return;
+    const lived = S.phase === 'rest' ? S.wave : Math.max(0, S.wave - 1), rec = lived > 0 && lived >= SAVE.tb, beaten = S.hearts <= 0;
+    tbClear(); S.phase = 'off'; tbPrune();
+    for (const h of L.hearts) L.group.remove(h.m);
+    L.hearts.length = 0;
+    SAVE.tb = Math.max(SAVE.tb, lived); SAVE.tbK = Math.max(SAVE.tbK, S.kills); saveGame();
+    P.inv = Math.max(P.inv, 1.5);
+    if (beaten) puff(P.pos.x, P.pos.y + 1.5, P.pos.z, 0x5a5660, 10, 2.5, 1.2, 1, 1.5); // the tank smokes
+    Snd.startMusic(L.def.music); Snd.sfx[lived ? 'deliver' : 'over']();
+    npcSay(S.owner, lived >= 3 ? 'Вот это бой! Приходи ещё!' : 'Ничего, в следующий раз получится!');
+    showResult({ head: 'Танковый бой · итоги', big: why || (lived ? 'Волн: ' + lived : beaten ? 'Танк подбит!' : 'Эх, не вышло!'),
+      rows: [['⏱', 'Время', fmtT(S.time * 1000), true], ['💥', 'Подбито танков', String(S.kills)], ['🎖', 'Медали', S.medals ? '+' + S.medals : 'пока нет'],
+        ['🏆', rec ? 'Новый рекорд!' : 'Рекорд', SAVE.tb ? SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') : 'пока нет']],
+      yes: 'Ещё раз', onYes: () => { if (G.state === 'paused') resume(); placePlayer({ x: S.cx, y: S.top, z: S.cz }, S.face); tbStart(); } });
+  }
+  function tbUpdate(dt) {
+    const S = ISL.tb; if (!S) return;
+    // the barrier rises for a battle (ours, or one with friends) and sinks back after it
+    const gt = S.gate, on = tbOn() || duelTanking();
+    gt.k = damp(gt.k, on ? 1 : 0, 3.5, dt); gt.m.visible = gt.k > .01; gt.m.position.y = lerp(gt.y1 - gt.h - .1, gt.y1, gt.k); gt.s.active = on;
+    updateHearts(dt);
+    if (!tbOn() || G.state !== 'playing') return;
+    // the tanks knocked out count, and drop a badge
+    for (const e of S.foes) if (!e.alive && !e.counted) { e.counted = true; S.kills++; fxCoin(e.x, e.y + 2, e.z); addCoin(); }
+    if (S.foes.length > 24) tbPrune();
+    if (S.phase !== 'count') S.time += dt;
+    const inside = P.pos.x > S.x0 - 1 && P.pos.x < S.x1 + 1 && P.pos.z > S.z0 - 1 && P.pos.z < S.z1 + 1;
+    if (!inside) { tbEnd('Бой окончен: ты за воротами'); return; }
+    S.mountT -= dt;
+    if (!P.veh && P.onGround && P.rideCd <= 0 && S.mountT <= 0) { S.mountT = 1; tankUp(); } // back in a tank (tried once a second: it may not fit here)
+    S.t -= dt;
+    if (S.phase === 'count') {
+      const k = Math.ceil(S.t);
+      if (k < S.tick && k >= 1 && k <= 3) { S.tick = k; toast(String(k), 'Танковый бой!'); Snd.sfx.tock(false); }
+      if (S.t <= 0) { S.wave = 1; tbBeginWave(); }
+      return;
+    }
+    if (S.phase === 'rest') { if (S.t <= 0) { S.wave++; tbBeginWave(); } return; }
+    // the tanks of the wave roll out one after another
+    S.spawnT -= dt;
+    if (S.queue.length && S.spawnT <= 0) { if (tbSpawn(S.queue[0], S.W)) S.queue.shift(); S.spawnT = 1.6; }
+    S.heartT -= dt;
+    if (S.heartT <= 0) { S.heartT = 13 + Math.random() * 6; if (!L.hearts.length && S.hearts < S.max + 2) survHeart(S); }
+    if (!S.queue.length && !S.foes.some((e) => e.alive)) tbWaveDone();
+  }
+
   // what the hero is up to right now, for the line under the buttons: a delivery, a race, beacons, a runaway, followers
   function questTrack() {
     const du = duelTrack(); if (du) return du;
     if (survOn()) {
       const S = ISL.surv, hearts = '❤'.repeat(S.hearts) + '♡'.repeat(Math.max(0, S.max - S.hearts));
       return [S.phase === 'count' ? 'Выживание' : S.phase === 'rest' ? 'Передышка · волна ' + (S.wave + 1) + ' скоро' : 'Выживание · волна ' + S.wave, hearts + ' · прогнано ' + S.kills];
+    }
+    if (tbOn()) {
+      const S = ISL.tb, hearts = '❤'.repeat(S.hearts) + '♡'.repeat(Math.max(0, S.max - S.hearts));
+      return [S.phase === 'count' ? 'Танковый бой' : S.phase === 'rest' ? 'Передышка · волна ' + (S.wave + 1) + ' скоро' : 'Танковый бой · волна ' + S.wave, hearts + ' · подбито ' + S.kills];
     }
     if (cupOn()) {
       const C = ISL.cup, lap = Math.min(C.laps, Math.floor(C.next / C.lapLen) + 1);
@@ -9649,6 +10449,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function challengeLeft() {
     const dc = duelClock(); if (dc !== null) return dc;
     if (survOn()) return Math.max(0, ISL.surv.t);
+    if (tbOn()) return ISL.tb.phase === 'wave' ? null : Math.max(0, ISL.tb.t); // the wait for the next wave
     if (cupOn()) return ISL.cup.phase === 'run' ? ((ISL.cup.fin || performance.now() - ISL.cup.runAt)) / 1000 : null;
     if (ISL.race && ISL.race.on) return ISL.race.t;
     if (ISL.beacons && ISL.beacons.on) return ISL.beacons.t;
@@ -9690,10 +10491,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
       const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
       if (!inside) pd.armed = true;
-      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn()) {
+      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn()) {
         pd.armed = false;
-        if (pd.kind === 'shop') openShop(); else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
-        else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart();
+        if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
+        else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart();
       }
     }
     for (const pt of L.portals) {
@@ -9704,7 +10505,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!inside) { pt.armed = true; continue; }
       if (!pt.armed || G.state !== 'playing') continue;
       pt.armed = false;
-      const busy = duelOn() || survOn() || cupOn(); // a game with friends (or the survival game, or the cup) keeps everyone in this world until it is over
+      const busy = duelOn() || survOn() || cupOn() || tbOn(); // a game with friends (or the survival game, the cup, a tank battle) keeps everyone in this world until it is over
       if (open && !busy) { enterGate(pt); continue; }
       P.vel.set(pt.nx * 7, 7, pt.nz * 7); P.onGround = false; P.noCut = true; G.shake = Math.max(G.shake, .2);
       Snd.sfx.locked();
@@ -9898,6 +10699,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     drGreen: dragonRide('Листик', 380, 'Дышит листьями. Лучше всех взлетает вверх', { cruise: 18, max: 26, turn: 2, climb: 1.35, breath: 'leaf' }),
     drPurple: dragonRide('Гроза', 420, 'Дышит молниями. Самый быстрый', { cruise: 20.5, max: 30, turn: 1.8, climb: .85, breath: 'bolt' }),
     drGold: dragonRide('Солнышко', 0, 'Сыплет звёздами. Во всём лучший', { cruise: 20.5, max: 30, turn: 2.4, climb: 1.3, breath: 'star' }, 'dr.cup'),
+    // the tank: slow, turns on the spot and shrugs hits off; the action button fires its gun (tankFire), the turret turning
+    // to whatever is in front of the camera or of the tank. It is wide (hw) and the hero stands in its hatch.
+    tank: { name: 'Танк', price: 300, sub: 'Медленный, зато с пушкой: красная кнопка стреляет', spd: 9.5, acc: 16, jump: .6, air: 0, y: .88, pose: 'hatch', cannon: true, bump: true,
+      hw: .8, motor: .5, wob: 'tread' },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -9911,6 +10716,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     star: { cols: [0xffe07a, 0xffffff], name: 'ЗВЁЗДЫ', mat: std({ color: 0xffe07a, emissive: 0xffc53d, emissiveIntensity: 3, roughness: .4 }) },
   };
   const DRAGON_IDS = Object.keys(RIDES).filter((id) => RIDES[id].wings);
+  const SHOP_RIDES = Object.keys(RIDES).sort((a, b) => !!RIDES[a].wings - !!RIDES[b].wings); // the dragons last, under their own heading
   const skinDef = (id = SAVE.skin) => SKINS.find((s) => s.id === id) || SKINS[0];
   const capDef = (id = SAVE.cap, skin = SAVE.skin) => { const c = CAPS.find((k) => k.id === id); if (c && c.col !== undefined) return c; const s = skinDef(skin); return { col: s.cap, dark: s.dark }; };
   // costume, cap and hat on a hero (ours or a friend's); the fire pepper still turns the cap red and the overalls cream,
@@ -9934,24 +10740,27 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   let shopTab = 'perks';
   function renderShop() {
     $('shopName').textContent = L.def.shop || HUBS.island.shop;
-    $('shopBank').textContent = 'У тебя ' + SAVE.bank + ' ' + plural(SAVE.bank, 'значок', 'значка', 'значков');
+    $('shopBank').textContent = shopTab === 'tank' ? 'У тебя ' + SAVE.medals + ' ' + plural(SAVE.medals, 'медаль', 'медали', 'медалей') + ' 🎖'
+      : 'У тебя ' + SAVE.bank + ' ' + plural(SAVE.bank, 'значок', 'значка', 'значков');
     for (const t of document.querySelectorAll('.shop-tab')) t.setAttribute('aria-selected', String(t.dataset.tab === shopTab));
     const box = $('shopList'), keep = box.dataset.tab === shopTab ? box.scrollTop : 0;
     box.textContent = ''; box.dataset.tab = shopTab;
     const sec = (text) => { const p = document.createElement('p'); p.className = 'shop-sec'; p.textContent = text; box.append(p); };
     // a row: the price while it is not bought, then its state (a button that puts it on or switches it, or a plain note)
-    const item = ({ title, sub, price = 0, state = null, can = true, on = false, swatch = null, act }) => {
+    const item = ({ title, sub, price = 0, state = null, can = true, on = false, swatch = null, medal = false, act }) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'shop-item' + (on ? ' on' : '');
       const left = document.createElement('span');
       if (swatch) { const sw = document.createElement('i'); sw.className = 'swatch'; sw.style.background = swatch; left.append(sw); }
       const sm = document.createElement('small'); sm.textContent = sub; left.append(title, sm);
       const right = document.createElement('b');
       if (state) right.textContent = state;
+      else if (medal) right.textContent = price + ' 🎖';
       else { right.append(String(price)); const ic = COIN_ICON.cloneNode(true); ic.removeAttribute('class'); right.append(ic); }
       b.append(left, right);
-      b.disabled = state ? !can : SAVE.bank < price;
+      const wallet = () => (medal ? SAVE.medals : SAVE.bank); // badges, or medals for the tank's upgrades
+      b.disabled = state ? !can : wallet() < price;
       b.addEventListener('click', () => {
-        if (!state) { if (SAVE.bank < price) return; SAVE.bank -= price; Snd.sfx.buy(); } else Snd.sfx.ui();
+        if (!state) { if (wallet() < price) return; if (medal) SAVE.medals -= price; else SAVE.bank -= price; Snd.sfx.buy(); } else Snd.sfx.ui();
         act(); saveGame(); if (G.state === 'menu') renderShop();
       });
       box.append(b);
@@ -10005,9 +10814,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           SAVE.hat = h.id; applyLook(); P.happyT = 1;
         } });
       }
+    } else if (shopTab === 'tank') {
+      sec('Медаль дают за каждую отбитую волну танкового боя, три медали за победу в танковом бою с друзьями');
+      TANK_MODS.forEach((M, i) => {
+        const lv = SAVE.tkMods[i] || 0, top = lv >= M.lv.length;
+        item({ title: M.name + ' ' + '★'.repeat(lv) + '☆'.repeat(M.lv.length - lv), sub: top ? 'Всё улучшено: ' + M.lv[lv - 1] : 'Дальше: ' + M.lv[lv], price: MOD_COST[lv] || 0,
+          state: top ? 'Готово' : null, can: false, on: top, medal: true, act: () => {
+            SAVE.tkMods[i] = lv + 1; netLookChanged(); P.happyT = 1;
+            if (P.veh && P.veh.cannon) { const g = rideGroup(P.vehId); applyTankLook(g, SAVE.tkMods); glow(P.pos.x, P.pos.y + 1.2, P.pos.z, 0xffe07a, 20, 4, 1, 2, .6, .3); }
+          } });
+      });
+      sec('В играх с друзьями танки у всех одинаковые: там побеждает меткость');
     } else {
       sec(isTouch ? 'Кнопка с самокатом наверху экрана зовёт транспорт в открытых мирах' : 'Клавиша V или кнопка наверху экрана зовёт транспорт в открытых мирах');
-      for (const id in RIDES) {
+      for (const id of SHOP_RIDES) {
         const r = RIDES[id], own = SAVE.rides.includes(id), on = SAVE.ride === id, prize = r.prize && !own;
         if (id === DRAGON_IDS[0]) sec('Драконы: летают в любом открытом мире');
         item({ title: r.name, sub: r.sub, price: r.price, state: prize ? 'Приз за кубок' : own ? (on ? 'Выбран' : 'Выбрать') : null, can: !on && !prize, on,
@@ -10068,13 +10888,50 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else if (id === 'stonecar') {
       u.rollers = [.95, -.95].map((z) => { const r = new T.Mesh(GEO.roller, MAT.char); r.position.set(0, .45, z); r.castShadow = true; g.add(r); return r; });
       u.roll = 0; u.lp = null;
-    } else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
+    } else if (id === 'tank') tankParts(g, 'tank');
+    else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
       u.wings = GEO.wings[id].map((geo, i) => {
         const pv = new T.Group(); pv.position.set((i ? -1 : 1) * WING_AT[0], WING_AT[1], WING_AT[2]);
         const w = new T.Mesh(geo, MAT.char); w.castShadow = true; pv.add(w); g.add(pv); return pv;
       });
       Object.assign(u, { spread: 0, ph: Math.random() * 6, air: false, work: 0, flapT: 0 });
     }
+    return g;
+  }
+  // a tank's moving parts on its hull: the road wheels, the turret on its ring and the gun in it (ours and the foes')
+  function tankParts(g, look) {
+    const u = g.userData;
+    u.wheels = [];
+    for (const s of [-1, 1]) for (const z of TANK_WHEELS) {
+      const w = new T.Mesh(GEO.tankWheel[look], MAT.char); w.position.set(s * .8, .3, z); w.castShadow = true; g.add(w); u.wheels.push(w);
+    }
+    u.turret = new T.Group(); u.turret.position.set(TANK_TURRET[0], TANK_TURRET[1], TANK_TURRET[2]); g.add(u.turret);
+    const tm = new T.Mesh(GEO.tankTurret[look], MAT.char); tm.castShadow = true; u.turret.add(tm);
+    u.gun = new T.Mesh(GEO.tankGun[look], MAT.char); u.gun.position.set(TANK_GUN[0], TANK_GUN[1], TANK_GUN[2]); u.gun.castShadow = true; u.turret.add(u.gun);
+    Object.assign(u, { rollA: 0, rollB: 0, lp: null, ly: null, recoil: 0, guns: [] });
+    if (look !== 'tank') return;
+    // the upgrades, hidden until they are bought (applyTankLook)
+    const part = (geo, parent = g) => { const m = new T.Mesh(geo, MAT.char); m.castShadow = true; m.visible = false; parent.add(m); return m; };
+    u.skirts = part(GEO.tankSkirts); u.pipes = part(GEO.tankPipes); u.boost = part(GEO.tankBoost);
+    u.plates = part(GEO.tankPlates, u.turret); u.stars = part(GEO.tankStars, u.turret); u.mantle2 = part(GEO.tankMantle2, u.turret);
+    u.guns = [-1, 1].map((s) => { const m = part(GEO.tankGun.tank, u.turret); m.position.set(s * TANK_TWIN, TANK_GUN[1], TANK_GUN[2]); return m; });
+    u.look = '0000';
+  }
+  // How a tank looks for its upgrades (levels of the gun, the shells, the armour, the engine): a longer, then thicker gun;
+  // a pair of guns; skirts over the tracks, plates on the turret, golden stars; exhaust pipes, then rocket boosters
+  function applyTankLook(g, m) {
+    const u = g.userData; if (!u.skirts) return;
+    const [gun, shells, armor, engine] = m, twin = shells >= 2, k = 1 + gun * .12, w = gun >= 2 ? 1.2 : 1;
+    u.skirts.visible = armor >= 1; u.plates.visible = armor >= 2; u.stars.visible = armor >= 3;
+    u.gun.visible = !twin; u.mantle2.visible = twin; for (const b of u.guns) b.visible = twin;
+    for (const b of [u.gun, ...u.guns]) b.scale.set(w, w, k);
+    u.pipes.visible = engine >= 1; u.boost.visible = engine >= 3;
+    u.look = m.join('');
+  }
+  // a tank standing on its own: a grumpy one of the battles, or a toy one for show
+  function tankModel(look) {
+    const g = new T.Group(), m = new T.Mesh(look === 'tank' ? GEO.rides.tank : GEO.tankHull[look], MAT.char); m.castShadow = true; g.add(m);
+    tankParts(g, look);
     return g;
   }
   // the parts that move by themselves: the rotors (k: how hard they work) and the UFO's saucer (its beam flickers), the
@@ -10088,6 +10945,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const p = g.position;
       if (u.lp) u.roll += ((p.x - u.lp.x) * Math.sin(g.rotation.y) + (p.z - u.lp.z) * Math.cos(g.rotation.y)) / .45; else u.lp = new T.Vector3();
       u.lp.copy(p); for (const r of u.rollers) r.rotation.x = u.roll;
+    }
+    if (u.wheels) { // a tank's road wheels roll with the way it goes (the two tracks turn against each other on the spot), and
+      // its gun slides back into place after a shot
+      const p = g.position, yaw = g.rotation.y;
+      if (u.lp) {
+        const fwd = ((p.x - u.lp.x) * Math.sin(yaw) + (p.z - u.lp.z) * Math.cos(yaw)) / .24, turn = wrapPi(yaw - u.ly) * 3.3;
+        u.rollA += fwd + turn; u.rollB += fwd - turn;
+      } else u.lp = new T.Vector3();
+      u.lp.copy(p); u.ly = yaw;
+      u.wheels.forEach((w, i) => { w.rotation.x = i < 4 ? u.rollA : u.rollB; });
+      u.recoil = Math.max(0, u.recoil - dt * 3.2); u.gun.position.z = TANK_GUN[2] - u.recoil * .4;
+      for (const b of u.guns) b.position.z = u.gun.position.z;
     }
     if (u.wings) {
       u.spread = damp(u.spread, u.air ? 1 : 0, 3.5, dt); u.flapT = Math.max(0, u.flapT - dt);
@@ -10125,6 +10994,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!P.rent && def.wings && L.def.dragons && !SAVE.rides.includes(id)) P.rent = id; // a lent dragon stays in Dragon Peaks
     if (P.swim && !def.floats) { popup('Сначала выберись из воды', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     P.veh = def; P.vehId = id; P.rideFast = false; applySize();
+    if (def.cannon) { P.aim = P.facing; P.aimAt = null; P.aimT = 0; P.tankCd = .3; }
     if (!freeAt(P.pos.x, P.pos.y + .02, P.pos.z)) { P.veh = null; applySize(); popup('Тут тесно', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (P.swim) { const wy = waterAt(P.pos.x, P.pos.z); P.swim = false; P.dive = false; if (wy !== null) P.pos.y = wy; }
     P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.wallSlide = false; P.wallT = 0; P.skidT = 0; P.airJumps = def.air;
@@ -10154,7 +11024,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.rent = id; P.rideCd = 0; rideOn();
     if (!P.veh) P.rent = '';
   }
-  function rideToggle() { if (holdStill()) return; if (P.veh) rideOff(false); else rideOn(); }
+  function rideToggle() {
+    if (holdStill()) return;
+    if (!P.veh) { rideOn(); return; }
+    if (tankLocked()) { popup('Из танка не вылезти, пока идёт бой', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
+    rideOff(false);
+  }
   const btnRide = $('btnRide');
   function updateRideBtn() {
     const id = worldRide() || SAVE.ride, show = !!(L && L.def.hub && (RIDES[id] || P.veh) && !hudEl.hidden);
@@ -10163,6 +11038,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // the ride under the hero: follows him, leans, spins with the spin attack, throws spray and dust
   function animateVehicle(dt) {
+    updateSight(dt);
     if (!P.veh) return;
     const g = rideGroup(P.vehId), spd = Math.hypot(P.vel.x, P.vel.z), id = P.vehId;
     g.visible = hero.root.visible;
@@ -10173,6 +11049,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     g.rotation.z = id === 'scooter' || id === 'board' || id === 'ski' ? Math.sin(time * 2) * .02 * lean : 0;
     if (id === 'pogo') { const sq = P.onGround ? .8 : clamp(1 + P.vel.y * .01, .9, 1.08); g.scale.set(1, sq, 1); }
     g.position.y += rideBob();
+    if (P.veh.cannon) { // the turret turns to the aim; a shot rocks the hull back on its tracks; exhaust while it drives
+      const u = g.userData; u.turret.rotation.y = wrapPi(P.aim - g.rotation.y); g.rotation.x = -u.recoil * .07;
+      if (u.look !== SAVE.tkMods.join('')) applyTankLook(g, SAVE.tkMods);
+      if (spd > 1 && Math.random() < dt * 7) puff(P.pos.x - Math.sin(P.facing) * 1.5, P.pos.y + .85, P.pos.z - Math.cos(P.facing) * 1.5, 0x9a9aa8, 1, .4, .8, .6, .5);
+      if (u.boost.visible && spd > 3) for (const s of [-1, 1]) { // the rocket boosters roar
+        const bx = P.pos.x + Math.cos(P.facing) * s * .52 - Math.sin(P.facing) * 2.1, bz = P.pos.z - Math.sin(P.facing) * s * .52 - Math.cos(P.facing) * 2.1;
+        if (Math.random() < dt * 30) glow(bx, P.pos.y + .66, bz, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 1, .8, 0, 0, .25, .35);
+      }
+    }
     if (P.veh.wings) { // a dragon noses up and down and banks into its turns in the air; on the ground it waddles
       const u = g.userData, fl = dragonAir();
       u.air = fl; u.work = fl ? clamp(P.flyPitch * 1.6 + (P.flapV > 2 ? .4 : 0), 0, 1) : 0;
@@ -10235,6 +11120,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateRocket(dt);
     survUpdate(dt);
     cupUpdate(dt);
+    tbUpdate(dt);
     updatePerches(dt);
     updateGates(dt);
   }
@@ -10622,6 +11508,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         } else if (air) { t.hipL = t.hipR = -1.35; t.kneeL = t.kneeR = 1.5; } // feet up for the jump
         else { t.hipL = t.hipR = -.3; t.kneeL = t.kneeR = .4; t.ankL = t.ankR = -.1; }
         t.sprL = t.sprR = .12; t.shLx = t.shRx = -1.2; t.elL = t.elR = -.5; t.shLz = t.shRz = .15; t.torsoX = -.04 + k * .1; t.torsoZ = bank; t.headZ = -bank * .5;
+      } else if (pose === 'hatch') { // standing in the tank's hatch with the hands on its rim; a shot points the way
+        t.hipL = t.hipR = -.08; t.kneeL = t.kneeR = .16; t.ankL = t.ankR = -.08;
+        t.shLx = t.shRx = -.35; t.shLz = t.shRz = .62; t.elL = t.elR = -.95; t.torsoX = .06 + k * .06; t.torsoZ = bank * .6; t.headZ = -bank * .3;
+        if (P.throwT > 0) { t.shRx = -1.55; t.shRz = .12; t.elR = -.1; face = 'effort'; }
       } else if (pose === 'pogo') { // on the pegs, both hands on the handle
         const c = P.onGround ? .6 : .15;
         t.hipL = t.hipR = -.35 - c * .4; t.kneeL = t.kneeR = .25 + c; t.ankL = t.ankR = -.2 - c * .3; t.sprL = t.sprR = .12;
@@ -10793,7 +11683,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else r.position.copy(P.pos);
     const spinA = spinAngle();
     // on the snowboard the hero stands sideways; on a flying dragon he tips with it
-    r.rotation.y = P.facing + (P.riding ? spinA : 0) + (P.veh && P.veh.pose === 'board' ? -1.2 : 0);
+    r.rotation.y = (P.veh && P.veh.cannon ? P.aim : P.facing) + (P.riding ? spinA : 0) + (P.veh && P.veh.pose === 'board' ? -1.2 : 0); // in a tank he looks along the gun
     if (P.veh && P.veh.wings && dragonAir()) { r.rotation.x = -P.flyPitch * .75; r.rotation.z = P.flyBank; }
     else if (G.state !== 'dying') r.rotation.x = r.rotation.z = 0;
     if (P.growT > 0) {
@@ -10822,7 +11712,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     let lyaw = 0, lpitch = 0;
     if (lookTgt) {
       const dx = lookTgt[0] - P.pos.x, dy = lookTgt[1] - (P.pos.y + 1.3 * P.scaleCur), dz = lookTgt[2] - P.pos.z;
-      lyaw = wrapPi(Math.atan2(dx, dz) - P.facing); lpitch = Math.atan2(dy, Math.hypot(dx, dz));
+      lyaw = wrapPi(Math.atan2(dx, dz) - (P.veh && P.veh.cannon ? P.aim : P.facing)); lpitch = Math.atan2(dy, Math.hypot(dx, dz));
       if (Math.abs(lyaw) > (lookTgt[3] ? 3.2 : 2.1)) { lyaw = 0; lpitch = 0; }
     }
     const lim = lookTgt && lookTgt[3] ? 1.25 : spd > 3 ? .35 : .8, hy = clamp(lyaw * .75, -lim, lim);
@@ -10939,7 +11829,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cam.pitch = damp(cam.pitch, clamp(.24 - P.flyPitch * .45, .05, .75), 2, dt);
     }
     const holdY = G.state === 'dying' && G.dieKind === 'fall';
-    const ty = holdY ? cam.ty : P.pos.y + (P.veh && P.veh.wings ? .9 : 0);
+    const ty = holdY ? cam.ty : P.pos.y + (P.veh && P.veh.wings ? .9 : P.veh && P.veh.cannon ? .4 : 0);
     if (snap) { cam.tx = P.pos.x; cam.ty = ty; cam.tz = P.pos.z; cam.dist = cam.distGoal; }
     else {
       cam.tx = damp(cam.tx, P.pos.x, 10, dt); cam.tz = damp(cam.tz, P.pos.z, 10, dt);
@@ -10948,7 +11838,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // (a cave can ask for a looser camera: `dist` and `pitch`)
       const cave = L.caves ? L.caves.find((c) => P.pos.x > c.x0 && P.pos.x < c.x1 && P.pos.z > c.z0 && P.pos.z < c.z1 && P.pos.y < c.y1) : null;
       cam.tight = !!cave; cam.tightPitch = cave ? cave.pitch || .16 : .16;
-      const far = cam.distGoal + (P.big ? .9 : 0) + (P.riding || P.veh ? (P.veh && P.veh.wings ? (flying ? 3.6 : 2.4) : P.veh && P.veh.fly ? 2.2 : .9) : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
+      const far = cam.distGoal + (P.big ? .9 : 0) + (P.riding || P.veh ? (P.veh && P.veh.wings ? (flying ? 3.6 : 2.4) : P.veh && P.veh.fly ? 2.2 : P.veh && P.veh.cannon ? 1.8 : .9) : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
       cam.dist = damp(cam.dist, cave ? cave.dist || 4.2 : far, 4, dt);
     }
     // field of view widens for a moment on big launches and while the dino runs flat out
@@ -11126,7 +12016,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     showScreen(null); hudEl.hidden = false; hudEl.dataset.mode = 'hub'; hudEl.classList.remove('race'); showTouch(isTouch);
     updateRideBtn(); updateCam(0, true);
     const ws = worldStars(key);
-    toast(def.name, from && from.mode ? (def.dragons ? 'Выбери дракона: встань на синее кольцо перед ним' : 'Поляна выживания впереди: встань на красный коврик')
+    toast(def.name, from && from.mode ? L.modeHint || (def.dragons ? 'Выбери дракона: встань на синее кольцо перед ним' : 'Поляна выживания впереди: встань на красный коврик')
       : key === 'island' ? '★ ' + starCount() + ' / ' + TOTAL_STARS : 'Звёзды этого мира: ' + ws.got + ' из ' + ws.all);
     Snd.setRoom(.12); Snd.setAmbient(def.amb); Snd.startMusic(def.music);
   }
@@ -11144,7 +12034,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (back) { if (cupOn()) mountDragon(SAVE.dragon || 'drRed'); else duelMount(); }
     else if (dragon) mountDragon(dragon);
     updateRideBtn();
-    Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : L.def.music);
+    Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : tbOn() ? 'battle' : L.def.music);
     if (!quiet) toast('Ой!', back ? 'Назад к кольцу' : c ? 'Начнём от флажка' : 'Начнём сначала');
   }
   function startGame(key = 'island', mode = false) {
@@ -11415,7 +12305,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
       ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['G', ' — помахать друзьям. '], ['Esc', ' — пауза.']];
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['G', ' — помахать друзьям. '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
@@ -11436,6 +12326,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnPlay').addEventListener('click', () => startGame());
   $('btnModeDino').addEventListener('click', () => startGame('dino', true));
   $('btnModeDragon').addEventListener('click', () => startGame('dragon', true));
+  $('btnModeTanks').addEventListener('click', () => startGame('tanks', true));
   // a fresh start wipes the saved stars; it asks for a second tap first
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
@@ -11499,7 +12390,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 3, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 4, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
@@ -11602,7 +12493,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!g) {
       g = { id, name: '', old: false, look: { skin: 'classic', cap: 'auto', hat: '' }, st: 0, lv: 0, snaps: [], off: null, loc: 0, seen: 0, last: null,
         rig: null, nodes: null, visNodes: null, blob: null, ride: null, rideId: 0, dress: '', tag: null, emoT: 0,
-        cur: new Float32Array(NET_N), px: 0, py: 0, pz: 0, vis: 0, flags: 0, rideNow: 0 };
+        cur: new Float32Array(NET_N), px: 0, py: 0, pz: 0, vis: 0, flags: 0, rideNow: 0, tk: '0000' };
       net.peers.set(id, g);
     }
     return g;
@@ -11646,6 +12537,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const was = openStars();
     g.st = g.old ? 0 : clamp(Math.floor(+d.st) || 0, 0, TOTAL_STARS);
     g.lv = g.old ? 0 : (Math.floor(+d.lv) || 0) & ((1 << LEVELS.length) - 1);
+    g.tk = /^[0-3]{4}$/.test(String(d.tk)) ? String(d.tk) : '0000'; // the upgrades their tank shows
     if (first) { netNote(g.name + ' в игре'); Snd.sfx.pop(); }
     // the gates this friend opens for us
     const now = openStars(), opened = WORLDS.filter((W) => W.need > was && W.need <= now);
@@ -11678,11 +12570,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     netSend(net.act.emo, { e: 'wave' });
   }
   // who we are and how we look, and what we have opened (our stars and cleared levels) for the friends to share
-  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat, st: starCount(), lv: levelMask() });
+  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat, st: starCount(), lv: levelMask(), tk: SAVE.tkMods.join('') });
   // the name, the costume or the progress changed: tell everyone
   function netLookChanged() {
     if (!net.room) return;
-    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h + '|' + h.st + '|' + h.lv;
+    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h + '|' + h.st + '|' + h.lv + '|' + h.tk;
     if (key === net.helloKey) return;
     net.helloKey = key; netSend(net.act.hello, h);
   }
@@ -11819,6 +12711,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (g.ride) {
       const rg = g.ride.g, u = rg.userData; rg.visible = r.visible;
       rg.rotation.set(v[4], v[5], v[6]); rg.scale.set(1, v[7] || 1, 1);
+      if (u.turret) u.turret.rotation.y = wrapPi(v[0] - v[5]); // a tank's gun looks where its driver looks
+      if (u.skirts && u.look !== g.tk) applyTankLook(rg, g.tk.split('').map(Number));
       if (u.wings) { // a dragon: the rider is on its saddle, tipped with it; in the air its wings are spread
         _tc.set(0, RIDES[RIDE_IDS[g.rideNow - 1]].y, .3).applyEuler(rg.rotation); rg.position.set(g.px - _tc.x, g.py - _tc.y, g.pz - _tc.z);
         u.air = rg.position.y - groundAt(g.px, g.pz, rg.position.y + .05, .3) > .5; u.work = clamp(-v[4] * 1.6, 0, 1);
@@ -11923,7 +12817,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // in the middle of a game with friends
   function netCanGo(g) {
     const k = NET_LOCS[g.loc] || '';
-    if (k[0] !== 'h' || !g.last || g.old || duelOn() || survOn() || cupOn()) return null;
+    if (k[0] !== 'h' || !g.last || g.old || duelOn() || survOn() || cupOn() || tbOn()) return null;
     const key = k.slice(2), W = WORLDS.find((w) => w.hub === key);
     return { key, need: W && openStars() < W.need ? W.need : 0 };
   }
@@ -12034,7 +12928,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('netName').addEventListener('change', () => { net.name = net.name.trim(); netSave(); netLookChanged(); });
   $('btnNetShare').addEventListener('click', netShare);
   // a game with friends from the card: the invites go out and the card gives way to the game
-  for (const [id, kind] of [['btnDuelRace', 'race'], ['btnDuelHide', 'hide']]) {
+  for (const [id, kind] of [['btnDuelRace', 'race'], ['btnDuelHide', 'hide'], ['btnDuelTank', 'tank']]) {
     $(id).addEventListener('click', () => {
       Snd.init();
       const why = duelPropose(kind);
@@ -12059,12 +12953,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // blindfolds the seeker while the others hide and hides the name tags of whoever is still hidden; near the end the
   // hidden ones call out now and then, and their tags come back on the seeker's screen for a moment.
   const DUEL_ASK = 12, DUEL_COUNT = 3, RACE_AFTER = 25, RACE_MAX = 300, RACE_LEN = 300, HIDE_T = 25, SEEK_T = 150, CUCKOO_T = 3, FIND_R = 1.9, DUEL_PAY = 20;
+  // a tank battle with friends: how long it lasts, how long a tank just hit cannot be hit again
+  const TANK_DUEL_T = 120, TANK_HIT_CD = 1500;
   // the ride for a race in each world: the kart on land, the snowboard down the ice slalom, the jet ski on the lagoon,
   // the rover on the moon
-  const DUEL_RIDE = { island: 'kart', desert: 'kart', ice: 'board', candy: 'kart', factory: 'kart', sea: 'jetski', space: 'rover', dino: 'stonecar' };
+  const DUEL_RIDE = { island: 'kart', desert: 'kart', ice: 'board', candy: 'kart', factory: 'kart', sea: 'jetski', space: 'rover', dino: 'stonecar', tanks: 'tank' };
   // in Dragon Peaks everyone flies the dragon they picked there
   const duelRideFor = (key) => (HUBS[key] && HUBS[key].dragons ? SAVE.dragon || 'drRed' : DUEL_RIDE[key] || 'kart');
-  const DUEL_NAME = { race: 'Гонка по кольцам', hide: 'Прятки' };
+  const DUEL_NAME = { race: 'Гонка по кольцам', hide: 'Прятки', tank: 'Танковый бой' };
   let duel = null, duelSeekerLast = '';
   const duelMe = () => (net.lib && net.lib.selfId) || 'me';
   const duelAct = () => net.act && net.act.duel;
@@ -12075,7 +12971,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // nobody moves during the race's countdown, the seeker not while the others hide
   const duelFrozen = () => !!duel && (duel.phase === 'count' || (duel.phase === 'hide' && duel.seeker === duelMe()));
   const holdStill = () => duelFrozen() || cupFrozen(); // and the dragons' cup's countdown
-  const duelRide = () => (duelRacing() ? duel.rideId : '');
+  const duelTanking = () => !!duel && duel.kind === 'tank' && (duel.phase === 'count' || duel.phase === 'run');
+  const duelRide = () => (duelRacing() || duelTanking() ? duel.rideId : '');
   const duelTarget = () => (duelRacing() && !duel.fin.has(duelMe()) ? duel.rings[duel.seq[duel.next]] || null : null);
   const duelName = (id) => (id === duelMe() ? 'Ты' : (net.peers.get(id) || {}).name || 'Друг');
   const duelSay = (m) => netSend(duelAct(), Object.assign({ id: duel.id }, m), { target: duel.players.filter((p) => p !== duelMe()) });
@@ -12095,6 +12992,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!net.room) return 'Сначала зайди в комнату с друзьями.';
     if (duelOn() || duelPending()) return 'Игра уже идёт.';
     if (survOn()) return 'Сначала закончи выживание.';
+    if (tbOn()) return 'Сначала закончи танковый бой.';
     if (cupOn()) return 'Сначала долети кубок драконов.';
     if (!duelFriends().length) return net.peers.size ? 'Друг ещё подключается, подожди пару секунд.' : 'В комнате пока никого. Нажми «Позвать друга».';
     return '';
@@ -12108,7 +13006,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- inviting ----------
   function duelPropose(kind) {
     const why = duelWhyNot(); if (why) return why;
-    const ids = duelFriends().map((g) => g.id), key = duelHomeKey();
+    const ids = duelFriends().map((g) => g.id), key = kind === 'tank' ? 'tanks' : duelHomeKey();
     duelStop('');
     duelGoTo(key); // the host waits for the answers in the game's world
     duel = { id: netNewCode() + netNewCode(), kind, host: duelMe(), loc: NET_LOCS.indexOf('h:' + key), phase: 'ask', t: DUEL_ASK, asked: new Map(ids.map((i) => [i, null])), players: [] };
@@ -12117,7 +13015,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return '';
   }
   function duelInvited(d, from) {
-    const kind = d.k === 'race' || d.k === 'hide' ? d.k : '';
+    const kind = d.k === 'race' || d.k === 'hide' || d.k === 'tank' ? d.k : '';
     const no = () => netSend(duelAct(), { t: 'ans', id: d.id, yes: false }, { target: from });
     if (!kind || !duelKeyOf(d.loc)) { no(); return; }
     const inv = { id: d.id, kind, host: from, loc: d.loc, phase: 'invited', t: DUEL_ASK, players: [] };
@@ -12126,7 +13024,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       netSend(duelAct(), { t: 'cancel', id: duel.id }, { target: Array.from(duel.asked.keys()) });
       duel = inv; duelAnswer(true); return;
     }
-    if (duelOn() || duelPending() || survOn() || cupOn()) { no(); return; }
+    if (duelOn() || duelPending() || survOn() || cupOn() || tbOn()) { no(); return; }
     duelStop(''); duel = inv;
     Snd.sfx.pop(); duelUi();
   }
@@ -12159,7 +13057,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function duelBegin(d) {
     const me = duelMe(), players = Array.isArray(d.p) ? d.p.map(String).filter((p, i, a) => a.indexOf(p) === i) : [], key = duelKeyOf(d.loc);
     if (players.includes(me) && key) duelGoTo(key);
-    if (!players.includes(me) || !key || netLoc() !== d.loc || (duel.kind === 'race' && !L.course)) {
+    if (!players.includes(me) || !key || netLoc() !== d.loc || (duel.kind === 'race' && !L.course) || (duel.kind === 'tank' && !ISL.tb)) {
       netSend(duelAct(), { t: 'quit', id: duel.id }, { target: players.filter((p) => p !== me) });
       duelStop('Игра не началась'); return;
     }
@@ -12186,6 +13084,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       for (const m of L.cupRings) m.visible = false;
       duelPlace(duelLane(i, n)); duelMount();
       toast(DUEL_NAME.race, 'Все кольца по порядку. Кто первый?');
+    } else if (duel.kind === 'tank') {
+      Object.assign(duel, { phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, rideId: 'tank', score: new Map(players.map((p) => [p, 0])), hitCd: new Map(), mountT: 0,
+        left: TANK_DUEL_T });
+      duelPlace(duelTankSpot(i, n)); duelMount();
+      toast(DUEL_NAME.tank, 'Попадай в танки друзей. Кто больше?');
     } else {
       const seeker = players.includes(String(d.s)) ? String(d.s) : players[0];
       Object.assign(duel, { phase: 'hide', t: HIDE_T, seeker, found: new Set(), foundAt: new Map(), cuT: 0, seekAt: 0 });
@@ -12230,6 +13133,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // after a fall: under the last ring passed, facing the next one; the start line before the first
   function duelSpot() {
+    if (duelTanking()) { const n = duel.players.length; return duelTankSpot((Math.random() * n) | 0, n); }
     if (!duelRacing()) return null;
     const d = duel, r = d.next ? d.rings[d.seq[d.next - 1]] : null, nx = d.rings[d.seq[d.next]], lane = () => duelLane(d.players.indexOf(duelMe()), d.players.length);
     if (!r) return lane();
@@ -12239,7 +13143,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return { x: r.x, y: y + .05, z: r.z, face: nx ? Math.atan2(nx.x - r.x, nx.z - r.z) : 0 };
   }
   function duelMount() {
-    if (!duelRacing() || P.veh || G.state !== 'playing') return;
+    if (!(duelRacing() || duelTanking()) || P.veh || G.state !== 'playing') return;
     P.rent = duel.rideId; P.rideCd = 0; rideOn();
     if (!P.veh) P.rent = '';
   }
@@ -12372,6 +13276,79 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     duelDone(big, rows, won);
   }
 
+  // ---------- the tank battle: two minutes on the tank ground, every hit a point ----------
+  // Everyone gets a tank at a spot round the middle of the tank ground (the barrier closes the way in). A shot is sent to
+  // the others, who see the shell fly and burst; whether it hit is for the shooter's screen to say, like the seeker's in
+  // hide and seek: it tells everyone, and the shooter scores. A tank just hit cannot be hit again for a moment. Whoever
+  // has the most hits when the time is up wins.
+  function duelTankSpot(i, n) {
+    const S = ISL.tb, a = i / n * Math.PI * 2 + .4, r = 15, x = S.cx + Math.sin(a) * r, z = (S.z0 + S.z1) / 2 + Math.cos(a) * r;
+    const y = groundAt(x, z, S.top + 3);
+    return { x, y: (y > -Infinity ? y : S.top) + .05, z, face: Math.atan2(S.cx - x, (S.z0 + S.z1) / 2 - z) };
+  }
+  function duelTank(dt) {
+    const d = duel;
+    if (d.phase === 'count') {
+      d.t -= dt;
+      const k = Math.ceil(d.t);
+      if (k < d.tick && k >= 1 && k <= DUEL_COUNT) { d.tick = k; toast(String(k), 'Приготовься!'); Snd.sfx.tock(false); }
+      if (d.t > 0) return;
+      d.phase = 'run'; toast('В бой!', 'Две минуты. Кто больше попадёт?'); Snd.sfx.whistle(); Snd.startMusic('battle');
+      return;
+    }
+    d.mountT -= dt;
+    if (!P.veh && d.mountT <= 0 && G.state === 'playing' && P.onGround && !P.swim) { d.mountT = 1; duelMount(); }
+    const before = d.left; d.left -= dt;
+    if (d.left < 5 && Math.ceil(d.left) !== Math.ceil(before)) Snd.sfx.tock(true);
+    if (d.left <= 0) duelTankOver('');
+  }
+  // our shell against the friends' tanks, as they are on our screen
+  function shellHitsFriend(f) {
+    const d = duel, me = duelMe(), now = performance.now();
+    if (d.phase !== 'run') return false;
+    for (const id of d.players) {
+      if (id === me) continue;
+      const g = net.peers.get(id);
+      if (!g || !g.rig || !g.rig.root.visible || Math.abs(g.px - f.x) > 1.3 || Math.abs(g.pz - f.z) > 1.3 || f.y < g.py - 1.1 || f.y > g.py + 1.8) continue;
+      if ((d.hitCd.get(id) || 0) < now) { d.hitCd.set(id, now + TANK_HIT_CD); duelSay({ t: 'hit', who: id }); duelTankHit(me, id); }
+      return true;
+    }
+    return false;
+  }
+  // a friend fired: their shell flies on our screen too, and their gun kicks back
+  function duelShot(from, d) {
+    const ok = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => Number.isFinite(v) && Math.abs(v) < 1e4);
+    if (!ok(d.p) || !ok(d.v) || Math.hypot(...d.v) > 80) return;
+    shellOut(d.p[0], d.p[1], d.p[2], d.v[0], d.v[1], d.v[2], true);
+    Snd.at(d.p[0], d.p[1], d.p[2]).cannon();
+    const g = net.peers.get(from); if (g && g.ride && g.ride.g.userData.gun) g.ride.g.userData.recoil = 1;
+  }
+  function duelTankHit(by, who) {
+    const d = duel, me = duelMe();
+    if (by === who || !d.players.includes(by) || !d.players.includes(who)) return;
+    d.score.set(by, (d.score.get(by) || 0) + 1);
+    if (who === me) { // hit: a clang, a jolt away from the shooter, a red flash
+      const s = net.peers.get(by);
+      if (s) { const dx = P.pos.x - s.px, dz = P.pos.z - s.pz, l = Math.hypot(dx, dz) || 1; P.vel.x += dx / l * 4; P.vel.z += dz / l * 4; }
+      P.inv = Math.max(P.inv, 1); P.hurtT = .5; G.flash = .45; G.flashCol = '#ff3b2f'; G.shake = Math.max(G.shake, .35);
+      Snd.sfx.clang(); emit(P.pos.x, P.pos.y + 1.4, P.pos.z, 0xfff3a0, 12, 5, 1, 6, .3, .2); popup('Попали!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold');
+    } else {
+      const g = net.peers.get(who);
+      if (g && g.rig && g.rig.root.visible) { emit(g.px, g.py + .6, g.pz, 0xfff3a0, 12, 5, 1, 6, .3, .2); Snd.at(g.px, g.py, g.pz).clang(); }
+      if (by === me) { popup('Попадание!', g ? g.px : P.pos.x, (g ? g.py : P.pos.y) + 2.4, g ? g.pz : P.pos.z, 'gold'); P.happyT = 1; Snd.sfx.ring(Math.min(10, d.score.get(me))); }
+    }
+    netNote('Попадание: ' + duelName(by) + ' → ' + duelName(who));
+  }
+  function duelTankOver(why) {
+    const d = duel, me = duelMe();
+    const rows = d.players.map((id) => ({ id, n: d.score.get(id) || 0 })).sort((a, b) => b.n - a.n);
+    const top = rows.length ? rows[0].n : 0, tops = rows.filter((r) => r.n === top).length, k = rows.findIndex((r) => r.id === me);
+    const won = !why && k === 0 && top > 0 && tops === 1 && rows.length > 1, mine = k < 0 ? 0 : rows[k].n;
+    if (won) giveMedals(3, 'Три медали за победу!'); else if (!why && top > 0 && mine === top) giveMedals(1, 'Медаль за ничью!');
+    duelDone(why || (won ? 'Победа!' : !top ? 'Никто не попал' : mine === top ? 'Ничья!' : (rows.filter((r) => r.n > mine).length + 1) + '-е место'),
+      rows.map((r) => [rows.filter((o) => o.n > r.n).length + 1 + '.', duelName(r.id), 'попаданий: ' + r.n, r.id === me]), won);
+  }
+
   // ---------- the end, leaving, a friend gone ----------
   function duelDone(big, rows, won) {
     duelTidy();
@@ -12383,6 +13360,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // closed); the blindfold comes off
   function duelTidy() {
     const d = duel; if (!d) return;
+    if (d.kind === 'tank' && d.phase === 'run') Snd.startMusic(L.def.music); // the battle tune stops with the battle
     if (d.rings) {
       for (const r of d.rings) L.group.remove(r.m);
       d.rings = null;
@@ -12413,6 +13391,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     netNote(duelName(id) + ' больше не в игре');
     d.players = d.players.filter((p) => p !== id);
     if (d.kind === 'race') { d.prog.delete(id); d.fin.delete(id); if (d.players.length < 2) duelRaceOver('Соперники ушли'); return; }
+    if (d.kind === 'tank') { if (d.players.length < 2) duelTankOver('Соперники ушли'); return; }
     if (id === d.seeker) duelStop('Водящий ушёл из игры');
     else if (d.players.every((p) => p === d.seeker)) duelStop('Все, кто прятался, ушли');
   }
@@ -12429,6 +13408,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       case 'fin': if (duelRacing() && pl && d.ms > 0) duelFinish(from, Math.floor(+d.ms)); break;
       case 'found': if (duelHiding() && from === duel.seeker) duelFound(String(d.who), Math.floor(+d.ms) || 0); break;
       case 'end': if (duelHiding() && from === duel.seeker) duelHideOver(Array.isArray(d.f) ? d.f.map(String) : []); break;
+      case 'shot': if (duelTanking() && pl) duelShot(from, d); break;
+      case 'hit': if (duelTanking() && pl) duelTankHit(from, String(d.who)); break;
       case 'quit': duelGone(from); break;
     }
   }
@@ -12443,6 +13424,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else if (d.phase === 'invited') { d.t -= dt; if (d.t <= 0) duelAnswer(false); }
     else if (d.phase === 'wait') { d.t -= dt; if (d.t <= 0) duelStop('Игра так и не началась'); }
     else if (duelRacing()) duelRace(dt);
+    else if (duelTanking()) duelTank(dt);
     else if (duelHiding()) duelHide(dt);
     else if (d.phase === 'done') { d.t -= dt; if (d.t <= 0) duelStop(''); }
     duelUi();
@@ -12461,6 +13443,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const lap = Math.min(d.laps, Math.floor(d.next / d.lapLen) + 1), ring = 'кольцо ' + (d.next % d.lapLen + 1) + ' из ' + d.lapLen;
       return ['Гонка · ' + place + '-е место', d.fin.has(me) ? 'Финиш! Ждём остальных' : d.laps > 1 ? 'Круг ' + lap + ' из ' + d.laps + ', ' + ring : ring[0].toUpperCase() + ring.slice(1)];
     }
+    if (duelTanking()) {
+      const mine = d.score.get(me) || 0, place = 1 + d.players.filter((p) => (d.score.get(p) || 0) > mine).length, top = Math.max(...d.players.map((p) => d.score.get(p) || 0));
+      return ['Танковый бой · ' + place + '-е место', d.phase === 'count' ? 'Приготовься!' : 'Попаданий: ' + mine + (top > mine ? ', у лидера ' + top : '')];
+    }
     if (duelHiding()) {
       const hiders = d.players.filter((p) => p !== d.seeker);
       if (d.seeker === me) return ['Прятки · ты водишь', d.phase === 'hide' ? 'Считаешь…' : 'Найдено ' + hiders.filter((p) => d.found.has(p)).length + ' из ' + hiders.length];
@@ -12472,6 +13458,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function duelClock() {
     if (duelRacing()) return duel.phase === 'run' ? (performance.now() - duel.runAt) / 1000 : null;
     if (duelHiding()) return Math.max(0, duel.t);
+    if (duelTanking()) return duel.phase === 'run' ? Math.max(0, duel.left) : null;
     return null;
   }
 
@@ -12492,7 +13479,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       head = DUEL_NAME[d.kind]; yes = 'Играю! · ' + Math.max(0, Math.ceil(d.t)); no = 'Нет';
       const w = (HUBS[duelKeyOf(d.loc)] || HUBS.island).name, here = netLoc() === d.loc;
       const dk = duelKeyOf(d.loc), fly = HUBS[dk] && HUBS[dk].dragons;
-      text = duelName(d.host) + (d.kind === 'race' ? ' зовёт на гонку по кольцам: ' + w + (fly ? '. Каждый на своём драконе.' : '. Транспорт у всех одинаковый.') : ' зовёт играть в прятки: ' + w + '. Один водит, остальные прячутся.')
+      text = duelName(d.host) + (d.kind === 'race' ? ' зовёт на гонку по кольцам: ' + w + (fly ? '. Каждый на своём драконе.' : '. Транспорт у всех одинаковый.')
+        : d.kind === 'tank' ? ' зовёт на танковый бой: ' + w + '. Каждому дадут танк, кто больше попадёт, тот победил.' : ' зовёт играть в прятки: ' + w + '. Один водит, остальные прячутся.')
         + (here ? '' : ' Скажешь «да», и перенесёшься туда.');
     } else if (d && d.phase === 'ask') {
       head = DUEL_NAME[d.kind]; yes = 'Начать'; no = 'Отмена';
@@ -12538,9 +13526,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const busy = duelOn() || duelPending(), why = busy ? '' : duelWhyNot();
     $('netGames').hidden = !net.code;
     $('netGameBtns').hidden = busy; $('btnDuelQuit').hidden = !busy;
-    $('btnDuelRace').disabled = $('btnDuelHide').disabled = !!why;
+    $('btnDuelRace').disabled = $('btnDuelHide').disabled = $('btnDuelTank').disabled = !!why;
     $('netGameHint').textContent = busy ? 'Сейчас идёт игра: ' + DUEL_NAME[duel.kind].toLowerCase() + '.'
-      : why || 'Играем в мире «' + HUBS[duelHomeKey()].name + '», друзей, кто согласится, перенесёт туда. Гонка: кто быстрее по кольцам на одинаковом транспорте. Прятки: один водит, остальные прячутся.';
+      : why || 'Играем в мире «' + HUBS[duelHomeKey()].name + '», друзей, кто согласится, перенесёт туда. Гонка: кто быстрее по кольцам на одинаковом транспорте. Прятки: один водит, остальные прячутся. Танки: бой на Танковом полигоне, кто больше попадёт за две минуты.';
   }
 
   // ================= resize & loop =================
@@ -12625,6 +13613,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateCannons(dt);
     updateBalls(dt);
     updateFireballs(dt);
+    updateTank(dt);
     updateChain(dt);
     magnetCoins(dt);
     updateSprings(dt);
