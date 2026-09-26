@@ -14,17 +14,17 @@ Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound ef
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed
 per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a moon base, birds and distant calls in the
-jungle). Every open world has a tune of its own (the survival game and the dragons' cup have their own too), the kart, the
-jet ski and the moon rover hum louder and higher as they speed up, the wind roars past a flying dragon, and under the water
-every sound is muffled.
+jungle). Every open world has a tune of its own (the survival game, the dragons' cup and the tank battle have their own too),
+the kart, the jet ski and the moon rover hum louder and higher as they speed up, a tank's tracks clatter, the wind roars past
+a flying dragon, and under the water every sound is muffled.
 
-- Nine open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
+- Ten open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
   Promo Island sits between them: a village with a fountain, houses and a windmill, a beach with a pier, a lake under
   a waterfall cliff (with a cave behind the water), a vegetable garden, a lighthouse on a plateau, a forest on terraces
   and a sky island above it. The hero swims (the action button is a stroke forward, a jump leaps out of the water) and
   walks up and down slopes
-- Behind the island's gates lie eight more worlds, each with its own folk and quests; the first four have ten stars and
-  doors to their levels, the next two are open worlds of ten quests each, and the last two are open from the start:
+- Behind the island's gates lie nine more worlds, each with its own folk and quests; the first four have ten stars and
+  doors to their levels, the next two are open worlds of ten quests each, and the last three are open from the start:
   - the Desert: an oasis and a bazaar, the Sphinx, the Great Pyramid with a tomb inside, a mesa climbed by riding a
     wandering dust devil, a field of quicksand (the hero sinks and has to jump out), dunes and a melon patch
   - Ice Peaks: a penguin village of igloos, a skating rink, a steaming hot spring, the Ice Mountain with a crystal cave,
@@ -55,6 +55,11 @@ every sound is muffled.
     won). Further off: an island with a stone ring to fly through, the Wind Spire nearly a hundred metres high, a canyon
     between two cliffs, an island with a waterfall pouring off into the clouds, the ruins of a cloud castle. Falling into
     the clouds brings the hero back to the last flag, still on the dragon
+  - the Tank Range: a training ground on a grassy plain ringed by cliffs. A base with two hangars, a shop and a pad that
+    lends tanks, a watchtower climbed on platforms round its column, the tank ground in the middle (earth walls, concrete
+    blocks, sandbags and tank traps to hide behind, hangar doors the grumpy tanks roll out of) where Commander Mishka runs
+    the tank battles (below), a shooting range with eight targets that only a shell lights, a pond with Captain Claw's
+    treasure on its shore, and Ping's tank race round the tank ground
 - The survival game (Dino Valley): a red pad in the middle of a clearing ringed with rock. A boulder closes the way in and
   the dinosaurs come in waves out of the ferns, more of them and more kinds each time: raptors, pterodactyls, a triceratops,
   and from the fourth wave a tyrannosaur that cannot be knocked over (its stamp sends a ring along the ground to jump
@@ -71,7 +76,25 @@ every sound is muffled.
 - The dragons' cup (Dragon Peaks): two laps of a ring course high among the islands, round the Wind Spire and through the
   canyon, against three dragons ridden by Ping, Kvak and Murr, who follow the rings by themselves (a little faster when
   behind, slower when well ahead). Every ring gives a gust of speed; first place brings a star and wakes the golden dragon
-- Stars: 87 in the worlds and one for every level cleared, 101 in all. They come from folk and secrets: lost ones to bring
+- The tank: slow, it turns on the spot and drives the way it faces, and its armour shrugs hits off. The action button fires
+  its gun; the turret turns by itself to whatever is in front of the camera (or of the tank): enemies, balloons, targets,
+  a friend's tank in a tank battle, marked with a red ring and a chevron, and with nothing there it points where the
+  camera looks. A sight (a ring with ticks where the shell would burst, and a dotted line out of the gun to it) shows the
+  aim all the time: red on a target, dim while the gun reloads. A shell bursts on whatever it meets and knocks over what
+  stands close by, and it shoots cannonballs down
+- Upgrading the tank: medals come for victories (one for every wave of a tank battle knocked out, three for a tank battle
+  with friends won, one for a draw) and buy upgrades in the shops' "Tank" tab, three levels each: the gun reloads faster
+  and grows longer and thicker; the shells burst wider, then come out of a pair of guns, then turn fiery and hit twice as
+  hard; the armour gives the tank battle more hearts and puts skirts, plates and golden stars on the tank; the engine
+  drives faster, turns faster, then gets rocket boosters. Friends see each other's upgraded tanks, but in games with
+  friends every tank fights the same
+- The tank battle (Tank Range): a red pad on the tank ground puts the hero in a tank and a striped barrier closes the way
+  in. Grumpy tanks with eyes over their guns roll out of the hangar doors in waves; each keeps its distance, drives from
+  cover to cover, and fires a cannonball once its gun points at the hero with nothing in between (it glows first). They
+  take two shells, the big one from the fourth wave takes six and fires three at once. The armour counts hearts (three,
+  four with the spare heart), hearts turn up on the ground, every wave knocked out gives one back and ten badges, three and
+  five waves bring a star each, and the best battle is kept. "💥 Танки" on the title goes straight to the tank ground
+- Stars: 94 in the worlds and one for every level cleared, 108 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a
@@ -84,7 +107,8 @@ every sound is muffled.
     whoever gave it
   - runaways to catch: a froglet round the fountain, a penguin chick on the rink, the Gingerbread Man, a dolphin you only
     catch on a jet ski. They run off when the hero comes near and stop for breath now and then
-  - beacons to light before the time runs out, in any order: caravan lanterns, signal lights, buoys at sea, solar panels
+  - beacons to light before the time runs out, in any order: caravan lanterns, signal lights, buoys at sea, solar panels,
+    dragon fires, and targets on the shooting range that only a shell lights
   Quests follow one another: some open only after another is done (the post after the garden is saved, the chase on
   the rink after the spiky shells are gone) or once the one who needs help has asked for it. Every finished quest also pays 20
   badges. A line under the buttons shows the quest in hand (what is carried and to whom, the rings or beacons so far, who
@@ -92,7 +116,8 @@ every sound is muffled.
   missing; on the island it also sums up every world and says where the gates are
 - The World Gates open with stars: five on the island's square (the first leads to the Green levels, the others into the
   worlds at 3, 8, 15 and 24 stars), the Sea Gate at the end of the pier (30) and the Star Gate on a cloud islet above the
-  forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley and the Dragon Gate, open from the start.
+  forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley, the Dragon Gate and the Tank Gate, open
+  from the start.
   Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front of its door
 - Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in three tabs:
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
@@ -104,9 +129,10 @@ every sound is muffled.
     over, a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
-    the ground under it, its stone rollers bowl enemies over) and five dragons that fly. A hit knocks the hero off (a dragon
-    only slows down). Blue pads lend a ride for free (the jet ski at the piers, the rover on the Moon, the stone car in Dino
-    Valley, the dragons at their perches) until the hero gets off it
+    the ground under it, its stone rollers bowl enemies over), a tank with a gun, and five dragons that fly (listed last).
+    A hit knocks the hero off (a dragon only slows down, a tank's armour takes it). Blue pads lend a ride for free (the jet
+    ski at the piers, the rover on the Moon, the stone car in Dino Valley, the dragons at their perches, tanks on the Tank
+    Range) until the hero gets off it
 - Progress is saved in the browser: stars, finished quests, what every collection has found, the wallet and the shop
 - Friends online: "С друзьями" on the title (or "Играть с друзьями" in the pause card) makes a room with a five-letter
   code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
@@ -121,7 +147,7 @@ every sound is muffled.
 - Games with friends, started from the friends card for everyone in the room, wherever they are (each one says yes or
   no). The game is played in the host's open world, or on Promo Island from the title or a level, and whoever says yes
   is taken there:
-  - a ring race: everyone gets the same ride (a kart, the stone car in Dino Valley, the snowboard down the ice slalom,
+  - a ring race: everyone gets the same ride (a kart, the stone car in Dino Valley, a tank on the Tank Range, the snowboard down the ice slalom,
     the jet ski on the lagoon, the rover on the Moon; in Dragon Peaks each flies the dragon they picked, high up round
     the dragons' cup course) and races the rings of the world's own race quest (the factory has a course round its oven),
     two or three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the
@@ -129,7 +155,12 @@ every sound is muffled.
   - hide and seek: one player seeks (never the same one twice running), blindfolded for 25 seconds while the others hide;
     the name tags of everyone still hidden disappear, the seeker finds someone by running right up to them, and in the
     last minute the hidden ones call out "Ку-ку!" with their tags back on the seeker's screen for a moment
-  - gates are shut until the game ends, rides are off in hide and seek, and a winner gets 20 badges
+  - a tank battle, always on the Tank Range's tank ground: everyone gets a tank at a spot round its middle, the barrier
+    closes, and for two minutes every hit on a friend's tank is a point. Shots travel to the others, who see the shell fly
+    and burst; whether it hit is for the shooter's screen to say. A tank just hit cannot be hit again for a moment; most
+    hits wins
+  - gates are shut until the game ends, rides are off in hide and seek, nobody gets out of a tank in a battle, and a
+    winner gets 20 badges
 - Fourteen levels: Green Hills, Sky Trail, King Chestnut (Green world); Sunny Dunes (Desert); Ice Peaks, Lava Fortress,
   Fire Shell (Ice Peaks); Candy Valley, Jelly Bridges, Grumble (Candy Land); Gear Works, Cloud Heights, Storm Tower,
   Megabot (Sky Factory)
@@ -164,8 +195,8 @@ every sound is muffled.
 - Lira: a fairy who flies out of every castle and thanks the hero in the last one
 - Collectibles are the Promobile mark
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
-  on desktop WASD or arrows, Space to jump, Shift or F for the action button, mouse drag or Q/E for the camera, V for a ride,
-  G to wave to friends
+  on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun), mouse drag or Q/E for the
+  camera, V for a ride, G to wave to friends
 
 ## Play
 
