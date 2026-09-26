@@ -4854,7 +4854,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (questDone('garden')) return ['Спасибо! Звезда твоя, забирай!'];
       return ['Караул! Каштаны топчут мой огород! Прогони их всех!', 'Прыгай им на макушку или крутись вихрем.' + (garden.left > 0 ? ' Осталось ' + garden.left + '.' : '')];
     }, { yaw: -Math.PI / 2 });
-    const garden = B.clearQuest({ key: 'garden', star: 'garden', owner: foma, win: 'Огород спасён! Вот тебе звезда!', left: (n) => 'Каштанов осталось: ' + n });
+    const garden = B.clearQuest({ key: 'garden', star: 'garden', owner: foma, win: 'Огород спасён! Вот тебе звезда!', rest: (n) => 'Каштанов осталось: ' + n });
     B.sign(20, 0, 23, ['Огород'], -Math.PI / 2);
     if (!questDone('garden')) {
       for (const [x, d, ax, rg, sp, ph] of [[27, 13, 'x', 2.5, 1.2, 0], [36.5, 13, 'x', 2.5, 1.3, .5], [31, 8.5, 'x', 5, 1.1, .2], [31, 18.5, 'x', 5, 1.2, .7], [26, 18, 'z', 3, 1, .3], [38, 9, 'z', 3, 1.1, .6]]) {
