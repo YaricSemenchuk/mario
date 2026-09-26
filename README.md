@@ -14,7 +14,8 @@ Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound ef
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed
 per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a moon base, birds and distant calls in the
-jungle). Every open world has a tune of its own (the survival game, the dragons' cup and the tank battle have their own too),
+jungle). Every open world has a tune of its own (the survival game, the dragons' cup and the tank battle have their own too,
+and Leviathan comes with the bosses' tune),
 the kart, the jet ski and the moon rover hum louder and higher as they speed up, a tank's tracks clatter, the wind roars past
 a flying dragon, and under the water every sound is muffled.
 
@@ -56,10 +57,11 @@ a flying dragon, and under the water every sound is muffled.
     between two cliffs, an island with a waterfall pouring off into the clouds, the ruins of a cloud castle. Falling into
     the clouds brings the hero back to the last flag, still on the dragon
   - the Tank Range: a training ground on a grassy plain ringed by cliffs. A base with two hangars, a shop and a pad that
-    lends tanks, a watchtower climbed on platforms round its column, the tank ground in the middle (earth walls, concrete
-    blocks, sandbags and tank traps to hide behind, hangar doors the grumpy tanks roll out of) where Commander Mishka runs
-    the tank battles (below), a shooting range with eight targets that only a shell lights, a pond with Captain Claw's
-    treasure on its shore, and Ping's tank race round the tank ground
+    lends tanks, three KV-44s standing by the hangars (the hero can climb onto them), a watchtower climbed on platforms
+    round its column, the tank ground in the middle (earth walls, concrete blocks, sandbags and tank traps to hide behind,
+    hangar doors the grumpy tanks roll out of) where Commander Mishka runs the tank battles and the battle with Leviathan
+    (below), a shooting range with eight targets that only a shell lights, a pond with Captain Claw's treasure on its
+    shore, and Ping's tank race round the tank ground
 - The survival game (Dino Valley): a red pad in the middle of a clearing ringed with rock. A boulder closes the way in and
   the dinosaurs come in waves out of the ferns, more of them and more kinds each time: raptors, pterodactyls, a triceratops,
   and from the fourth wave a tyrannosaur that cannot be knocked over (its stamp sends a ring along the ground to jump
@@ -82,8 +84,8 @@ a flying dragon, and under the water every sound is muffled.
   camera looks. A sight (a ring with ticks where the shell would burst, and a dotted line out of the gun to it) shows the
   aim all the time: red on a target, dim while the gun reloads. A shell bursts on whatever it meets and knocks over what
   stands close by, and it shoots cannonballs down
-- Upgrading the tank: medals come for victories (one for every wave of a tank battle knocked out, three for a tank battle
-  with friends won, one for a draw) and buy upgrades in the shops' "Tank" tab, three levels each: the gun reloads faster
+- Upgrading the tank: medals come for victories (one for every wave of a tank battle knocked out, three for Leviathan,
+  three for a tank battle with friends won, one for a draw) and buy upgrades in the shops' "Tank" tab, three levels each: the gun reloads faster
   and grows longer and thicker; the shells burst wider, then come out of a pair of guns, then turn fiery and hit twice as
   hard; the armour gives the tank battle more hearts and puts skirts, plates and golden stars on the tank; the engine
   drives faster, turns faster, then gets rocket boosters. Friends see each other's upgraded tanks, but in games with
@@ -93,8 +95,19 @@ a flying dragon, and under the water every sound is muffled.
   cover to cover, and fires a cannonball once its gun points at the hero with nothing in between (it glows first). They
   take two shells, the big one from the fourth wave takes six and fires three at once. The armour counts hearts (three,
   four with the spare heart), hearts turn up on the ground, every wave knocked out gives one back and ten badges, three and
-  five waves bring a star each, and the best battle is kept. "💥 Танки" on the title goes straight to the tank ground
-- Stars: 94 in the worlds and one for every level cleared, 108 in all. They come from folk and secrets: lost ones to bring
+  five waves bring a star each, and the best battle is kept. Every sixth wave is Leviathan's. "💥 Танки" on the title goes
+  straight to the tank ground
+- The battle with Leviathan (Tank Range): the purple pad on the tank ground wakes Leviathan, a huge dark tank with angry
+  glowing eyes, spikes on its nose, a big turret with a pair of guns and three small turrets. It rises out of an
+  underground hangar by the far wall (once the hero has made room) and three KV-44s roll in to help: long green tanks
+  with five turrets each, red stars and friendly eyes, which drive round it by themselves and fire salvos at it and at
+  the grumpy tanks, and whose armour cannonballs clang off, so they make good cover. Leviathan turns to the hero, fires
+  fans of five cannonballs (glowing first), its small turrets fire at the hero and at the KV-44s, and its mortar drops
+  shells round the hero on red rings. At two thirds and a third of its armour (the bar at the top) it calls up two
+  grumpy tanks, the second time angrily, firing faster. It goes up in a string of bursts with its turret flying off,
+  the grumpy tanks still about run away and the KV-44s cheer. The hero gets two hearts more for it; beating it brings a
+  star, three medals and fifty badges
+- Stars: 95 in the worlds and one for every level cleared, 109 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a

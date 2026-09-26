@@ -226,6 +226,8 @@
   #bossHp { display: flex; gap: 6px; padding: 5px 8px; background: rgba(28, 30, 59, .55); border: 3px solid var(--ink); border-radius: 12px; }
   #bossHp i { display: block; width: 34px; height: 12px; border-radius: 6px; background: var(--red); border: 2px solid var(--ink); }
   #bossHp i.off { background: rgba(255, 255, 255, .25); }
+  #bossHp.many { gap: 4px; } /* Leviathan's armour in tenths */
+  #bossHp.many i { width: 18px; }
 
   /* ---------- NPC speech bubbles ---------- */
   #bubbles { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 4; pointer-events: none; overflow: hidden; }
@@ -2300,6 +2302,99 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   GEO.tankPipes = mergedGeo([-1, 1].flatMap((s) => [[TANK_CYL, 0xb8bfcc, M4(s * .66, 1.2, -1.22, .08, .76, .08)], [TANK_CYL, 0x3b3f50, M4(s * .66, 1.6, -1.22, .1, .05, .1)]]));
   GEO.tankBoost = mergedGeo([-1, 1].flatMap((s) => [[TANK_CYL, 0xf0503a, M4(s * .52, .66, -1.62, .2, .72, .2, Math.PI / 2, 0, 0)], [TANK_CYL, 0xffffff, M4(s * .52, .66, -1.5, .205, .1, .205, Math.PI / 2, 0, 0)],
     [TANK_CYL, 0xffffff, M4(s * .52, .66, -1.78, .205, .1, .205, Math.PI / 2, 0, 0)], [CONE, 0x3b3f50, M4(s * .52, .66, -2.06, .19, .22, .19, Math.PI / 2, 0, 0)]]));
+  // The long tanks of the battle with Leviathan. The KV-44 of the cartoons: a long green tank on eight road wheels a side,
+  // with five turrets (a tall boxy one in the middle on a plinth, round ones fore and aft, two little ones by the big one),
+  // red stars on its skirts and its nose and friendly eyes over the big gun; three of them come to help. Leviathan: a huge
+  // dark tank with red trim, spikes on its nose and skirts, a big turret with a pair of guns and angry eyes that glow (meshes
+  // of their own), and three small turrets round it. Every turret turns on its own and every gun kicks back. Front is +z;
+  // BIG_TANKS says where the parts go and how big the whole tank is (sc), its half width and length and its height.
+  const KV44_C = { body: 0x5f8f42, dark: 0x46703a, trim: 0xe8403a, track: 0x2b2f4a, hub: 0xffd23f };
+  const LEVI_C = { body: 0x4a4560, dark: 0x302c42, trim: 0xe8403a, track: 0x1c1e2e, hub: 0xe8403a };
+  function kvHullParts(c) {
+    const p = [
+      [BOX, c.dark, M4(0, .46, 0, 1.4, .56, 5.3)], [BOX, c.body, M4(0, .82, -.05, 2.2, .2, 5.8)], [BOX, c.body, M4(0, .6, 2.9, 1.44, .4, .5, -.6, 0, 0)],
+      [BOX, c.dark, M4(0, .62, -3, 1.44, .34, .14)], [BOX, c.body, M4(0, 1.04, -.3, 1.5, .24, 1.7)],
+      [BOX, c.trim, M4(0, .925, 2.62, 2.21, .02, .16)], [BOX, c.trim, M4(0, .925, -2.72, 2.21, .02, .16)], [STAR5, c.trim, M4(0, .74, 3.1, .16, .16, .16, -.6, 0, 0)],
+      [SPH_HI, 0xfff2c0, M4(-.6, .84, 2.93, .12, .11, .06)], [SPH_HI, 0xfff2c0, M4(.6, .84, 2.93, .12, .11, .06)],
+      [CYL, 0x3b3f50, M4(-.5, .86, -3.1, .09, .24, .09, Math.PI / 2, 0, 0)], [CYL, 0x3b3f50, M4(.5, .86, -3.1, .09, .24, .09, Math.PI / 2, 0, 0)],
+    ];
+    for (const s of [-1, 1]) p.push(
+      [BOX, c.track, M4(s * .92, .72, 0, .46, .08, 5.3)], [BOX, c.track, M4(s * .92, .06, 0, .46, .09, 5)],
+      [TANK_CYL, c.track, M4(s * .92, .38, 2.62, .34, .46, .34, 0, 0, Math.PI / 2)], [TANK_CYL, c.track, M4(s * .92, .38, -2.62, .34, .46, .34, 0, 0, Math.PI / 2)],
+      [TANK_CYL, c.hub, M4(s * 1.155, .38, 2.62, .14, .02, .14, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(s * 1.155, .38, -2.62, .14, .02, .14, 0, 0, Math.PI / 2)],
+      [BOX, c.body, M4(s * 1.18, .58, 0, .05, .3, 4.9)], [BOX, c.trim, M4(s * 1.2, .72, 0, .02, .04, 4.92)],
+      ...[-1.5, 1.5].map((z) => [STAR5, c.trim, M4(s * 1.215, .56, z, .15, .15, .15, 0, s * Math.PI / 2, 0)]));
+    return p;
+  }
+  function kvTurretParts(c) {
+    const p = [
+      [TANK_CYL, c.dark, M4(0, .04, 0, .74, .08, .74)], [BOX, c.body, M4(0, .52, -.08, 1.34, .88, 1.46)], [BOX, c.body, M4(0, .5, .72, 1.18, .78, .2, -.18, 0, 0)],
+      [BOX, c.dark, M4(0, .98, -.08, 1.38, .07, 1.5)], [TANK_CYL, c.track, M4(-.32, 1.04, -.4, .24, .06, .24)], [TANK_CYL, c.body, M4(-.6, 1.3, -.4, .26, .04, .26, 0, 0, 1.9)],
+      [BOX, c.dark, M4(0, .3, .86, .56, .34, .2)], ...eyesAt(.3, .74, .84, 1.9),
+      [CYL, 0x3b3f50, M4(.5, 1.45, -.6, .016, .9, .016)], [SPH_HI, c.trim, M4(.5, 1.91, -.6, .045, .045, .045)],
+    ];
+    for (const s of [-1, 1]) p.push([STAR5, c.trim, M4(s * .675, .55, -.1, .22, .22, .22, 0, s * Math.PI / 2, 0)]);
+    return p;
+  }
+  const kvGunParts = (c) => [[TANK_CYL, c.dark, M4(0, 0, .85, .11, 1.7, .11, Math.PI / 2, 0, 0)], [TANK_CYL, c.trim, M4(0, 0, 1.2, .125, .1, .125, Math.PI / 2, 0, 0)],
+    [TANK_CYL, c.dark, M4(0, 0, 1.72, .16, .28, .16, Math.PI / 2, 0, 0)], [TANK_CYL, 0x1c1e2e, M4(0, 0, 1.865, .085, .02, .085, Math.PI / 2, 0, 0)]];
+  function leviHullParts(c) {
+    const p = [
+      [BOX, c.dark, M4(0, .5, 0, 1.9, .64, 4.1)], [BOX, c.body, M4(0, .94, -.05, 3, .26, 4.6)], [BOX, c.body, M4(0, .68, 2.25, 1.96, .5, .62, -.6, 0, 0)],
+      [BOX, c.dark, M4(0, .7, -2.38, 1.96, .44, .16)], [BOX, c.body, M4(0, 1.2, -.35, 2.2, .28, 2.4)],
+      [BOX, c.trim, M4(0, 1.075, 2.1, 3.01, .02, .24)], [BOX, c.trim, M4(0, 1.075, -2.2, 3.01, .02, .24)],
+      ...[-.72, -.36, 0, .36, .72].map((x) => [CONE, 0xb8bfcc, M4(x, .62, 2.5, .09, .34, .09, Math.PI / 2, 0, 0)]),
+      [SPH_HI, 0xff5a3a, M4(-.72, .92, 2.36, .12, .1, .06)], [SPH_HI, 0xff5a3a, M4(.72, .92, 2.36, .12, .1, .06)],
+    ];
+    for (const s of [-1, 1]) p.push(
+      [BOX, c.track, M4(s * 1.25, .84, 0, .62, .1, 4.2)], [BOX, c.track, M4(s * 1.25, .07, 0, .62, .1, 3.9)],
+      [TANK_CYL, c.track, M4(s * 1.25, .42, 2.05, .4, .62, .4, 0, 0, Math.PI / 2)], [TANK_CYL, c.track, M4(s * 1.25, .42, -2.05, .4, .62, .4, 0, 0, Math.PI / 2)],
+      [TANK_CYL, c.hub, M4(s * 1.565, .42, 2.05, .16, .02, .16, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(s * 1.565, .42, -2.05, .16, .02, .16, 0, 0, Math.PI / 2)],
+      [BOX, c.body, M4(s * 1.6, .62, 0, .06, .4, 3.8)], [BOX, c.trim, M4(s * 1.62, .8, 0, .02, .05, 3.82)],
+      ...[-1.5, -.75, 0, .75, 1.5].map((z) => [SPH_HI, c.dark, M4(s * 1.635, .5, z, .045, .045, .045)]),
+      ...[-1.1, 0, 1.1].map((z) => [CONE, 0xb8bfcc, M4(s * 1.7, .62, z, .08, .24, .08, 0, 0, -s * Math.PI / 2)]),
+      [TANK_CYL, 0x3b3f50, M4(s * .95, 1.45, -2.05, .13, .8, .13)], [TANK_CYL, 0x1c1e2e, M4(s * .95, 1.86, -2.05, .15, .06, .15)]);
+    return p;
+  }
+  function leviTurretParts(c) {
+    const p = [
+      [TANK_CYL, c.dark, M4(0, .05, 0, 1.1, .1, 1.1)], [TANK_CYL, c.body, M4(0, .45, 0, 1.02, .72, 1.12)], [SPH_HI, c.body, M4(0, .8, 0, 1.02, .24, 1.12)],
+      [TANK_CYL, c.trim, M4(0, .45, 0, 1.03, .08, 1.13)], [BOX, c.body, M4(0, .45, .92, 1.36, .8, .5)], [BOX, c.dark, M4(0, .26, 1.18, 1.1, .3, .16)],
+      [TANK_CYL, c.dark, M4(-.45, .98, -.35, .28, .2, .28)], [TANK_CYL, c.track, M4(-.45, 1.1, -.35, .2, .04, .2)],
+      [CYL, 0x3b3f50, M4(.55, 1.4, -.55, .02, 1.2, .02)], [SPH_HI, c.trim, M4(.55, 2, -.55, .06, .06, .06)],
+      ...[-.5, 0, .5].map((z) => [CONE, 0xb8bfcc, M4(.3, 1.02, z - .1, .07, .2, .07)]),
+      ...[-1, 1].flatMap((k) => [[SPH_HI, INK, M4(k * .33, .6, 1.215, .05, .09, .03)], [BOX, INK, M4(k * .33, .8, 1.19, .36, .08, .06, 0, 0, k * .4)]]),
+    ];
+    for (const s of [-1, 1]) p.push([TANK_CYL, c.trim, M4(s * 1.03, .45, -.1, .26, .02, .26, 0, 0, Math.PI / 2)], [TANK_CYL, c.dark, M4(s * 1.045, .45, -.1, .12, .02, .12, 0, 0, Math.PI / 2)]);
+    return p;
+  }
+  const leviGunParts = (c) => [-1, 1].flatMap((k) => [[TANK_CYL, c.dark, M4(k * .3, 0, 1.3, .13, 2.6, .13, Math.PI / 2, 0, 0)], [TANK_CYL, c.trim, M4(k * .3, 0, 1.7, .15, .12, .15, Math.PI / 2, 0, 0)],
+    [TANK_CYL, c.dark, M4(k * .3, 0, 2.62, .19, .36, .19, Math.PI / 2, 0, 0)], [TANK_CYL, 0x1c1e2e, M4(k * .3, 0, 2.805, .1, .02, .1, Math.PI / 2, 0, 0)]]);
+  // a small round turret (radius half a metre before it is sized) and its gun
+  const miniTurretParts = (c) => [[TANK_CYL, c.dark, M4(0, .03, 0, .52, .06, .52)], [TANK_CYL, c.body, M4(0, .2, 0, .48, .3, .52)], [SPH_HI, c.body, M4(0, .35, 0, .48, .1, .52)],
+    [TANK_CYL, c.trim, M4(0, .2, 0, .49, .06, .53)], [TANK_CYL, c.track, M4(0, .44, -.1, .18, .03, .18)], [BOX, c.dark, M4(0, .2, .5, .2, .16, .1)]];
+  const miniGunParts = (c) => [[TANK_CYL, c.dark, M4(0, 0, .5, .065, 1, .065, Math.PI / 2, 0, 0)], [TANK_CYL, c.dark, M4(0, 0, 1.02, .09, .12, .09, Math.PI / 2, 0, 0)]];
+  const BIG_TANKS = {
+    kv44: { c: KV44_C, sc: 1.15, hw: 1.22, hd: 3.1, h: 2.2, hull: kvHullParts, turret: kvTurretParts, gun: kvGunParts,
+      wheels: [-2.15, -1.535, -.92, -.305, .305, .92, 1.535, 2.15], wx: .92, wy: .3, ws: 1,
+      big: { at: [0, 1.16, -.3], gun: [0, .3, .9], muzzle: [[0, 0, 1.87]] },
+      minis: [{ at: [0, .92, 1.75], size: .85 }, { at: [0, .92, -2.15], size: .85, yaw: Math.PI }, { at: [-.72, .92, .95], size: .55 }, { at: [.72, .92, .95], size: .55 }] },
+    levi: { c: LEVI_C, sc: 2.3, hw: 1.7, hd: 2.6, h: 2.4, hull: leviHullParts, turret: leviTurretParts, gun: leviGunParts,
+      wheels: [-1.65, -1, -.33, .33, 1, 1.65], wx: 1.25, wy: .34, ws: 1.3,
+      big: { at: [0, 1.34, -.35], gun: [0, .26, 1.2], muzzle: [[-.3, 0, 2.81], [.3, 0, 2.81]] },
+      minis: [{ at: [-1.02, 1.07, 1.45], size: .75 }, { at: [1.02, 1.07, 1.45], size: .75 }, { at: [0, 1.07, -1.95], size: .9, yaw: Math.PI }] },
+  };
+  GEO.bigHull = {}; GEO.bigTurret = {}; GEO.bigGun = {}; GEO.miniTurret = {}; GEO.miniGun = {}; GEO.bigWheels = {};
+  for (const k in BIG_TANKS) {
+    const D = BIG_TANKS[k];
+    GEO.bigHull[k] = mergedGeo(D.hull(D.c)); GEO.bigTurret[k] = mergedGeo(D.turret(D.c)); GEO.bigGun[k] = mergedGeo(D.gun(D.c));
+    GEO.miniTurret[k] = mergedGeo(miniTurretParts(D.c)); GEO.miniGun[k] = mergedGeo(miniGunParts(D.c)); GEO.tankWheel[k] = mergedGeo(tankWheelParts(D.c));
+    // all its road wheels in one, for a tank that stands still
+    GEO.bigWheels[k] = mergedGeo([-1, 1].flatMap((s) => D.wheels.flatMap((z) => tankWheelParts(D.c).map(([g, col, m]) => [g, col, M4(s * D.wx, D.wy, z, D.ws, D.ws, D.ws).multiply(m)]))));
+  }
+  MAT.leviEye = std({ color: 0xff5a3a, emissive: 0xff2a10, emissiveIntensity: 1.3, roughness: .35 });
+  // where Leviathan's mortar shell will fall: a red ring on the ground
+  MAT.mortar = std({ color: 0xff4a3a, emissive: 0xff2a1a, emissiveIntensity: 1.2, roughness: .5, transparent: true, opacity: .9, depthWrite: false });
   // the hero's shell, a golden one with a red band, flying along +z; the red chevron over whatever the gun is aimed at
   GEO.shell = mergedGeo([[TANK_CYL, 0xffc53d, M4(0, 0, -.04, .11, .3, .11, Math.PI / 2, 0, 0)], [SPH_HI, 0xffd23f, M4(0, 0, .1, .11, .11, .2)],
     [TANK_CYL, 0xf0503a, M4(0, 0, -.12, .115, .05, .115, Math.PI / 2, 0, 0)]]);
@@ -4402,9 +4497,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         for (let i = 0; i < 9; i++) { const a = R() * 6.3, rr = R() * .7 * s; near.add(CYL, 0xffd23f, M4(x + Math.cos(a) * rr, top + .05 + R() * .3 * s, -d + Math.sin(a) * rr, .16, .04, .16, R() * .6, 0, R() * .6)); }
         near.add(SPH, 0xffc53d, M4(x, top, -d, .8 * s, .45 * s, .8 * s));
       },
-      // a glowing ring on the ground: the shop's golden one, or a blue one that lends a ride (`data` names it)
+      // a glowing ring on the ground: the shop's golden one, a blue one that lends a ride (`data` names it), a red one that
+      // starts a challenge, the purple one that wakes Leviathan
       pad(kind, x, top, d, data) {
-        const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' ? 0xff4a2a : 0xffd23f, emissiveIntensity: .8, roughness: .6 }));
+        const col = kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
+        const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: col, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
       },
@@ -4544,14 +4641,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // the tank battle's ground (its walls are the world's business): a striped barrier that rises across the way in while
       // a battle is on, and a red pad that starts one. cfg: the ground's bounds, its middle, which way the tanks come from
       // (face), the way in (gate), who runs it, the hangar doors the grumpy tanks roll out of, spots for hearts, the stars
-      // for three and five waves
+      // for three and five waves and for Leviathan, and the purple pad (leviPad) that starts the battle with Leviathan
       tankArena(cfg) {
         const [gx0, gx1, gd0, gd1] = cfg.gate, h = cfg.gateH || 3.4, w = gx1 - gx0, dd = gd1 - gd0;
         const m = new T.Mesh(boxGeo(w, h, dd, 2), MAT.hazard); m.castShadow = m.receiveShadow = true; m.visible = false; add(m);
         m.position.set((gx0 + gx1) / 2, cfg.top - h / 2, -(gd0 + gd1) / 2);
         const s = addSolid(gx0, cfg.top, -gd1, gx1, cfg.top + h, -gd0, 'hard'); s.active = false;
         this.pad('battle', cfg.cx, cfg.top, cfg.cd);
-        ISL.tb = Object.assign({}, cfg, { phase: 'off', cz: -cfg.cd, z0: -cfg.d1, z1: -cfg.d0, gate: { m, s, h, k: 0, y1: cfg.top + h / 2 } });
+        if (cfg.leviPad) this.pad('levi', cfg.leviPad[0], cfg.top, cfg.leviPad[1]);
+        ISL.tb = Object.assign({}, cfg, { phase: 'off', cz: -cfg.cd, z0: -cfg.d1, z1: -cfg.d0, gate: { m, s, h, k: 0, y1: cfg.top + h / 2 }, allies: [], mortars: [], parked: [] });
       },
       finish() {
         // scatter grass tufts, flowers and bushes where nothing stands
@@ -6981,6 +7079,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       'Танк дают на синем коврике у ангаров. Красная кнопка стреляет, пушка сама поворачивается к цели.',
       'Танкодром прямо на север. Командир Мишка у ворот расскажет про бой.',
       'На востоке стрельбище с мишенями, на западе вышка и пруд. А вокруг танкодрома гоняет Пинг.',
+      'У ангаров стоят три КВ-44, самые длинные танки на свете: по пять башен у каждого! Они помогают в бою с Левиафаном.',
       SAVE.tb ? 'Твой рекорд в танковом бою: ' + SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') + '.' : 'Танк можно купить у кота Болта: он поедет с тобой в любой открытый мир!',
     ]);
     B.pad('rent', 7, 0, 4, 'tank'); B.sign(10.5, 0, 2.5, ['Танки', 'напрокат']);
@@ -7025,13 +7124,26 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       'Прячься за бетонными блоками и мешками с песком. Сердечки на поле чинят броню.',
       'За каждую отбитую волну медаль! Медали кот Болт у ангаров меняет на модернизацию танка.',
       SAVE.tb ? 'Твой рекорд: ' + SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') + '. Три волны, и звезда твоя. Пять волн, ещё одна!' : 'Продержишься три волны, дам звезду. Пять волн, ещё одну!',
+      'Под танкодромом спит Левиафан, огромный танк-босс! Встань на фиолетовый коврик, и он поднимется из-под земли.',
+      'Против Левиафана тебе помогут три КВ-44 с базы. Прячься за ними: ядра отскакивают от их брони!',
+      SAVE.levi ? 'Левиафан повержен уже ' + SAVE.levi + ' ' + plural(SAVE.levi, 'раз', 'раза', 'раз') + '! А на шестой волне боя он приходит сам.' : 'Победишь Левиафана, дам звезду. А на шестой волне боя он приходит сам!',
     ]);
     B.tankArena({ x0: -30, x1: 30, d0: 30, d1: 86, top: 0, cx: 0, cd: 42, face: Math.PI, gate: [-4, 4, 28, 30], owner: bear, star3: 'tk.win3', star5: 'tk.win5',
-      spawns: [[-20, 82], [-6, 82], [8, 82], [22, 82], [-26, 60], [26, 60]],
+      starL: 'tk.levi', leviPad: [8, 43], spawns: [[-20, 82], [-6, 82], [8, 82], [22, 82], [-26, 60], [26, 60]],
       heartAt: [[-12, 50], [12, 52], [0, 62], [-20, 72], [20, 74], [-24, 44], [24, 44]] });
     B.star('tk.win3', -3.5, 2.2, 40, !questDone('tk.win3'));
     B.star('tk.win5', 3.5, 2.2, 40, !questDone('tk.win5'));
+    B.star('tk.levi', 8, 2.2, 39, !questDone('tk.levi'));
     B.sign(6.5, 0, 25, ['Танкодром']);
+    // the three KV-44s stand by the hangars between the battles (the ones that come to help against Leviathan); the hero can
+    // climb onto their decks and big turrets
+    for (const x of [8.5, 12.5, 16.5]) {
+      const g = bigTankModel('kv44', true), D = BIG_TANKS.kv44, k = D.sc, [, ty, tz] = D.big.at;
+      g.position.set(x, 0, -19); g.rotation.y = Math.PI; L.group.add(g); ISL.tb.parked.push(g);
+      addSolid(x - D.hw * k, 0, -19 - D.hd * k, x + D.hw * k, .93 * k, -19 + D.hd * k, 'hard');
+      addSolid(x - .7 * k, 0, -19 - tz * k - .8 * k, x + .7 * k, (ty + 1.02) * k, -19 - tz * k + .8 * k, 'hard');
+    }
+    B.sign(12.5, 0, 14, ['КВ-44']);
     B.flag(-5, 4.5, 29, 0x6fbf4a, 3.5); B.flag(5, 4.5, 29, 0x4262ff, 3.5);
 
     // --- the tank race: Ping's rings all round the tank ground ---
@@ -7290,6 +7402,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       stars: [
         { id: 'tk.win3', name: 'Три волны', hint: 'Командир Мишка у ворот танкодрома. Встань на красный коврик в воротах и подбей все танки трёх волн.' },
         { id: 'tk.win5', name: 'Пять волн', hint: 'Продержись на танкодроме пять волн. В четвёртой приедет большой танк: в него надо попасть шесть раз.' },
+        { id: 'tk.levi', name: 'Левиафан', hint: 'Встань на фиолетовый коврик на танкодроме и вместе с тремя КВ-44 подбей огромного Левиафана.' },
         { id: 'tk.range', name: 'Стрельбище', hint: 'Ёжик Меткий на востоке: попади во все восемь мишеней за 40 секунд. Танк дают на синем коврике рядом.' },
         { id: 'tk.race', name: 'Танковые гонки', hint: 'Пинг ждёт у ворот танкодрома: все кольца вокруг него за 35 секунд. Танк дают у ангаров.' },
         { id: 'tk.tower', name: 'Наблюдательная вышка', hint: 'Вышка на западе базы: прыгай по площадкам вокруг неё до самого верха.' },
@@ -7585,6 +7698,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // knocked enemies flip and fly off; when kicked sideways they bowl over whoever they hit
   function knockEnemy(e, dx = 0, dz = 0, pts = 100, byHero = false) {
+    if (e.levi) { leviHit(e); return; } // Leviathan takes a shell off its armour
     if (e.tough) { toughClink(e); return; }
     if (e.type === 'balloon') { popBalloon(e, byHero); return; }
     if (e.tank && e.hp > 1) { tankFoeHit(e, dx, dz); return; }
@@ -7921,11 +8035,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!hit && f.shell && duelTanking()) hit = shellHitsFriend(f);
       const reach = f.shell ? .45 : f.air ? .6 : .25;
       if (!hit) for (const e of L.enemies) {
-        if (!e.alive || Math.abs(e.x - f.x) > e.hw + reach || Math.abs(e.z - f.z) > e.hw + reach || f.y < e.y - .2 || f.y > e.y + e.h + .2) continue;
-        knockEnemy(e, f.vx, f.vz, 200, true); if (f.dmg > 1 && e.alive && e.tank) knockEnemy(e, f.vx, f.vz, 200, true);
+        if (!e.alive || f.y < e.y - .2 || f.y > e.y + e.h + .2) continue;
+        if (e.hd ? hullGap(e, f.x, f.z) > reach : Math.abs(e.x - f.x) > e.hw + reach || Math.abs(e.z - f.z) > e.hw + reach) continue; // a long tank anywhere along its hull
+        if (e.levi) e.hitAt = f; // (where the sparks fly)
+        knockEnemy(e, f.vx, f.vz, 200, !f.ally);
+        if (f.dmg > 1 && e.alive && e.tank) { if (e.levi) e.hitAt = f; knockEnemy(e, f.vx, f.vz, 200, !f.ally); }
         hit = true; f.hitE = e; break;
       }
-      if (!hit) for (const b of L.balls) if (Math.hypot(b.x - f.x, b.z - f.z) < .6 && Math.abs(b.y - f.y) < .6) { popBall(b, 200); hit = true; break; }
+      if (!hit) for (const b of L.balls) if (Math.hypot(b.x - f.x, b.z - f.z) < .6 && Math.abs(b.y - f.y) < .6) { if (f.ally) popBallQuiet(b); else popBall(b, 200); hit = true; break; }
       const bs = L.boss;
       if (!hit && bs && bs.active && !bs.dead && Math.hypot(bs.x - f.x, bs.z - f.z) < bs.r + .2 && f.y < bs.y + bs.h && f.y > bs.y - .3) {
         Snd.at(f.x, f.y, f.z).clink(); hit = true; // bosses shrug fire off: it takes a stomp
@@ -7960,9 +8077,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       }
     }
   }
-  function fireBall(x, y, z, yaw, speed, own) {
+  function fireBall(x, y, z, yaw, speed, own, vy = 0) { // (vy: a ball that drops or climbs as it flies, out of a gun that stands high)
     const m = new T.Mesh(GEO.ball, MAT.char); m.castShadow = true; m.position.set(x, y, z); m.rotation.y = yaw; L.group.add(m);
-    L.balls.push({ m, x, y, z, vx: Math.sin(yaw) * speed, vz: Math.cos(yaw) * speed, life: 6, own });
+    L.balls.push({ m, x, y, z, vx: Math.sin(yaw) * speed, vy, vz: Math.cos(yaw) * speed, life: 6, own });
   }
   function popBall(b, pts) {
     b.dead = true; addScore(pts); popup(String(pts), b.x, b.y + 1, b.z); chainAdd();
@@ -7972,10 +8089,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (let i = L.balls.length - 1; i >= 0; i--) {
       const b = L.balls[i]; b.life -= dt;
       if (!b.dead) {
-        b.x += b.vx * dt; b.z += b.vz * dt;
+        b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
         b.m.position.set(b.x, b.y, b.z);
         if (Math.random() < dt * 14) puff(b.x - b.vx * .06, b.y, b.z - b.vz * .06, 0xd8d8e4, 1, .3, .3, .5, .45);
         if (b.life <= 0 || pointHits(b.x, b.y, b.z, .3, b.own)) { popBallQuiet(b); }
+        else if (kvBlocks(b)) popBallQuiet(b);
         else if (G.state === 'playing') {
           const p = P.pos;
           if (Math.abs(p.x - b.x) < HW + .34 && Math.abs(p.z - b.z) < HW + .34 && p.y < b.y + .36 && p.y + PH > b.y - .36) {
@@ -8686,6 +8804,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function updateEnemies(dt) {
     for (const e of L.enemies) {
       if (!e.alive) {
+        if (e.levi) { if (e.dead > 0) leviDying(e, dt); continue; }
         if (e.dead > 0) {
           e.dead -= dt;
           if (e.flip) {
@@ -8699,6 +8818,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       }
       if (Math.abs(e.z - P.pos.z) > 75 && !e.surv && !e.tank) continue;
       if (e.type === 'flyer' || e.type === 'ptero') updateFlyer(e, dt);
+      else if (e.levi) { updateLevi(e, dt); continue; } // (it pushes the hero out of its hull itself)
       else if (e.tank) updateTankFoe(e, dt);
       else if (e.ai) updateFoe(e, dt);
       else if (e.type === 'balloon') { // a balloon bobs on its string
@@ -9205,8 +9325,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'classic',
     caps: ['auto', 'classic'], cap: 'auto', hats: [], hat: '', rides: [], ride: '',
     // the best survival game (waves lasted through, seconds), the dragon last picked at the roost, the best tank battle (waves,
-    // tanks knocked out)
-    surv: 0, survT: 0, dragon: '', tb: 0, tbK: 0,
+    // tanks knocked out), how many times Leviathan has been beaten
+    surv: 0, survT: 0, dragon: '', tb: 0, tbK: 0, levi: 0,
     // medals for victories in tank battles, and the tank's upgrades: levels of the gun, the shells, the armour, the engine
     medals: 0, tkMods: [0, 0, 0, 0] });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
@@ -10170,10 +10290,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const d = Math.hypot(P.pos.x - f.x, P.pos.z - f.z); if (d < 12) G.shake = Math.max(G.shake, .18 * (1 - d / 12));
     if (f.ghost) return;
     for (const e of L.enemies) {
-      if (!e.alive || e === f.hitE || Math.hypot(e.x - f.x, e.z - f.z) > R + e.hw * .5 || f.y < e.y - 1.2 || f.y > e.y + e.h + 1.2) continue;
-      knockEnemy(e, e.x - f.x, e.z - f.z, 100, true);
+      if (!e.alive || e === f.hitE || f.y < e.y - 1.2 || f.y > e.y + e.h + 1.2) continue;
+      if (e.hd ? hullGap(e, f.x, f.z) > R * .5 : Math.hypot(e.x - f.x, e.z - f.z) > R + e.hw * .5) continue;
+      if (e.levi) e.hitAt = f;
+      knockEnemy(e, e.x - f.x, e.z - f.z, 100, !f.ally);
     }
-    for (const b of L.balls) if (!b.dead && Math.hypot(b.x - f.x, b.z - f.z) < R && Math.abs(b.y - f.y) < 2) popBall(b, 100);
+    for (const b of L.balls) if (!b.dead && Math.hypot(b.x - f.x, b.z - f.z) < R && Math.abs(b.y - f.y) < 2) { if (f.ally) popBallQuiet(b); else popBall(b, 100); }
   }
 
   // ---------- the grumpy tanks ----------
@@ -10213,11 +10335,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // it keeps apart from the other tanks and from the hero, and a shell's shove fades
     let px = e.kx, pz = e.kz;
     e.kx = damp(e.kx, 0, 5, dt); e.kz = damp(e.kz, 0, 5, dt);
+    const offHull = (o) => { // off a long tank's hull (Leviathan, a KV-44)
+      const g = hullGap(o, e.x, e.z), room = e.hw + .6, ox = e.x - o.x, oz = e.z - o.z, od = Math.hypot(ox, oz) || 1;
+      if (g < room) { px += ox / od * (room - g) * 3; pz += oz / od * (room - g) * 3; }
+    };
     for (const o of L.enemies) {
       if (o === e || !o.tank || !o.alive) continue;
+      if (o.hd) { offHull(o); continue; }
       const ox = e.x - o.x, oz = e.z - o.z, od = Math.hypot(ox, oz), need = e.hw + o.hw + .6;
       if (od < need && od > .01) { px += ox / od * (need - od) * 3; pz += oz / od * (need - od) * 3; }
     }
+    if (ISL.tb) for (const o of ISL.tb.allies) offHull(o);
     if (d < e.hw + 2.4) { px -= dx / d * (e.hw + 2.4 - d) * 3; pz -= dz / d * (e.hw + 2.4 - d) * 3; }
     const before = Math.hypot(e.x - e.gx, e.z - e.gz);
     foeMove(e, Math.sin(e.face) * v + px, Math.cos(e.face) * v + pz, dt);
@@ -10277,12 +10405,436 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     P.vel.x *= .5; P.vel.z *= .5;
   }
 
+  // ---------- the long tanks: Leviathan and the KV-44s ----------
+  // A long tank takes up a box turned with it (half width hw, half length hd): its hull keeps clear of whatever stands on
+  // the ground, a shell hits it anywhere along it, and the hero is pushed out of it.
+  const _lv = new T.Vector3();
+  // true if a long tank at (x, z) turned to `yaw` would run into something standing on the ground (the two boxes overlap
+  // unless one of four axes, the world's two and the hull's two, keeps them apart)
+  function hullHits(e, x, z, yaw) {
+    const c = Math.cos(yaw), s = Math.sin(yaw), ac = Math.abs(c), as = Math.abs(s);
+    for (const q of e.solids) {
+      if (!q.active || q.max.y <= e.y + .6 || q.min.y >= e.y + 3) continue;
+      const ax = (q.max.x - q.min.x) / 2, az = (q.max.z - q.min.z) / 2, dx = x - q.min.x - ax, dz = z - q.min.z - az;
+      if (Math.abs(dx) > ax + e.hw * ac + e.hd * as || Math.abs(dz) > az + e.hw * as + e.hd * ac) continue;
+      if (Math.abs(dx * c - dz * s) > e.hw + ax * ac + az * as || Math.abs(dx * s + dz * c) > e.hd + ax * as + az * ac) continue;
+      return true;
+    }
+    return false;
+  }
+  // how far a point is from a long tank's hull (0 inside it)
+  function hullGap(e, x, z) {
+    const dx = x - e.x, dz = z - e.z, c = Math.cos(e.face), s = Math.sin(e.face);
+    return Math.hypot(Math.max(0, Math.abs(dx * c - dz * s) - e.hw), Math.max(0, Math.abs(dx * s + dz * c) - e.hd));
+  }
+  // the hero drives into a long tank: pushed back out of its hull the shorter way
+  function hullPush(e) {
+    const p = P.pos;
+    if (p.y > e.y + e.h - .3 || p.y + PH < e.y) return;
+    const dx = p.x - e.x, dz = p.z - e.z, c = Math.cos(e.face), s = Math.sin(e.face), lx = dx * c - dz * s, lz = dx * s + dz * c;
+    const ox = e.hw + HW - Math.abs(lx), oz = e.hd + HW - Math.abs(lz);
+    if (ox <= 0 || oz <= 0) return;
+    if (ox < oz) { const k = Math.sign(lx || 1) * ox; moveH('x', c * k, false); moveH('z', -s * k, false); }
+    else { const k = Math.sign(lz || 1) * oz; moveH('x', s * k, false); moveH('z', c * k, false); }
+    P.vel.x *= .5; P.vel.z *= .5;
+  }
+  // a long tank's step and its turn on the spot, as far as its hull stays clear (one caught on something for a while
+  // squeezes on anyway, so a KV-44 never stays stuck; Leviathan never gets stuck, it hardly moves)
+  function hullMove(e, vx, vz, dt) {
+    const nx = e.x + vx * dt, nz = e.z + vz * dt, B = e.box;
+    if (e.stuck > 1.6 || hullHits(e, e.x, e.z, e.face) || !hullHits(e, nx, nz, e.face)) { e.x = nx; e.z = nz; }
+    else if (Math.abs(vx) > .01 && !hullHits(e, nx, e.z, e.face)) e.x = nx;
+    else if (Math.abs(vz) > .01 && !hullHits(e, e.x, nz, e.face)) e.z = nz;
+    e.x = clamp(e.x, B.x0 + e.hw, B.x1 - e.hw); e.z = clamp(e.z, B.z0 + e.hw, B.z1 - e.hw);
+  }
+  function hullTurn(e, want, rate, dt) {
+    const yaw = e.face + clamp(wrapPi(want - e.face), -rate * dt, rate * dt);
+    if (e.stuck > 1.6 || hullHits(e, e.x, e.z, e.face) || !hullHits(e, e.x, e.z, yaw)) e.face = yaw;
+    return wrapPi(want - e.face);
+  }
+  // where a small turret stands in the world (its spot on a long tank turned to `face`)
+  function miniAt(e, m) {
+    const k = m.t.parent.scale.x, lx = m.t.position.x * k, lz = m.t.position.z * k, c = Math.cos(e.face), s = Math.sin(e.face);
+    return [e.x + lx * c + lz * s, e.z - lx * s + lz * c];
+  }
+  // a cannonball flying at `yaw` that drops (or climbs) so as to come down to the height `ty` where it meets the point
+  // (tx, tz); Leviathan's guns stand so high their balls would fly over a tank otherwise
+  function ballAt(x, y, z, yaw, speed, tx, ty, tz) {
+    const t = Math.max(.3, Math.hypot(tx - x, tz - z) / speed);
+    fireBall(x, y, z, yaw, speed, null, (ty - y) / t);
+  }
+
+  // Leviathan rises out of an underground hangar by the far wall of the tank ground (the hero has to make room first) and
+  // fights from there: its hull turns to the hero and rolls a few metres to and fro, its big turret glows and fires a fan
+  // of five cannonballs, the small ones fire one each at the hero or at a KV-44, and now and then its mortar drops shells
+  // round the hero (red rings show where). At two thirds and one third of its armour it calls up two grumpy tanks, and at
+  // one third it gets angry and fires faster. A shell takes one off its armour (the bar at the top), a fiery one two; it
+  // goes up in a string of bursts, its turret flying off, and the grumpy tanks still about run away.
+  const LEVI_HP = 100, LEVI_HOME = [-1.5, 78], LEVI_RISE = 2.6, MORTAR_R = 2.2, MORTAR_T = 1.9;
+  function leviSpawn() {
+    const S = ISL.tb, D = BIG_TANKS.levi, x = LEVI_HOME[0], z = -LEVI_HOME[1];
+    const e = { levi: true, tank: true, type: 'tank', look: 'levi', x, y: S.top, z, hx: x, hz: z, face: 0, aim: 0, alive: true, dead: 0, flip: false, vy: 0, t: 0,
+      hw: D.hw * D.sc, hd: D.hd * D.sc, h: D.h * D.sc, hp: LEVI_HP, max: LEVI_HP, state: 'rise', st: 0, cool: 2.5, windup: 0, mortT: 7, calls: 0, rage: false,
+      hitT: 0, clangT: 0, stuck: 0, goalT: 2, gz: z, solids: S.box.solids, box: S.box, onG: true, kick: false, kvx: 0, kvz: 0, barN: -1, hitAt: null };
+    // it waits until the hero is out of its way (a rumble and dust show where it will come up)
+    if (hullGap(e, P.pos.x, P.pos.z) < HW + 2.5) {
+      if (!S.leviWarn) { S.leviWarn = true; toast('Левиафан поднимается!', 'Отъезжай от дальней стены, освободи ему место'); Snd.at(x, 1, z).rumble(); }
+      puff(x + (Math.random() - .5) * e.hw * 2, S.top + .5, z + (Math.random() - .5) * e.hd * 2, 0xd6c09a, 6, 2.5, .8, .8, 1.6);
+      return false;
+    }
+    e.mesh = bigTankModel('levi'); e.mesh.position.set(x, S.top - 7, z); L.group.add(e.mesh);
+    e.minis = e.mesh.userData.minis.map((m, i) => Object.assign(m, { aim: m.yaw, cool: 2.5 + i * .8, st: 0, tgt: null }));
+    L.enemies.push(e); S.foes.push(e); S.levi = e;
+    Snd.startMusic('boss'); Snd.sfx.bossRoar(); Snd.at(x, 1, z).rumble(); G.shake = Math.max(G.shake, .5);
+    leviBar(e); $('bossBar').hidden = false;
+    return true;
+  }
+  // its armour on the boss bar at the top: ten segments (drawn again only when one goes out)
+  function leviBar(e) {
+    const n = Math.ceil(e.hp / e.max * 10);
+    if (n === e.barN) return;
+    e.barN = n; $('bossName').textContent = 'Левиафан';
+    const hp = $('bossHp'); hp.textContent = ''; hp.classList.add('many');
+    for (let i = 0; i < 10; i++) { const seg = document.createElement('i'); if (i >= n) seg.className = 'off'; hp.append(seg); }
+  }
+  function updateLevi(e, dt) {
+    const S = ISL.tb, u = e.mesh.userData, playing = G.state === 'playing', p = P.pos;
+    e.st += dt; e.hitT -= dt; e.clangT -= dt;
+    MAT.leviEye.emissiveIntensity = e.rage ? 1.4 + Math.sin(time * 14) * .9 : 1.3 + Math.sin(time * 3) * .3;
+    if (e.state === 'rise') { // up out of the ground in a cloud of dust, the ground shaking
+      const k = Math.min(1, e.st / LEVI_RISE), up = 1 - (1 - k) ** 3;
+      e.mesh.position.set(e.x + Math.sin(time * 40) * .08 * (1 - k), e.y - 7 * (1 - up), e.z);
+      if (Math.random() < dt * 24) {
+        const a = Math.random() * 6.3;
+        puff(e.x + Math.sin(a) * e.hw * 1.2, e.y + .4, e.z + Math.cos(a) * e.hd * 1.1, 0xd6c09a, 3, 3, 1.2, 1, 2);
+      }
+      G.shake = Math.max(G.shake, .22 * (1 - k));
+      if (playing) hullPush(e);
+      if (k >= 1) {
+        e.state = 'fight'; e.st = 0; G.shake = Math.max(G.shake, .4); Snd.sfx.bossRoar();
+        wave(e.x, e.y, e.z, 0xd6c09a, 9, .6); toast('Левиафан!', 'Подбей его вместе с КВ-44! Прячься за ними от ядер');
+      }
+      return;
+    }
+    const dx = p.x - e.x, dz = p.z - e.z, d = Math.hypot(dx, dz) || 1, toHero = Math.atan2(dx, dz), angry = e.rage ? .7 : 1;
+    // the hull turns to the hero (but not far from facing the tank ground) and rolls a little forward or back now and then
+    hullTurn(e, clamp(toHero, -.6, .6), .35, dt);
+    e.goalT -= dt;
+    if (e.goalT <= 0) { e.goalT = 3 + Math.random() * 3; e.gz = -(LEVI_HOME[1] - Math.random() * 5); }
+    const v = clamp((e.gz - e.z) * .8, -1.4, 1.4) / Math.cos(e.face);
+    hullMove(e, Math.sin(e.face) * v, Math.cos(e.face) * v, dt);
+    e.x = clamp(e.x, e.hx - 3, e.hx + 3);
+    // the look: the hull, the big turret on the hero, a shudder when hit; then the guns can be found where they are
+    e.mesh.position.set(e.x, e.y, e.z); e.mesh.rotation.y = e.face; u.turret.rotation.y = wrapPi(e.aim - e.face);
+    spinRide(e.mesh, dt, 1);
+    e.mesh.scale.setScalar(BIG_TANKS.levi.sc * (1 + Math.max(0, e.hitT) * .03));
+    e.mesh.updateMatrixWorld(true);
+    // the big turret: follows the hero, glows, fires a fan of five
+    e.aim = angleDamp(e.aim, toHero, 1.3, dt);
+    e.cool -= dt;
+    if (e.windup > 0) {
+      e.windup -= dt; u.gun.scale.setScalar(1 + Math.sin(time * 40) * .05);
+      if (Math.random() < dt * 30) for (const q of BIG_TANKS.levi.big.muzzle) { u.gun.localToWorld(_lv.set(...q)); glow(_lv.x, _lv.y, _lv.z, 0xffc04a, 1, 1.4, 0, 0, .3, .4); }
+      if (e.windup <= 0) { leviFire(e); e.cool = (4.8 + Math.random() * 1.5) * angry; u.gun.scale.setScalar(1); }
+    } else if (playing && e.cool <= 0 && d < 55 && Math.abs(wrapPi(toHero - e.aim)) < .12) {
+      e.windup = 1.1; popup('!', e.x, e.y + e.h + 1.5, e.z, 'gold'); Snd.at(e.x, e.y + e.h, e.z).charge();
+    }
+    // the small turrets: each picks the hero or a KV-44, turns to it, glows a moment and fires one cannonball
+    for (const m of e.minis) {
+      const [mx, mz] = miniAt(e, m), tg = m.tgt && (m.tgt === P || S.allies.includes(m.tgt)) ? m.tgt : (m.tgt = leviPick());
+      const tp = tg === P ? [p.x, p.y + PH * .45, p.z] : [tg.x, tg.y + tg.h * .45, tg.z], want = Math.atan2(tp[0] - mx, tp[2] - mz);
+      m.aim = angleDamp(m.aim, want, 2.4, dt); m.t.rotation.y = wrapPi(m.aim - e.face);
+      m.cool -= dt; m.recoil = Math.max(0, m.recoil - dt * 4); m.gun.position.z = .5 - m.recoil * .3;
+      if (m.st > 0) {
+        m.st -= dt;
+        if (Math.random() < dt * 20) { m.gun.localToWorld(_lv.set(0, 0, 1.08)); glow(_lv.x, _lv.y, _lv.z, 0xffc04a, 1, .8, 0, 0, .25, .3); }
+        if (m.st <= 0) {
+          m.gun.localToWorld(_lv.set(0, 0, 1.08)); ballAt(_lv.x, _lv.y, _lv.z, m.aim, 11, tp[0], tp[1], tp[2]);
+          Snd.at(_lv.x, _lv.y, _lv.z).cannon(); flashAt(_lv.x, _lv.y, _lv.z, 0xffe07a, 1.8, .1); puff(_lv.x, _lv.y, _lv.z, 0xe8e6ee, 3, 1.6, .4, .5, .9);
+          m.recoil = 1; m.cool = (2.8 + Math.random() * 1.6) * angry; m.tgt = null;
+        }
+      } else if (playing && m.cool <= 0 && Math.abs(wrapPi(want - m.aim)) < .1) m.st = .45;
+    }
+    // the mortar: shells fall on the hero and round him, red rings first
+    e.mortT -= dt;
+    if (playing && e.mortT <= 0) {
+      e.mortT = (10 + Math.random() * 3) * angry;
+      const B = e.box, n = e.rage ? 5 : 4;
+      u.minis[2].gun.localToWorld(_lv.set(0, 0, 1.08)); puff(_lv.x, _lv.y, _lv.z, 0xe8e6ee, 8, 2.5, 2, .7, 1.2); Snd.at(_lv.x, _lv.y, _lv.z).boom();
+      popup('Мортира!', e.x, e.y + e.h + 1.5, e.z, 'gold');
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * 6.3, r = i ? 3 + Math.random() * 5 : 0;
+        mortarAt(clamp(p.x + Math.sin(a) * r, B.x0, B.x1), clamp(p.z + Math.cos(a) * r, B.z0, B.z1), i * .2);
+      }
+    }
+    // smoke out of its pipes (black and thick once it is angry)
+    if (Math.random() < dt * (e.rage ? 10 : 4)) {
+      const k = Math.random() < .5 ? -1 : 1; e.mesh.localToWorld(_lv.set(k * .95, 1.9, -2.05));
+      puff(_lv.x, _lv.y, _lv.z, e.rage ? 0x3a3640 : 0x8a8490, 1, .6, 1.4, .9, 1.2);
+    }
+    if (playing) hullPush(e);
+  }
+  // a KV-44 (sometimes) or the hero, for a small turret to fire at
+  function leviPick() {
+    const A = ISL.tb.allies;
+    return A.length && Math.random() < .65 ? A[(Math.random() * A.length) | 0] : P;
+  }
+  function leviFire(e) {
+    const u = e.mesh.userData, ty = P.pos.y + PH * .45, [m0, m1] = BIG_TANKS.levi.big.muzzle;
+    [-.28, -.14, 0, .14, .28].forEach((k, i) => {
+      u.gun.localToWorld(_lv.set(...(i % 2 ? m1 : m0)));
+      const yaw = e.aim + k, r = Math.hypot(P.pos.x - _lv.x, P.pos.z - _lv.z);
+      ballAt(_lv.x, _lv.y, _lv.z, yaw, 10.5, _lv.x + Math.sin(yaw) * r, ty, _lv.z + Math.cos(yaw) * r);
+      if (i < 2) { flashAt(_lv.x, _lv.y, _lv.z, 0xffe07a, 3, .14); puff(_lv.x, _lv.y, _lv.z, 0xe8e6ee, 8, 2.5, .5, .7, 1.4); }
+    });
+    u.recoil = 1; Snd.at(e.x, e.y + e.h, e.z).cannon(); Snd.at(e.x, e.y + e.h, e.z).boom();
+    const d = Math.hypot(P.pos.x - e.x, P.pos.z - e.z); G.shake = Math.max(G.shake, .25 * Math.max(.3, 1 - d / 40));
+  }
+  // a shell on Leviathan: a clang and sparks where it hit, and its armour goes down; at two thirds and a third of it
+  // Leviathan calls up help, the second time angrily
+  function leviHit(e) {
+    const h = e.hitAt || { x: e.x, y: e.y + e.h * .7, z: e.z }; e.hitAt = null;
+    if (!e.alive) return;
+    if (e.state === 'rise') { Snd.at(h.x, h.y, h.z).clink(); return; }
+    e.hp--; e.hitT = .25; addScore(50);
+    if (e.clangT <= 0) { e.clangT = .12; Snd.at(h.x, h.y, h.z).clang(); }
+    emit(h.x, h.y, h.z, 0xfff3a0, 10, 5, 1, 6, .3, .2); puff(h.x, h.y, h.z, 0x8a8490, 2, 1.5, .8, .6, .9);
+    if (Math.random() < .12) popup('Бум!', h.x, h.y + 1, h.z, 'gold');
+    leviBar(e);
+    const lost = e.max - e.hp;
+    Snd.setTempo(1 + lost / e.max * .18);
+    if (e.hp <= 0) { leviDown(e); return; }
+    if (e.calls < 2 && lost >= e.max * (e.calls + 1) / 3) {
+      e.calls++; ISL.tb.queue.push('foe', 'foe'); Snd.sfx.bossRoar(); G.shake = Math.max(G.shake, .3);
+      if (e.calls === 2) { e.rage = true; toast('Левиафан злится!', 'Стреляет чаще и зовёт ещё танки. Держись!'); }
+      else toast('Левиафан зовёт подмогу!', 'Из ангаров выезжают танки');
+    }
+  }
+  function leviDown(e) {
+    const S = ISL.tb;
+    e.alive = false; e.dead = 3; e.boomT = 0; e.popped = false; e.blown = false;
+    $('bossBar').hidden = true; Snd.setTempo(1); Snd.sfx.bossDown();
+    addScore(5000); popup('5000', e.x, e.y + e.h + 1.5, e.z, 'gold'); toast('Левиафан подбит!', 'Ура! Вместе с КВ-44 вы победили!');
+    // without it the grumpy tanks run away, the cannonballs and the mortar shells are gone
+    S.queue.length = 0;
+    for (const f of S.foes) if (f.alive) { f.alive = false; f.dead = 0; f.counted = true; f.mesh.visible = false; puff(f.x, f.y + 1, f.z, 0xcfd2da, 8, 2, .6, .6, 1.4); }
+    for (const b of L.balls) b.dead = true;
+    mortarsClear();
+    for (const a of S.allies) a.cheer = 3;
+    P.happyT = 3; P.cheerT = 2;
+  }
+  // its end: bursts along the hull, the turret blown off high, a last big one, and a shower of badges
+  function leviDying(e, dt) {
+    const u = e.mesh.userData, sc = BIG_TANKS.levi.sc;
+    e.dead -= dt; e.boomT -= dt;
+    if (e.dead > .8 && e.boomT <= 0) {
+      e.boomT = .13;
+      e.mesh.localToWorld(_lv.set((Math.random() - .5) * 3, .6 + Math.random() * 1.2, (Math.random() - .5) * 4.4));
+      Snd.at(_lv.x, _lv.y, _lv.z).boom(); flashAt(_lv.x, _lv.y, _lv.z, 0xfff3b0, 3, .16);
+      glow(_lv.x, _lv.y, _lv.z, 0xffa12e, 14, 5, 2, 4, .5, .45); puff(_lv.x, _lv.y, _lv.z, 0x5a5660, 4, 2, 1.4, 1, 1.8);
+      G.shake = Math.max(G.shake, .3);
+    }
+    if (!e.popped && e.dead < 2.5) { e.popped = true; e.tvy = 5; Snd.at(e.x, e.y + e.h, e.z).boom(); }
+    if (e.popped && u.turret.visible) {
+      u.turret.position.y += e.tvy * dt; u.turret.position.z -= dt * .8; e.tvy -= 7 * dt; u.turret.rotation.x -= dt * 2.2; u.turret.rotation.z += dt * 1.3;
+      if (u.turret.position.y < BIG_TANKS.levi.big.at[1] - .5) {
+        u.turret.visible = false; e.mesh.localToWorld(_lv.copy(u.turret.position));
+        puff(_lv.x, _lv.y, _lv.z, 0x5a5660, 10, 3, 1, 1, 2); Snd.at(_lv.x, _lv.y, _lv.z).boom();
+      }
+    }
+    if (!e.blown && e.dead <= .8) {
+      e.blown = true;
+      const x = e.x, y = e.y + 2, z = e.z;
+      Snd.at(x, y, z).boom(); Snd.sfx.thunder(); flashAt(x, y, z, 0xfff3b0, 9, .3); wave(x, e.y, z, 0xffc04a, 12, .7);
+      glow(x, y, z, 0xffa12e, 50, 10, 3, 4, .8, .6); emit(x, y + 1, z, 0xffe07a, 40, 12, 4, 10, 1, .26); puff(x, y, z, 0x4a4650, 24, 6, 2, 1.6, 3);
+      G.shake = Math.max(G.shake, .7); G.flash = .45; G.flashCol = '#fff3b0';
+      for (let i = 0; i < 15; i++) { fxCoin(x + (Math.random() - .5) * 8, y + Math.random() * 3, z + (Math.random() - .5) * 8); addCoin(); }
+    }
+    e.mesh.position.y = e.y - Math.max(0, .8 - e.dead) * 3 * sc; // sinks in the smoke
+    if (e.dead <= 0) e.mesh.visible = false;
+  }
+  // the mortar: a red ring where a shell will fall, the shell dropping out of the sky, a burst that costs a heart
+  function mortarAt(x, z, delay) {
+    const S = ISL.tb, y = groundAt(x, z, S.top + 3);
+    const ring = new T.Mesh(RING_GEO, MAT.mortar); ring.rotation.x = Math.PI / 2; ring.position.set(x, y + .12, z); ring.scale.setScalar(MORTAR_R); ring.visible = false;
+    const ball = new T.Mesh(GEO.ball, MAT.char); ball.scale.setScalar(1.5); ball.rotation.x = Math.PI / 2; ball.visible = false;
+    L.group.add(ring, ball);
+    S.mortars.push({ x, y, z, t: -delay, ring, ball });
+  }
+  function updateMortars(dt) {
+    const S = ISL.tb;
+    if (!S.mortars.length) return;
+    MAT.mortar.opacity = .65 + Math.sin(time * 16) * .3;
+    for (let i = S.mortars.length - 1; i >= 0; i--) {
+      const m = S.mortars[i]; m.t += dt;
+      if (m.t < 0) continue;
+      const k = m.t / MORTAR_T;
+      m.ring.visible = true; m.ring.scale.setScalar(MORTAR_R * (1.3 - Math.min(1, k) * .3));
+      if (k > .5) { m.ball.visible = true; m.ball.position.set(m.x, m.y + .5 + 30 * (1 - (k - .5) / .5), m.z); }
+      if (k < 1) continue;
+      L.group.remove(m.ring, m.ball); S.mortars.splice(i, 1);
+      Snd.at(m.x, m.y + 1, m.z).boom(); flashAt(m.x, m.y + 1, m.z, 0xfff3b0, 3, .16); wave(m.x, m.y, m.z, 0xffa12e, MORTAR_R + .4, .4);
+      glow(m.x, m.y + .5, m.z, 0xffa12e, 16, 5, 2, 4, .45, .4); puff(m.x, m.y + .5, m.z, 0x6d6874, 6, 2.5, 1, .8, 1.4); emit(m.x, m.y + .5, m.z, 0xffe07a, 10, 6, 3, 8, .5, .2);
+      const dd = Math.hypot(P.pos.x - m.x, P.pos.z - m.z); if (dd < 12) G.shake = Math.max(G.shake, .25 * (1 - dd / 12));
+      if (G.state === 'playing' && dd < MORTAR_R + HW * .5 && P.pos.y < m.y + 2.5) hurt(m);
+    }
+  }
+  function mortarsClear() {
+    const S = ISL.tb;
+    for (const m of S.mortars) L.group.remove(m.ring, m.ball);
+    S.mortars.length = 0;
+  }
+
+  // ---------- the KV-44s ----------
+  // Three KV-44s come to help against Leviathan: they roll in by the way into the tank ground and fight on their own. Each
+  // drives to a spot a fair way off what it fights (Leviathan, or a grumpy tank near by), turns all its turrets on it and
+  // fires a salvo once its big gun points at it with nothing in between: the big gun, then two small ones. Cannonballs
+  // clang off their armour, so they make good cover. When Leviathan goes up they cheer, then drive back to the base,
+  // where the three stand by the hangars between the battles.
+  const KV_SPOTS = [[-16, 34], [0, 34], [14, 33.5]], KV_SPD = 4.4;
+  function kvArrive() {
+    const S = ISL.tb, D = BIG_TANKS.kv44;
+    if (S.allies.length) return;
+    KV_SPOTS.forEach(([x, d], i) => {
+      const e = { ally: true, x, y: S.top, z: -d, face: Math.PI, aim: Math.PI, hw: D.hw * D.sc, hd: D.hd * D.sc, h: D.h * D.sc, solids: S.box.solids, box: S.box,
+        cool: 1.2 + i * .8, salvo: [], salvoT: 0, goalT: 0, gx: x, gz: -d - 8, stuck: 0, stuckPick: false, hitT: 0, cheer: 0, hop: 0, tgt: null, retarget: 0, said: false };
+      if (hullGap(e, P.pos.x, P.pos.z) < HW + 1) e.x += P.pos.x < x ? 5 : -5; // not right on the hero
+      e.mesh = bigTankModel('kv44'); e.mesh.position.set(e.x, e.y, e.z); e.mesh.rotation.y = e.face; L.group.add(e.mesh);
+      e.minis = e.mesh.userData.minis.map((m) => Object.assign(m, { aim: e.face + m.yaw }));
+      S.allies.push(e);
+      puff(e.x, e.y + 1, e.z, 0xd6d0c0, 12, 3, .6, .7, 1.6); popup('КВ-44!', e.x, e.y + e.h + 1, e.z, 'gold');
+    });
+    for (const m of S.parked) m.visible = false; // the three by the hangars are the ones that came
+    Snd.sfx.power(); Snd.at(0, 1, -34).rumble();
+  }
+  function kvLeave() {
+    const S = ISL.tb;
+    for (const e of S.allies) { puff(e.x, e.y + 1, e.z, 0xcfd2da, 12, 2.5, .6, .7, 1.6); L.group.remove(e.mesh); }
+    S.allies.length = 0;
+    for (const m of S.parked) m.visible = true;
+  }
+  // what a KV-44 fights: the nearest tank about, a grumpy one near by before Leviathan (not while Leviathan still rises)
+  function kvTarget(e) {
+    let best = null, bd = Infinity;
+    for (const f of L.enemies) {
+      if (!f.alive || !f.tank || (f.levi && f.state === 'rise')) continue;
+      const d = f.levi ? hullGap(f, e.x, e.z) + 6 : Math.hypot(f.x - e.x, f.z - e.z);
+      if (d < bd) { bd = d; best = f; }
+    }
+    return best;
+  }
+  // a KV-44's shell: like the hero's, but what it knocks out is not the hero's doing
+  function kvShell(x, y, z, tp) {
+    const dx = tp[0] - x, dz = tp[2] - z, h = Math.hypot(dx, dz) || 1, pitch = clamp(Math.atan2(tp[1] - y, h), -.4, .5), cp = Math.cos(pitch);
+    shellOut(x, y, z, dx / h * cp * SHELL_V, Math.sin(pitch) * SHELL_V, dz / h * cp * SHELL_V, false);
+    L.fireballs[L.fireballs.length - 1].ally = true;
+    Snd.at(x, y, z).cannon();
+  }
+  function updateAlly(e, dt) {
+    const u = e.mesh.userData, playing = G.state === 'playing', p = P.pos;
+    e.hitT -= dt; e.goalT -= dt; e.retarget -= dt; e.cool -= dt;
+    if (!e.tgt || !e.tgt.alive || e.retarget <= 0) { e.retarget = 1; e.tgt = kvTarget(e); }
+    const tg = e.tgt, tp = tg ? [tg.x, tg.y + tg.h * .5, tg.z] : null;
+    // where to go: round what it fights at a fair distance, on its own side (near the hero with nothing to fight)
+    let pick = e.goalT <= 0 || Math.hypot(e.gx - e.x, e.gz - e.z) < 2;
+    if (e.stuck > .8 && !e.stuckPick) { pick = true; e.stuckPick = true; }
+    if (pick) {
+      const B = e.box, [cx, cz, r] = tg ? [tg.x, tg.z, (tg.levi ? 17 : 11) + Math.random() * 6] : [p.x, p.z, 8 + Math.random() * 4];
+      const a = Math.atan2(e.x - cx, e.z - cz) + (Math.random() - .5) * 1.4;
+      e.gx = clamp(cx + Math.sin(a) * r, B.x0 + e.hw, B.x1 - e.hw); e.gz = clamp(cz + Math.cos(a) * r, B.z0 + e.hd, B.z1 - e.hd);
+      e.goalT = 4 + Math.random() * 2.5;
+    }
+    // it keeps off the other tanks and the hero
+    let px = 0, pz = 0;
+    const off = (ox, oz, room) => { const od = Math.hypot(ox, oz); if (od < room && od > .01) { px += ox / od * (room - od) * 2.5; pz += oz / od * (room - od) * 2.5; } };
+    for (const o of ISL.tb.allies) if (o !== e) off(e.x - o.x, e.z - o.z, 5.2);
+    for (const f of L.enemies) {
+      if (!f.alive || !f.tank) continue;
+      if (f.levi) { const g = hullGap(f, e.x, e.z); if (g < e.hd) off(e.x - f.x, e.z - f.z, Math.hypot(e.x - f.x, e.z - f.z) + e.hd - g); }
+      else off(e.x - f.x, e.z - f.z, f.hw + e.hw + 1.2);
+    }
+    { const g = hullGap(e, p.x, p.z); if (g < HW + 1.4) off(e.x - p.x, e.z - p.z, Math.hypot(e.x - p.x, e.z - p.z) + HW + 1.4 - g); }
+    // drive: turn to the spot, then roll (slower while firing, not at all while cheering)
+    const cheering = e.cheer > 0, far = Math.hypot(e.gx - e.x, e.gz - e.z);
+    const dd = hullTurn(e, cheering ? e.face : Math.atan2(e.gx - e.x, e.gz - e.z), 1.5, dt);
+    const v = cheering || far < 1.5 ? 0 : KV_SPD * Math.max(0, Math.cos(dd)) * (e.salvo.length ? .3 : 1);
+    hullMove(e, Math.sin(e.face) * v + px, Math.cos(e.face) * v + pz, dt);
+    if (v > 1 && far - Math.hypot(e.gx - e.x, e.gz - e.z) < v * dt * .25) e.stuck += dt; else { e.stuck = 0; e.stuckPick = false; }
+    // the look; cheering, it hops and spins its small turrets
+    let hop = 0;
+    if (cheering) {
+      e.cheer -= dt; e.hop += dt * 9; hop = Math.abs(Math.sin(e.hop)) * .45;
+      if (!e.said) { e.said = true; popup('Ура!', e.x, e.y + e.h + 1.2, e.z, 'gold'); }
+    }
+    e.mesh.position.set(e.x, e.y + hop, e.z); e.mesh.rotation.y = e.face; u.turret.rotation.y = wrapPi(e.aim - e.face);
+    spinRide(e.mesh, dt, 1);
+    e.mesh.scale.setScalar(BIG_TANKS.kv44.sc * (1 + Math.max(0, e.hitT) * .05));
+    e.mesh.updateMatrixWorld(true);
+    if (v > 1 && Math.random() < dt * 5) { e.mesh.localToWorld(_lv.set(0, .9, -3.2)); puff(_lv.x, _lv.y, _lv.z, 0x9a9aa8, 1, .4, .8, .6, .6); }
+    // the turrets turn to what it fights, back to the front with nothing about
+    e.aim = angleDamp(e.aim, tp ? Math.atan2(tp[0] - e.x, tp[2] - e.z) : e.face, 2.2, dt);
+    for (const m of e.minis) {
+      const [mx, mz] = miniAt(e, m);
+      m.aim = cheering ? m.aim + dt * 6 : angleDamp(m.aim, tp ? Math.atan2(tp[0] - mx, tp[2] - mz) : e.face + m.yaw, 3, dt);
+      m.t.rotation.y = wrapPi(m.aim - e.face);
+      m.recoil = Math.max(0, m.recoil - dt * 4); m.gun.position.z = .5 - m.recoil * .3;
+    }
+    // a salvo: the big gun once it points at the target with nothing in between, then two of the small ones
+    if (playing && tg && !cheering && e.cool <= 0 && !e.salvo.length && Math.hypot(tp[0] - e.x, tp[2] - e.z) < 44 &&
+      Math.abs(wrapPi(Math.atan2(tp[0] - e.x, tp[2] - e.z) - e.aim)) < .08) {
+      u.gun.localToWorld(_lv.set(0, 0, 1.87));
+      if (clearShot(_lv.x, _lv.y, _lv.z, tp[0], tp[1], tp[2])) {
+        const a = (Math.random() * 4) | 0;
+        e.salvo = [-1, a, (a + 1 + ((Math.random() * 3) | 0)) % 4]; e.salvoT = 0; e.cool = 3.6 + Math.random() * 1.4;
+      } else { e.cool = .6; e.goalT = 0; } // something in the way: round it
+    }
+    if (e.salvo.length) {
+      e.salvoT -= dt;
+      if (e.salvoT <= 0) {
+        const k = e.salvo.shift(), m = k < 0 ? null : e.minis[k];
+        e.salvoT = .28;
+        if (!tg || !tg.alive || cheering) e.salvo.length = 0;
+        else if (!m) { u.gun.localToWorld(_lv.set(0, 0, 1.87)); kvShell(_lv.x, _lv.y, _lv.z, tp); u.recoil = 1; }
+        else {
+          const [mx, mz] = miniAt(e, m);
+          m.gun.localToWorld(_lv.set(0, 0, 1.08));
+          if (Math.abs(wrapPi(Math.atan2(tp[0] - mx, tp[2] - mz) - m.aim)) < .25 && clearShot(_lv.x, _lv.y, _lv.z, tp[0], tp[1], tp[2])) { kvShell(_lv.x, _lv.y, _lv.z, tp); m.recoil = 1; }
+        }
+      }
+    }
+    if (playing) hullPush(e);
+  }
+  // a cannonball that flies into a KV-44 clangs off its armour
+  function kvBlocks(b) {
+    const S = ISL.tb;
+    if (!S || !S.allies.length) return false;
+    for (const e of S.allies) {
+      if (b.y > e.y + e.h + .3 || b.y < e.y - .3 || hullGap(e, b.x, b.z) > .35) continue;
+      e.hitT = .25; Snd.at(b.x, b.y, b.z).clang(); emit(b.x, b.y, b.z, 0xfff3a0, 8, 4, 1, 6, .3, .2);
+      if (Math.random() < .15) popup('Броня!', b.x, b.y + 1.2, b.z, 'gold');
+      return true;
+    }
+    return false;
+  }
+  // the three KV-44s standing by the hangars look about now and then
+  function kvIdle() {
+    ISL.tb.parked.forEach((g, i) => {
+      if (!g.visible) return;
+      const u = g.userData, t = time * .35 + i * 2.1;
+      u.turret.rotation.y = Math.sin(t) * .5;
+      u.minis.forEach((m, j) => { m.t.rotation.y = m.yaw + Math.sin(t * 1.3 + j) * .7; });
+    });
+  }
+
   // ---------- the tank battle on the Tank Range ----------
   // The red pad in the tank ground puts the hero in a tank (lent for the battle) and a striped barrier closes the way in.
   // The grumpy tanks come in waves out of the hangar doors, one after another; once every tank of a wave is knocked out the
   // next one comes after a breather (+1 heart, +10 badges). The tank's armour counts hearts: three, four with the spare
   // heart; a hit costs one, and hearts turn up on the ground now and then. Three and five waves bring out a star each. The
-  // battle is over when the hearts are gone or the hero leaves the tank ground; the best one is kept.
+  // battle is over when the hearts are gone or the hero leaves the tank ground; the best one is kept. Every sixth wave is
+  // Leviathan's, with the three KV-44s on the hero's side; the purple pad starts a battle with Leviathan alone (two hearts
+  // more for it), and beating Leviathan either way brings a star.
+  const TB_LEVI = { levi: true, say: 'Левиафан! Три КВ-44 спешат на помощь!' };
   const TB_WAVES = [
     { foe: 2, say: 'Два танка! Наведи пушку и жми красную кнопку' },
     { foe: 3, say: 'Три танка! Прячься за блоками' },
@@ -10291,6 +10843,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { foe: 4, boss: 1, fast: 1.2, say: 'Все сразу!' },
   ];
   function tbWaveOf(n) {
+    if (n % 6 === 0) return TB_LEVI;
     if (n <= TB_WAVES.length) return TB_WAVES[n - 1];
     const k = n - TB_WAVES.length;
     return { foe: Math.min(6, 4 + (k >> 1)), boss: Math.min(3, 1 + (k >> 1)), fast: Math.min(1.5, 1.2 + k * .05), say: 'Ещё больше танков!' };
@@ -10305,24 +10858,29 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!P.veh) P.rent = '';
     return !!P.veh;
   }
-  function tbStart() {
+  // mode: 'waves' (the red pad), or 'levi' (the purple one: Leviathan alone)
+  function tbStart(mode = 'waves') {
     const S = ISL.tb;
     if (!S || tbOn() || survOn() || cupOn() || duelOn() || duelPending()) return;
     if (ISL.carry) dropCarry('fall');
     if (ISL.race && ISL.race.on) resetRace();
     if (!tankUp()) return;
     const solids = nearSolids(S.cx, S.cz, 45);
-    Object.assign(S, { phase: 'count', t: 3.6, tick: 4, wave: 0, max: 3 + (perkOn('heart') ? 1 : 0) + tankMod(2), medals: 0, kills: 0, time: 0, heartT: 12, foes: [], queue: [], spawnT: 0, mountT: 0,
+    Object.assign(S, { mode, phase: 'count', t: 3.6, tick: 4, wave: 0, max: 3 + (perkOn('heart') ? 1 : 0) + tankMod(2) + (mode === 'levi' ? 2 : 0), medals: 0, kills: 0, time: 0,
+      heartT: 12, foes: [], queue: [], spawnT: 0, mountT: 0, W: null, levi: null, leviWarn: false, won: false,
       box: { x0: S.x0 + 3, x1: S.x1 - 3, z0: S.z0 + 3, z1: S.z1 - 3, solids } });
     S.hearts = S.max;
     const gs = S.gate.s; gs.active = true; if (overlapP(gs, P.pos.x, P.pos.y, P.pos.z)) pushOut(gs);
     cam.yawGoal = wrapPi(S.face - Math.PI); // turned to where the tanks will come from
     Snd.startMusic('battle'); Snd.sfx.whistle(); G.shake = Math.max(G.shake, .25);
-    npcSay(S.owner, 'По танкам! Бой начинается!');
+    npcSay(S.owner, mode === 'levi' ? 'Внимание! Под танкодромом просыпается Левиафан! КВ-44, на помощь!' : 'По танкам! Бой начинается!');
   }
   // a grumpy tank out of a hangar door away from the hero (false while that door is still busy)
   function tbSpawn(look, W) {
-    const S = ISL.tb, far = S.spawns.filter(([x, d]) => Math.hypot(x - P.pos.x, -d - P.pos.z) > 16), list = far.length ? far : S.spawns;
+    if (look === 'levi') return leviSpawn();
+    // (not out of a door Leviathan stands in front of)
+    const S = ISL.tb, lv = S.levi && S.levi.alive ? S.levi : null, open = lv ? S.spawns.filter(([x, d]) => hullGap(lv, x, -d) > 3) : S.spawns;
+    const far = open.filter(([x, d]) => Math.hypot(x - P.pos.x, -d - P.pos.z) > 16), list = far.length ? far : open;
     const [x, d] = list[(Math.random() * list.length) | 0];
     if (L.enemies.some((e) => e.tank && e.alive && Math.hypot(e.x - x, e.z + d) < 4)) return false;
     const e = spawnTankFoe(look, x, S.top, -d, S.box, W.fast || 1);
@@ -10333,10 +10891,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return true;
   }
   function tbBeginWave() {
-    const S = ISL.tb, W = tbWaveOf(S.wave);
+    const S = ISL.tb, W = S.mode === 'levi' ? TB_LEVI : tbWaveOf(S.wave);
     S.phase = 'wave'; S.W = W; S.spawnT = .3;
-    S.queue = Array(W.foe).fill('foe').concat(Array(W.boss || 0).fill('boss'));
-    toast('Волна ' + S.wave, W.say); Snd.sfx.warn();
+    S.queue = W.levi ? ['levi'] : Array(W.foe).fill('foe').concat(Array(W.boss || 0).fill('boss'));
+    toast(S.mode === 'levi' ? 'Левиафан' : 'Волна ' + S.wave, W.say); Snd.sfx.warn();
+    if (W.levi) kvArrive();
   }
   // the tanks still about drive off in a puff of smoke, the cannonballs in the air are gone (a breather, or the end)
   function tbClear() {
@@ -10347,6 +10906,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       puff(e.x, e.y + 1, e.z, 0xcfd2da, 8, 2, .6, .6, 1.4);
     }
     for (const b of L.balls) b.dead = true;
+    mortarsClear();
   }
   function tbPrune() {
     const S = ISL.tb, gone = (e) => !e.alive && e.dead <= 0;
@@ -10354,14 +10914,23 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     S.foes = S.foes.filter((e) => !gone(e)); L.enemies = L.enemies.filter((e) => !e.tank || !gone(e));
   }
   function tbWaveDone() {
-    const S = ISL.tb;
+    const S = ISL.tb, o = S.owner, levi = S.W && S.W.levi;
     for (const b of L.balls) b.dead = true;
     S.phase = 'rest'; S.t = 6;
-    S.hearts = Math.min(S.max + 2, S.hearts + 1); SAVE.bank += 10;
-    if (S.wave > SAVE.tb) SAVE.tb = S.wave;
-    S.medals++; giveMedals(1, 'Первая медаль!');
-    toast('Волна ' + S.wave + ' отбита!', 'Передышка. +1 сердечко, 10 значков и медаль'); Snd.sfx.clear(); P.happyT = 1.5; P.cheerT = 1.2;
-    const o = S.owner;
+    S.hearts = Math.min(S.max + 2, S.hearts + 1); SAVE.bank += levi ? 50 : 10;
+    if (S.mode !== 'levi' && S.wave > SAVE.tb) SAVE.tb = S.wave;
+    const n = levi ? 3 : 1; S.medals += n; giveMedals(n, 'Первая медаль!');
+    Snd.sfx.clear(); P.happyT = 1.5; P.cheerT = 1.2;
+    if (levi) { // the KV-44s drive back to the base; the purple pad's battle is won and over
+      SAVE.levi++; saveGame(); kvLeave(); S.levi = null;
+      toast('Левиафан повержен!', '+3 медали и 50 значков. КВ-44 уезжают на базу');
+      if (S.mode === 'levi') { S.won = true; S.t = 3.5; } else Snd.startMusic('battle');
+      const first = !questDone(S.starL);
+      npcSay(o, first ? 'Левиафан повержен! Вот это танкисты! Держи звезду!' : 'Опять Левиафан подбит! Молодцы, танкисты!');
+      if (first) revealStar(S.starL, o.x, o.y + o.h, o.z);
+      return;
+    }
+    toast('Волна ' + S.wave + ' отбита!', 'Передышка. +1 сердечко, 10 значков и медаль');
     if (S.wave === 3) { npcSay(o, 'Три волны! Вот это меткость! Держи звезду!'); revealStar(S.star3, o.x, o.y + o.h, o.z); }
     else if (S.wave === 5) { npcSay(o, 'Пять волн! Такого боя полигон ещё не видел! Держи звезду!'); revealStar(S.star5, o.x, o.y + o.h, o.z); }
   }
@@ -10374,15 +10943,25 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function tbEnd(why) {
     const S = ISL.tb;
     if (!tbOn()) return;
-    const lived = S.phase === 'rest' ? S.wave : Math.max(0, S.wave - 1), rec = lived > 0 && lived >= SAVE.tb, beaten = S.hearts <= 0;
-    tbClear(); S.phase = 'off'; tbPrune();
+    const levi = S.mode === 'levi', lived = levi ? (S.won ? 1 : 0) : S.phase === 'rest' ? S.wave : Math.max(0, S.wave - 1);
+    const rec = !levi && lived > 0 && lived >= SAVE.tb, beaten = S.hearts <= 0;
+    tbClear(); S.phase = 'off'; tbPrune(); kvLeave(); S.levi = null;
+    $('bossBar').hidden = true;
     for (const h of L.hearts) L.group.remove(h.m);
     L.hearts.length = 0;
-    SAVE.tb = Math.max(SAVE.tb, lived); SAVE.tbK = Math.max(SAVE.tbK, S.kills); saveGame();
+    if (!levi) SAVE.tb = Math.max(SAVE.tb, lived);
+    SAVE.tbK = Math.max(SAVE.tbK, S.kills); saveGame();
     P.inv = Math.max(P.inv, 1.5);
     if (beaten) puff(P.pos.x, P.pos.y + 1.5, P.pos.z, 0x5a5660, 10, 2.5, 1.2, 1, 1.5); // the tank smokes
     Snd.startMusic(L.def.music); Snd.sfx[lived ? 'deliver' : 'over']();
-    npcSay(S.owner, lived >= 3 ? 'Вот это бой! Приходи ещё!' : 'Ничего, в следующий раз получится!');
+    npcSay(S.owner, lived >= 3 || S.won ? 'Вот это бой! Приходи ещё!' : 'Ничего, в следующий раз получится!');
+    if (levi) {
+      showResult({ head: 'Бой с Левиафаном · итоги', big: why || (S.won ? 'Левиафан повержен!' : beaten ? 'Танк подбит!' : 'Эх, не вышло!'),
+        rows: [['⏱', 'Время', fmtT(S.time * 1000), true], ['💥', 'Подбито танков', String(S.kills)], ['🎖', 'Медали', S.medals ? '+' + S.medals : 'пока нет'],
+          ['👹', 'Левиафан', SAVE.levi ? 'повержен ' + SAVE.levi + ' ' + plural(SAVE.levi, 'раз', 'раза', 'раз') : 'пока не повержен']],
+        yes: 'Ещё раз', onYes: () => { if (G.state === 'paused') resume(); placePlayer({ x: S.leviPad[0], y: S.top, z: -S.leviPad[1] }, S.face); tbStart('levi'); } });
+      return;
+    }
     showResult({ head: 'Танковый бой · итоги', big: why || (lived ? 'Волн: ' + lived : beaten ? 'Танк подбит!' : 'Эх, не вышло!'),
       rows: [['⏱', 'Время', fmtT(S.time * 1000), true], ['💥', 'Подбито танков', String(S.kills)], ['🎖', 'Медали', S.medals ? '+' + S.medals : 'пока нет'],
         ['🏆', rec ? 'Новый рекорд!' : 'Рекорд', SAVE.tb ? SAVE.tb + ' ' + plural(SAVE.tb, 'волна', 'волны', 'волн') : 'пока нет']],
@@ -10394,7 +10973,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const gt = S.gate, on = tbOn() || duelTanking();
     gt.k = damp(gt.k, on ? 1 : 0, 3.5, dt); gt.m.visible = gt.k > .01; gt.m.position.y = lerp(gt.y1 - gt.h - .1, gt.y1, gt.k); gt.s.active = on;
     updateHearts(dt);
+    kvIdle();
     if (!tbOn() || G.state !== 'playing') return;
+    for (const a of S.allies) updateAlly(a, dt);
+    updateMortars(dt);
     // the tanks knocked out count, and drop a badge
     for (const e of S.foes) if (!e.alive && !e.counted) { e.counted = true; S.kills++; fxCoin(e.x, e.y + 2, e.z); addCoin(); }
     if (S.foes.length > 24) tbPrune();
@@ -10406,17 +10988,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     S.t -= dt;
     if (S.phase === 'count') {
       const k = Math.ceil(S.t);
-      if (k < S.tick && k >= 1 && k <= 3) { S.tick = k; toast(String(k), 'Танковый бой!'); Snd.sfx.tock(false); }
+      if (k < S.tick && k >= 1 && k <= 3) { S.tick = k; toast(String(k), S.mode === 'levi' ? 'Бой с Левиафаном!' : 'Танковый бой!'); Snd.sfx.tock(false); }
       if (S.t <= 0) { S.wave = 1; tbBeginWave(); }
       return;
     }
-    if (S.phase === 'rest') { if (S.t <= 0) { S.wave++; tbBeginWave(); } return; }
+    if (S.phase === 'rest') { if (S.t <= 0) { if (S.won) { tbEnd(''); return; } S.wave++; tbBeginWave(); } return; }
     // the tanks of the wave roll out one after another
     S.spawnT -= dt;
     if (S.queue.length && S.spawnT <= 0) { if (tbSpawn(S.queue[0], S.W)) S.queue.shift(); S.spawnT = 1.6; }
     S.heartT -= dt;
     if (S.heartT <= 0) { S.heartT = 13 + Math.random() * 6; if (!L.hearts.length && S.hearts < S.max + 2) survHeart(S); }
-    if (!S.queue.length && !S.foes.some((e) => e.alive)) tbWaveDone();
+    if (!S.queue.length && !S.foes.some((e) => e.alive || (e.levi && e.dead > 0))) tbWaveDone(); // (Leviathan's last bursts first)
   }
 
   // what the hero is up to right now, for the line under the buttons: a delivery, a race, beacons, a runaway, followers
@@ -10427,7 +11009,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       return [S.phase === 'count' ? 'Выживание' : S.phase === 'rest' ? 'Передышка · волна ' + (S.wave + 1) + ' скоро' : 'Выживание · волна ' + S.wave, hearts + ' · прогнано ' + S.kills];
     }
     if (tbOn()) {
-      const S = ISL.tb, hearts = '❤'.repeat(S.hearts) + '♡'.repeat(Math.max(0, S.max - S.hearts));
+      const S = ISL.tb, hearts = '❤'.repeat(S.hearts) + '♡'.repeat(Math.max(0, S.max - S.hearts)), lv = S.levi;
+      if (S.won) return ['Левиафан повержен!', hearts + ' · подбито ' + S.kills];
+      if (S.mode === 'levi' || (S.phase === 'wave' && S.W && S.W.levi)) {
+        return ['Бой с Левиафаном' + (S.mode === 'levi' ? '' : ' · волна ' + S.wave), hearts + (lv && lv.alive ? ' · броня Левиафана ' + Math.ceil(lv.hp / lv.max * 100) + '%' : ' · подбито ' + S.kills)];
+      }
       return [S.phase === 'count' ? 'Танковый бой' : S.phase === 'rest' ? 'Передышка · волна ' + (S.wave + 1) + ' скоро' : 'Танковый бой · волна ' + S.wave, hearts + ' · подбито ' + S.kills];
     }
     if (cupOn()) {
@@ -10449,7 +11035,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function challengeLeft() {
     const dc = duelClock(); if (dc !== null) return dc;
     if (survOn()) return Math.max(0, ISL.surv.t);
-    if (tbOn()) return ISL.tb.phase === 'wave' ? null : Math.max(0, ISL.tb.t); // the wait for the next wave
+    if (tbOn()) return ISL.tb.phase === 'wave' || ISL.tb.won ? null : Math.max(0, ISL.tb.t); // the wait for the next wave
     if (cupOn()) return ISL.cup.phase === 'run' ? ((ISL.cup.fin || performance.now() - ISL.cup.runAt)) / 1000 : null;
     if (ISL.race && ISL.race.on) return ISL.race.t;
     if (ISL.beacons && ISL.beacons.on) return ISL.beacons.t;
@@ -10494,7 +11080,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn()) {
         pd.armed = false;
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
-        else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart();
+        else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
       }
     }
     for (const pt of L.portals) {
@@ -10934,6 +11520,27 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     tankParts(g, look);
     return g;
   }
+  // a long tank (a KV-44, Leviathan) at its full size: the hull and its road wheels (all in one for one that stands
+  // still), the big turret (u.turret, its gun u.gun) and the small turrets (u.minis: each a group turning on its own with
+  // its gun in it); Leviathan's eyes glow
+  function bigTankModel(look, still = false) {
+    const D = BIG_TANKS[look], g = new T.Group(), u = g.userData, add = (geo, parent = g) => { const m = new T.Mesh(geo, MAT.char); m.castShadow = true; parent.add(m); return m; };
+    add(GEO.bigHull[look]);
+    u.wheels = [];
+    if (still) add(GEO.bigWheels[look]);
+    else for (const s of [-1, 1]) for (const z of D.wheels) { const w = add(GEO.tankWheel[look]); w.position.set(s * D.wx, D.wy, z); w.scale.setScalar(D.ws); u.wheels.push(w); }
+    u.turret = new T.Group(); u.turret.position.set(...D.big.at); g.add(u.turret); add(GEO.bigTurret[look], u.turret);
+    u.gun = add(GEO.bigGun[look], u.turret); u.gun.position.set(...D.big.gun); u.gunZ = D.big.gun[2];
+    if (look === 'levi') for (const k of [-1, 1]) { const m = new T.Mesh(SPH_HI, MAT.leviEye); m.position.set(k * .33, .6, 1.17); m.scale.set(.17, .13, .07); u.turret.add(m); }
+    u.minis = D.minis.map((q) => {
+      const t = new T.Group(); t.position.set(...q.at); t.scale.setScalar(q.size); t.rotation.y = q.yaw || 0; g.add(t); add(GEO.miniTurret[look], t);
+      const gun = add(GEO.miniGun[look], t); gun.position.set(0, .2, .5);
+      return { t, gun, yaw: q.yaw || 0, recoil: 0 };
+    });
+    Object.assign(u, { rollA: 0, rollB: 0, lp: null, ly: null, recoil: 0, guns: [] });
+    g.scale.setScalar(D.sc);
+    return g;
+  }
   // the parts that move by themselves: the rotors (k: how hard they work) and the UFO's saucer (its beam flickers), the
   // stone car's rollers turning as it goes, a dragon's wings: folded on the ground, spread in the air, beating harder
   // when it climbs (work) and in a burst for every flap
@@ -10954,8 +11561,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         u.rollA += fwd + turn; u.rollB += fwd - turn;
       } else u.lp = new T.Vector3();
       u.lp.copy(p); u.ly = yaw;
-      u.wheels.forEach((w, i) => { w.rotation.x = i < 4 ? u.rollA : u.rollB; });
-      u.recoil = Math.max(0, u.recoil - dt * 3.2); u.gun.position.z = TANK_GUN[2] - u.recoil * .4;
+      const half = u.wheels.length / 2; // (the left side's wheels come first)
+      u.wheels.forEach((w, i) => { w.rotation.x = i < half ? u.rollA : u.rollB; });
+      u.recoil = Math.max(0, u.recoil - dt * 3.2); u.gun.position.z = (u.gunZ === undefined ? TANK_GUN[2] : u.gunZ) - u.recoil * .4;
       for (const b of u.guns) b.position.z = u.gun.position.z;
     }
     if (u.wings) {
@@ -11129,7 +11737,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const ONE = new T.Vector3(1, 1, 1);
   function renderBossBar(b) {
     $('bossName').textContent = b.name;
-    const hp = $('bossHp'); hp.textContent = '';
+    const hp = $('bossHp'); hp.textContent = ''; hp.classList.remove('many');
     for (let i = 0; i < 3; i++) { const seg = document.createElement('i'); if (i >= b.hp) seg.className = 'off'; hp.append(seg); }
   }
   function activateBoss() {
