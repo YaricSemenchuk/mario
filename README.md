@@ -57,7 +57,8 @@ a flying dragon, and under the water every sound is muffled.
     between two cliffs, an island with a waterfall pouring off into the clouds, the ruins of a cloud castle. Falling into
     the clouds brings the hero back to the last flag, still on the dragon
   - the Tank Range: a training ground on a grassy plain ringed by cliffs. A base with two hangars, a shop and a pad that
-    lends tanks, three KV-44s standing by the hangars (the hero can climb onto them), a watchtower climbed on platforms
+    lends tanks, three KV-44s standing by the hangars (the hero can climb onto them, and a blue pad next to them lends one
+    to drive), a watchtower climbed on platforms
     round its column, the tank ground in the middle (earth walls, concrete blocks, sandbags and tank traps to hide behind,
     hangar doors the grumpy tanks roll out of) where Commander Mishka runs the tank battles and the battle with Leviathan
     (below), a shooting range with eight targets that only a shell lights, a pond with Captain Claw's treasure on its
@@ -84,20 +85,27 @@ a flying dragon, and under the water every sound is muffled.
   camera looks. A sight (a ring with ticks where the shell would burst, and a dotted line out of the gun to it) shows the
   aim all the time: red on a target, dim while the gun reloads. A shell bursts on whatever it meets and knocks over what
   stands close by, and it shoots cannonballs down
+- The KV-44: the long green tank of the cartoons with five turrets, the hero standing in the hatch of the big one. It is
+  slower and turns more slowly than the tank, and its whole hull keeps clear of walls (where it cannot turn it backs up a
+  little). The action button fires a salvo: the big gun, then the small turrets one after another (they all turn with
+  the big one), and loading them all again takes a while. Its thick armour gives a heart more in a tank battle, and the
+  tank's upgrades work on it too. It is lent on a blue pad by the hangars, bought in the shops, and it is what the hero
+  drives against Leviathan
 - Upgrading the tank: medals come for victories (one for every wave of a tank battle knocked out, three for Leviathan,
   three for a tank battle with friends won, one for a draw) and buy upgrades in the shops' "Tank" tab, three levels each: the gun reloads faster
   and grows longer and thicker; the shells burst wider, then come out of a pair of guns, then turn fiery and hit twice as
   hard; the armour gives the tank battle more hearts and puts skirts, plates and golden stars on the tank; the engine
   drives faster, turns faster, then gets rocket boosters. Friends see each other's upgraded tanks, but in games with
   friends every tank fights the same
-- The tank battle (Tank Range): a red pad on the tank ground puts the hero in a tank and a striped barrier closes the way
-  in. Grumpy tanks with eyes over their guns roll out of the hangar doors in waves; each keeps its distance, drives from
+- The tank battle (Tank Range): a red pad on the tank ground puts the hero in a tank (one already on a KV-44 fights on
+  it) and a striped barrier closes the way in. Grumpy tanks with eyes over their guns roll out of the hangar doors in waves; each keeps its distance, drives from
   cover to cover, and fires a cannonball once its gun points at the hero with nothing in between (it glows first). They
   take two shells, the big one from the fourth wave takes six and fires three at once. The armour counts hearts (three,
   four with the spare heart), hearts turn up on the ground, every wave knocked out gives one back and ten badges, three and
   five waves bring a star each, and the best battle is kept. Every sixth wave is Leviathan's. "💥 Танки" on the title goes
   straight to the tank ground
-- The battle with Leviathan (Tank Range): the purple pad on the tank ground wakes Leviathan, a huge dark tank with angry
+- The battle with Leviathan (Tank Range): the purple pad on the tank ground puts the hero in a KV-44 of his own and wakes
+  Leviathan, a huge dark tank with angry
   glowing eyes, spikes on its nose, a big turret with a pair of guns and three small turrets. It rises out of an
   underground hangar by the far wall (once the hero has made room) and three KV-44s roll in to help: long green tanks
   with five turrets each, red stars and friendly eyes, which drive round it by themselves and fire salvos at it and at
@@ -142,10 +150,11 @@ a flying dragon, and under the water every sound is muffled.
     over, a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
-    the ground under it, its stone rollers bowl enemies over), a tank with a gun, and five dragons that fly (listed last).
+    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with five turrets, and five
+    dragons that fly (listed last).
     A hit knocks the hero off (a dragon only slows down, a tank's armour takes it). Blue pads lend a ride for free (the jet
-    ski at the piers, the rover on the Moon, the stone car in Dino Valley, the dragons at their perches, tanks on the Tank
-    Range) until the hero gets off it
+    ski at the piers, the rover on the Moon, the stone car in Dino Valley, the dragons at their perches, tanks and KV-44s on
+    the Tank Range) until the hero gets off it
 - Progress is saved in the browser: stars, finished quests, what every collection has found, the wallet and the shop
 - Friends online: "С друзьями" on the title (or "Играть с друзьями" in the pause card) makes a room with a five-letter
   code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
@@ -208,7 +217,8 @@ a flying dragon, and under the water every sound is muffled.
 - Lira: a fairy who flies out of every castle and thanks the hero in the last one
 - Collectibles are the Promobile mark
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
-  on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun), mouse drag or Q/E for the
+  on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun; on a KV-44,
+  a salvo), mouse drag or Q/E for the
   camera, V for a ride, G to wave to friends
 
 ## Play
