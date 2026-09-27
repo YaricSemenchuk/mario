@@ -137,6 +137,10 @@ a flying dragon, and under the water every sound is muffled.
   - Trees are felled with the spin (three blows, two with a better axe, one with the strong one) and leave logs and a stump;
     everything lying about (logs, scrap, coal, cans of fuel, meat) goes in the sack by walking over it, five things at a time
     (three and seven more with bigger sacks, more with the gatherer's skill). Chests open when walked up to
+  - A tap on the sack's bar (B or I on a keyboard) opens the sack and the game waits. Each kind of thing in it has its
+    uses right there: into the fire (when close to it, even a full one, since all that goes in still grows it), onto the
+    workbench (when close to it), roasted at the fire, eaten (roasted meat, or raw for less), or thrown out a few steps
+    ahead to make room (walking over it picks it up again). What cannot be done here says why ("Костёр далеко")
   - Hunger runs down: berry bushes (they grow back every morning) and meat from bunnies and wolves, roasted by walking up to
     the fire with it; food in the sack is eaten by itself when the belly runs low, and an empty one costs a heart now and then
   - The workbench (its gold ring takes the logs and scrap from the sack) makes a bigger sack, better axes, a brighter
