@@ -137,6 +137,66 @@
   }
   #btnCam:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
 
+  /* ---------- the Duel Arena: the crosshair, the sniper's scope, the hit mark, the gun bar, the duel's panel ---------- */
+  #gunUi { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 5; pointer-events: none; }
+  #cross, #hitmark { position: absolute; left: 50%; top: 50%; width: 0; height: 0; --gap: 6px; }
+  #cross i, #hitmark i { position: absolute; background: var(--white); box-shadow: 0 0 0 1.5px rgba(28, 30, 59, .8); border-radius: 2px; }
+  #cross i:nth-child(1), #hitmark i:nth-child(1) { width: 2px; height: 9px; left: -1px; bottom: var(--gap); }
+  #cross i:nth-child(2), #hitmark i:nth-child(2) { width: 2px; height: 9px; left: -1px; top: var(--gap); }
+  #cross i:nth-child(3), #hitmark i:nth-child(3) { width: 9px; height: 2px; top: -1px; right: var(--gap); }
+  #cross i:nth-child(4), #hitmark i:nth-child(4) { width: 9px; height: 2px; top: -1px; left: var(--gap); }
+  #cross b { position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: var(--white); box-shadow: 0 0 0 1.5px rgba(28, 30, 59, .8); }
+  #cross.on i, #cross.on b { background: #ff5a4a; }
+  #hitmark { --gap: 5px; transform: rotate(45deg); }
+  #hitmark i { width: 3px !important; left: -1.5px; }
+  #hitmark i:nth-child(3), #hitmark i:nth-child(4) { width: 9px !important; height: 3px; top: -1.5px; left: auto; }
+  #hitmark i:nth-child(4) { left: var(--gap); }
+  #hitmark.head i { background: #ff4a3a; }
+  /* the sniper's scope: dark round a circle, thin cross hairs, a red dot */
+  #scope { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 3; pointer-events: none; --r: min(40vh, 40vw);
+    background: radial-gradient(circle at 50% 50%, transparent 0, transparent calc(var(--r) - 2px), #0b0c18 var(--r)); }
+  #scope::before, #scope::after { content: ''; position: absolute; left: 50%; top: 50%; background: rgba(10, 12, 24, .85); }
+  #scope::before { width: 2px; height: calc(var(--r) * 2); margin: calc(var(--r) * -1) 0 0 -1px; }
+  #scope::after { width: calc(var(--r) * 2); height: 2px; margin: -1px 0 0 calc(var(--r) * -1); }
+  #scope i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #ff3a2a; z-index: 1; }
+  /* the four slots along the bottom: what is in each, rounds or charges; a tap takes it (a tap on the one in hand reloads) */
+  #gunBar { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: translateX(-50%); display: flex; gap: 6px; pointer-events: auto; }
+  .gun-slot {
+    position: relative; width: 58px; height: 52px; padding: 3px 0 0; display: grid; place-items: center; align-content: center; gap: 2px; cursor: pointer;
+    border-radius: 12px; background: rgba(18, 20, 44, .55); border: 2px solid rgba(28, 30, 59, .85); color: var(--white); touch-action: none;
+  }
+  .gun-slot i { font-style: normal; font-size: 22px; line-height: 1; }
+  .gun-slot b { font: 800 11px/1 var(--ui); font-variant-numeric: tabular-nums; text-shadow: var(--outline); }
+  .gun-slot small { position: absolute; left: 5px; top: 4px; font: 900 9px/1 var(--ui); color: var(--gold); text-shadow: var(--outline); }
+  .gun-slot.on { background: rgba(255, 244, 201, .95); border-color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
+  .gun-slot.on b { color: var(--ink); text-shadow: none; }
+  .gun-slot:disabled { opacity: .35; cursor: default; }
+  @media (orientation: portrait) { body.touch #gunBar { bottom: calc(env(safe-area-inset-bottom, 0px) + 206px); } }
+  #btnScope { --kv-col: rgba(143, 211, 255, .95); right: calc(env(safe-area-inset-right, 0px) + 214px); bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
+  #btnScope.on { --kv-col: rgba(255, 197, 61, .95); }
+  body.guns #toast { top: 44%; } /* clear of the duel's panel at the top */
+  #btnGunLoad { --kv-col: rgba(255, 255, 255, .9); right: calc(env(safe-area-inset-right, 0px) + 218px); bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); }
+  /* the duel: our health, the score and the round, the opponent's health */
+  #ftBar {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 56px); transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 12px;
+    padding: 7px 12px 8px; background: rgba(18, 20, 44, .5); border: 2px solid rgba(28, 30, 59, .8); border-radius: 14px; color: var(--white); pointer-events: none;
+    font: 800 12px/1 var(--ui); font-variant-numeric: tabular-nums; text-shadow: var(--outline); white-space: nowrap;
+  }
+  .ft-side { display: grid; gap: 4px; justify-items: start; min-width: 88px; }
+  .ft-side.foe { justify-items: end; }
+  .ft-hp { display: block; width: 88px; height: 9px; border-radius: 5px; background: rgba(28, 30, 59, .6); border: 2px solid var(--ink); overflow: hidden; }
+  .ft-hp i { display: block; height: 100%; background: #6fe06a; transform-origin: left center; }
+  .ft-side.foe .ft-hp i { background: #ff6a5a; transform-origin: right center; }
+  .ft-hp i.low { animation: ntBlink .45s infinite alternate; }
+  .ft-mid { display: grid; justify-items: center; gap: 3px; }
+  #ftScore { font: 400 26px/1 var(--display); color: var(--gold); letter-spacing: .04em; }
+  #ftSub { font: 800 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
+  @media (max-width: 480px) { #ftBar { gap: 8px; padding: 6px 9px 7px; } .ft-side { min-width: 70px; } .ft-hp { width: 70px; } }
+  /* a bot's name tag carries its health */
+  .tag .tag-hp { display: block; width: 44px; height: 6px; border-radius: 3px; background: rgba(28, 30, 59, .3); overflow: hidden; }
+  .tag .tag-hp i { display: block; width: 100%; height: 100%; border: 0; border-radius: 0; background: #ff5a4a; transform-origin: left center; }
+  .tag .tag-hp i.low { background: #ff2a1a; }
+
   /* ---------- screen overlays: vignette and hit flash ---------- */
   #vignette, #flash { position: fixed; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }
   #vignette { z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 46%, rgba(28, 20, 50, 0) 58%, rgba(28, 20, 50, .3) 100%); }
@@ -357,12 +417,13 @@
   .shop-item b { flex: none; display: flex; align-items: center; gap: 4px; font: 900 15px/1 var(--ui); font-variant-numeric: tabular-nums; }
   .swatch { display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -2px; border-radius: 50%; border: 2px solid var(--ink); }
   .swatch.duo { background-clip: padding-box; }
-  /* the shop: four tabs over a list that scrolls on its own, so the card fits a phone held sideways */
-  .shop-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  /* the shop: five tabs over a list that scrolls on its own, so the card fits a phone held sideways */
+  .shop-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
   .shop-tab {
-    padding: 9px 2px 8px; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, .6); border: 3px solid var(--ink); border-radius: 12px;
-    font: 800 12px/1 var(--ui); letter-spacing: .02em; text-transform: uppercase; box-shadow: 0 3px 0 var(--ink);
+    min-width: 0; padding: 9px 2px 8px; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, .6); border: 3px solid var(--ink); border-radius: 12px;
+    font: 800 12px/1 var(--ui); letter-spacing: .02em; text-transform: uppercase; box-shadow: 0 3px 0 var(--ink); overflow-wrap: anywhere;
   }
+  @media (max-width: 480px) { .shop-tabs { gap: 4px; } .shop-tab { font-size: 10px; letter-spacing: 0; } }
   .shop-tab[aria-selected="true"] { background: var(--gold); }
   .shop-tab:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
   .shop-tab:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
@@ -559,6 +620,25 @@
     <span>ГРАНАТЫ</span>
   </button>
   <button id="btnWave" type="button" aria-label="Помахать друзьям" hidden>👋</button>
+  <button id="btnScope" class="kv-btn" type="button" aria-label="Прицел" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 1.8v5M12 17.2v5M1.8 12h5M17.2 12h5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+    <span>ПРИЦЕЛ</span>
+  </button>
+  <button id="btnGunLoad" class="kv-btn" type="button" aria-label="Перезарядка" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M17.5 3.5v4.2h-4.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>ЗАРЯД</span>
+  </button>
+</div>
+<div id="scope" hidden><i></i></div>
+<div id="gunUi" hidden>
+  <div id="cross"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="hitmark" hidden><i></i><i></i><i></i><i></i></div>
+  <div id="gunBar" role="toolbar" aria-label="Оружие"></div>
+</div>
+<div id="ftBar" role="status" hidden>
+  <div class="ft-side"><b>Ты</b><span class="ft-hp"><i id="ftMeHp"></i></span><small id="ftMeN">❤ 100</small></div>
+  <div class="ft-mid"><b id="ftScore">0 : 0</b><small id="ftSub"></small></div>
+  <div class="ft-side foe" id="ftFoe"><b id="ftFoeName"></b><span class="ft-hp"><i id="ftFoeHp"></i></span><small id="ftFoeN">❤ 100</small></div>
 </div>
 
 <div id="nights" role="status" hidden>
@@ -604,6 +684,7 @@
       <button class="btn btn-ghost btn-mode" id="btnModeDragon" type="button">🐉 Драконы</button>
       <button class="btn btn-ghost btn-mode" id="btnModeTanks" type="button">💥 Танки</button>
       <button class="btn btn-ghost btn-mode" id="btnModeNights" type="button">🌲 99 ночей</button>
+      <button class="btn btn-ghost btn-mode" id="btnModeDuels" type="button">🎯 Дуэли</button>
     </div>
     <p class="title-note" id="saveInfo" hidden></p>
     <div class="title-modes">
@@ -699,6 +780,7 @@
       <button class="shop-tab" type="button" role="tab" data-tab="skins" aria-selected="false">Скины</button>
       <button class="shop-tab" type="button" role="tab" data-tab="rides" aria-selected="false">Транспорт</button>
       <button class="shop-tab" type="button" role="tab" data-tab="tank" aria-selected="false">Танк</button>
+      <button class="shop-tab" type="button" role="tab" data-tab="guns" aria-selected="false">Оружие</button>
     </div>
     <div class="shop-list" id="shopList" role="tabpanel"></div>
     <div class="card-actions"><button class="btn btn-ghost" id="btnShopClose" type="button">Уйти</button></div>
@@ -753,6 +835,8 @@
         <button class="btn btn-sm" id="btnDuelRace" type="button">Гонка</button>
         <button class="btn btn-sm" id="btnDuelHide" type="button">Прятки</button>
         <button class="btn btn-sm" id="btnDuelTank" type="button">Танки</button>
+        <button class="btn btn-sm" id="btnDuelGun" type="button">Дуэль</button>
+        <button class="btn btn-sm" id="btnDuelSnipe" type="button">Снайперы</button>
       </div>
       <button class="btn btn-sm" id="btnDuelQuit" type="button" hidden>Выйти из игры</button>
       <p class="net-hint" id="netGameHint"></p>
@@ -3390,11 +3474,34 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       flare: () => { tone('square', 1400, 2600, .12, .05); tone('sine', 900, 1900, .32, .09); noise(.3, .14, 0, 6000, 'highpass'); },
       dusk: () => { tone('sine', 196, 0, 1.6, .2); tone('sine', 392, 0, 1.2, .04); tone('sine', 147, 0, 1.8, .14, .6); },
       dawn: () => { seq('triangle', [72, 76, 79, 84, 88], .32, .1, .13); tone('sine', 1047, 0, .9, .05, .65); },
+      // the Duel Arena: the guns going off, reloading, the scope; a hit (a head is higher), a knock-out, a round's bell
+      snipe: () => { noise(.55, .6, 0, 2600, 'lowpass', 280, .7); tone('sine', 170, 40, .38, .5); noise(.08, .45, 0, 6500, 'highpass'); swoosh(.7, .14, 3000, 380, .05); },
+      rifle: () => { noise(.13, .34, 0, 3200, 'lowpass', 600, .8); tone('square', 230, 80, .06, .07); },
+      pistol: () => { noise(.22, .45, 0, 2600, 'lowpass', 400, .8); tone('sine', 200, 60, .18, .3); noise(.05, .28, 0, 7000, 'highpass'); },
+      shotgun: () => { noise(.42, .62, 0, 1700, 'lowpass', 200, .7); tone('sine', 125, 40, .32, .5); noise(.1, .35, 0, 5000, 'highpass'); },
+      minigun: () => { noise(.06, .22, 0, 3400, 'lowpass', 900, .9); tone('square', 320, 120, .04, .045); },
+      bow: () => { tone('triangle', 520, 160, .12, .18); swoosh(.25, .2, 900, 3000); },
+      twang: () => { tone('square', 430, 140, .1, .1); tone('triangle', 900, 300, .14, .1); swoosh(.2, .2, 1200, 3500); },
+      flame: () => noise(.16, .2, 0, 900, 'bandpass', 500, .6),
+      slash: () => { swoosh(.22, .45, 800, 3800); tone('triangle', 1400, 700, .08, .05); },
+      thud: () => { tone('sine', 110, 50, .25, .5); noise(.2, .4, 0, 700); },
+      toss: () => swoosh(.28, .3, 500, 1800),
+      paint: () => { tone('sine', 700, 300, .08, .12); noise(.06, .15, 0, 2000); },
+      splat: () => { noise(.12, .3, 0, 1400, 'bandpass', 500, 1.2); tone('sine', 300, 120, .1, .12); },
+      gunLoad: () => { tone('square', 700, 0, .04, .07); tone('square', 1100, 0, .05, .08, .2); noise(.05, .15, .12, 3000, 'highpass'); },
+      dry: () => tone('square', 1300, 0, .02, .05),
+      zoom: () => swoosh(.2, .12, 600, 2400),
+      hitmark: () => { tone('square', 1800, 0, .03, .06); tone('sine', 2400, 0, .05, .05, .02); },
+      headshot: () => { tone('square', 2200, 0, .04, .08); tone('sine', 3200, 1800, .12, .08, .03); noise(.06, .1, 0, 8000, 'highpass'); },
+      ko: () => { seq('pulse', [79, 74, 67], .12, .1, .09); tone('sine', 600, 200, .5, .1); },
+      glint: () => { tone('sine', 2600, 3400, .18, .05); tone('sine', 3900, 0, .25, .03, .1); },
+      heal: () => seq('triangle', [72, 76, 79, 84], .1, .08, .06),
+      bell: () => { tone('triangle', 1318, 0, .8, .15); tone('sine', 2637, 0, .6, .05); tone('triangle', 1318, 0, .6, .1, .3); },
     };
     // pitch-varied sounds, so frequent ones do not sound mechanical
     const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush', 'splash', 'stroke', 'ribbit',
       'boing', 'peep', 'beep', 'giggle', 'grunt', 'blub', 'zoop', 'screech', 'snort', 'chomp', 'flap', 'breath', 'cannon', 'clang', 'nade', 'rocket',
-      'chop', 'crackle', 'munch', 'howl', 'growl']);
+      'chop', 'crackle', 'munch', 'howl', 'growl', 'snipe', 'rifle', 'pistol', 'shotgun', 'minigun', 'bow', 'twang', 'slash', 'thud', 'toss', 'paint', 'splat', 'hitmark']);
     function spotNode(p) {
       _sv.set(p[0], p[1], p[2]);
       const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
@@ -3537,6 +3644,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         bpm: 160, drums: 'boss', chords: [40, 40, 36, 38, 40, 40, 35, 35],
         lead: [76, 0, 76, 79, 83, 0, 79, 76, 78, 0, 78, 81, 84, 0, 83, 81, 79, 0, 79, 84, 88, 0, 84, 79, 81, 83, 81, 78, 74, 0, 0, 0,
           76, 0, 83, 0, 88, 86, 84, 83, 81, 0, 79, 0, 78, 79, 81, 83, 84, 0, 83, 81, 79, 0, 78, 0, 75, 0, 78, 0, 83, 0, 76, 0],
+      },
+      // the Duel Arena: a showdown in D minor with a gallop in the drums
+      arena: {
+        bpm: 136, drums: 'shuffle', chords: [38, 38, 34, 36, 38, 38, 33, 33],
+        lead: [74, 0, 0, 69, 74, 0, 77, 76, 74, 0, 72, 0, 69, 0, 0, 0, 70, 0, 0, 69, 70, 0, 72, 74, 72, 0, 69, 0, 67, 0, 0, 0,
+          74, 0, 0, 69, 74, 0, 77, 81, 79, 0, 77, 0, 76, 0, 74, 0, 73, 0, 76, 0, 79, 0, 76, 73, 74, 0, 0, 0, 69, 0, 0, 0],
       },
       // the Dark Forest: a calm walk through the pines in G by day; at night a slow heartbeat under a lonely tune in A minor
       woods: {
@@ -4814,7 +4927,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // a glowing ring on the ground: the shop's golden one, a blue one that lends a ride (`data` names it), a red one that
       // starts a challenge, the purple one that wakes Leviathan
       pad(kind, x, top, d, data) {
-        const col = kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
+        const col = kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
         const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: col, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
@@ -5833,7 +5946,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         next ? 'У тебя ' + n + ' ★. Врата «' + next.name + '» откроются при ' + next.need + ' ★.' : 'У тебя ' + n + ' ★. Все врата уже открыты!',
         'За вратами целые миры: пустыня, ледяные пики, конфетная страна и завод в небе. И в каждом свои звёзды!',
         'А ещё есть Морские врата в конце пирса и Звёздные врата высоко над лесом: там море с нырянием и Луна!',
-        'На мысу за огородом Фомы новые врата, открытые сразу: в Долину динозавров, на Драконьи пики, на Танковый полигон и в Тёмный лес!',
+        'На мысу за огородом Фомы новые врата, открытые сразу: в Долину динозавров, на Драконьи пики, на Танковый полигон, в Тёмный лес и на Дуэльную арену!',
         'Звёзды дают за помощь жителям. Кто-то просит что-то отнести, кто-то убегает, а кто-то ждёт, когда зажгутся огни.',
       ];
     });
@@ -5960,7 +6073,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('robot', 0, 1.5, 49.5, 'Страж врат', ['Это Врата миров. Каждые врата открываются, когда у тебя хватает звёзд.',
       'Первые врата ведут в уровни Зелёного края, а остальные в целые миры: там свои жители, звёзды и уровни.', 'За каждый пройденный уровень тоже дают звезду.',
       'Ещё двое врат стоят не здесь: Морские в конце пирса, а Звёздные на облачном островке над лесом.',
-      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи, Танковые и Лесные. Туда можно сразу!']);
+      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи, Танковые, Лесные и Дуэльные. Туда можно сразу!']);
     B.tree(-16.6, 1.5, 47, 1, 'pillar'); B.tree(16.6, 1.5, 47, 1, 'pillar');
     // the cape past Foma's garden: the Ancient Gate to Dino Valley and the Dragon Gate, both open from the start
     B.ground(46, 64, 18, 46, 0, 12);
@@ -5973,6 +6086,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.ground(46, 64, -10, 2, 0, 12);
     B.gate(59, -3, 0, 'world', 10, -Math.PI / 2, 8);
     B.sign(51, 0, -7.5, ['99 ночей', 'в лесу'], -Math.PI / 2);
+    // and past it, at the very end of the cape, the Duel Gate to the arena with the guns
+    B.ground(46, 64, -24, -10, 0, 12);
+    B.gate(59, -17, 0, 'world', 11, -Math.PI / 2, 8);
+    B.sign(51, 0, -21.5, ['Дуэльная', 'арена'], -Math.PI / 2);
+    { const t = new T.Mesh(GEO.beacon.target, MAT.char); t.position.set(62, 0, 22); t.rotation.y = -Math.PI / 2; t.castShadow = true; L.group.add(t); addSolid(61.7, .75, 21.1, 62.3, 2.4, 22.9, 'hard'); }
     for (const [x, d, s] of [[62.5, -8.5, .9], [62.5, 2.5, .8], [49, -9, .75]]) B.tree(x, 0, d, s);
     const toy = tankModel('tank'); toy.position.set(57, 0, -4.5); toy.rotation.y = -Math.PI * .65; toy.userData.turret.rotation.y = -.6; L.group.add(toy);
     addSolid(55.6, 0, -5.9, 58.4, 1.4, -3.1, 'hard');
@@ -7663,6 +7781,152 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sceneryForestHub(B);
   }
 
+  // ---------- the Duel Arena ----------
+  // Duels as in the Roblox shooters, with guns (the weapons are in the "Duel Arena" section further on). A lobby to the south:
+  // the gate home, the gun shop, the sniper tower. The arena in the middle: steel walls round a floor with cover, a barrier
+  // across its way in while a duel is on. To the east the shooting range, to the west the sniper canyon: two ledges with
+  // cover across a gorge, some seventy metres apart, each closed off by a barrier during a sniper duel.
+  // a striped barrier across a way in, down in the ground until a duel closes it (ftUpdate raises it)
+  function ftBarrier(x0, x1, d0, d1, top, h) {
+    const m = new T.Mesh(boxGeo(x1 - x0, h, d1 - d0, 2), MAT.hazard); m.castShadow = m.receiveShadow = true; m.visible = false; L.group.add(m);
+    m.position.set((x0 + x1) / 2, top - h / 2, -(d0 + d1) / 2);
+    const s = addSolid(x0, top, -d1, x1, top + h, -d0, 'hard'); s.active = false;
+    return { m, s, h, k: 0, y1: top + h / 2 };
+  }
+  function sceneryDuelsHub(B) {
+    const R = B.R;
+    for (let i = 0; i < 22; i++) { const a = i / 22 * Math.PI * 2 + R() * .2, r = 175 + R() * 40; B.hill(Math.cos(a) * r, -16, Math.sin(a) * r - 55, 30 + R() * 26, [0xe8b878, 0xd9a060, 0xc98a52][i % 3]); }
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 + R() * .3, r = 250 + R() * 40; B.mountain(Math.cos(a) * r, -20, Math.sin(a) * r - 55, 60 + R() * 40); }
+    for (let i = 0; i < 16; i++) B.cloud(-220 + R() * 440, 40 + R() * 24, -260 + R() * 400, 1 + R() * 1.3);
+  }
+  function buildDuels(B) {
+    const R = B.R;
+    B.start(0, 0, -6);
+    L.modeSpot = { x: 16, y: 0, z: -38, face: Math.PI }; // where "Duels" on the title puts the hero: before the arena's gate
+    L.modeHint = 'Арена впереди: встань на красный коврик. Оружие в лавке кота Курка';
+    rimWalls(B, -84, 84, -26, 136, 'canyon', 8, 16);
+    // the plain of sand; the canyon and the arena's steel floor are cut out of it
+    B.groundCut(-84, 84, -26, 136, 0, 12, 'sand', [[-84, -30, 26, 114], [-8, 40, 46, 94]]);
+
+    // --- the lobby ---
+    B.warp('island', 0, -16, 0, Math.PI);
+    B.sign(-3.5, 0, -9, ['Дуэльная', 'арена']);
+    B.path(-1.5, 1.5, -12, 18); B.path(14.5, 17.5, 18, 44); B.path(-56, 17.5, 18, 21); B.path(-57, -53, 21, 26);
+    B.flag(-5, 0, -13, 0xf0503a); B.flag(4.2, 0, -13, 0x4262ff);
+    B.npc('robot', 4, 0, -2, 'Промобот', () => [
+      'Добро пожаловать на Дуэльную арену! Тут бьются один на один, как в играх Роблокса.',
+      'У тебя сразу снайперка, автомат, револьвер, катана и граната. Другое оружие продаёт кот Курок в лавке.',
+      'Прямо на север арена: там дуэли со всем оружием. На западе снайперское ущелье, на востоке тир.',
+      'Целься в голову: туда урон больше! Со снайперки выстрел в голову сразу нокаут.',
+      SAVE.duWins ? 'Побед на арене: ' + SAVE.duWins + '. Так держать!' : 'Кнопка «Прицел» приближает, как настоящий снайперский прицел.',
+    ]);
+    B.stall(24, 2); B.pad('shop', 21.6, 0, 2, 'guns');
+    B.npc('cat', 25.4, 0, 2, 'Кот Курок', ['Мур! Я кузен Мурра. У меня оружие на любой вкус: дробовик, лук, миниган, гранатомёт…',
+      'Купленное оружие ставь в набор: основное, запасное, ближний бой и особое. С ним и выйдешь на дуэль.',
+      'Значки дают за победы на арене и в ущелье. Чем сильнее соперник, тем больше!'], { yaw: -Math.PI / 2 });
+    for (const [x, d] of [[18, -6], [29, 8], [-8, 12], [8, 12]]) B.barrel(x, 0, d);
+    B.crate(-10, 0, -4, 1.3); B.crate(-10, 1.3, -4, .9); B.crate(30, 0, -4, 1.2);
+    for (let d = 1; d <= 13; d += 2) B.coin(0, 1.2, d);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; B.coin(10 + Math.cos(a) * 3, 1.2, 4 + Math.sin(a) * 3); }
+
+    // --- the sniper tower: platforms round a column of red rock, a lookout with a roof on top ---
+    B.slab(-23.5, -20.5, 6.5, 9.5, 0, 13, 'canyon');
+    for (const [x, top, d] of [[-19, 2.2, 6.5], [-19, 4.4, 11], [-25, 6.6, 11], [-25, 8.8, 5], [-19, 11, 3.5]]) B.platform(x, top, d, 3, 3);
+    for (const [x, d] of [[-23.4, 6.6], [-20.6, 6.6], [-23.4, 9.4], [-20.6, 9.4]]) B.decor(CYL, 0x8a5a33, x, 14.2, d, .08, 2.4, .08);
+    B.decor(CONE, 0xf0503a, -22, 16.1, 8, 2.6, 1.4, 2.6); B.decor(BOX, 0xffd23f, -22, 13.5, 6.5, 3, .1, .1); B.decor(BOX, 0xffd23f, -22, 13.5, 9.5, 3, .1, .1);
+    B.star('du.tower', -22, 14.4, 8);
+    for (const [x, y, d] of [[-19, 3.4, 6.5], [-19, 5.6, 11], [-25, 7.8, 5.5], [-25, 10, 5], [-19, 12.2, 3.5]]) B.coin(x, y, d);
+    B.sign(-16, 0, 2, ['Снайперская', 'вышка'], Math.PI / 2);
+
+    // --- the arena: steel walls round a steel floor, the way in from the south, cover all over ---
+    B.ground(-8, 40, 46, 94, 0, 12, 'metal', true);
+    const wall = (x0, x1, d0, d1) => mesa(B, x0, x1, d0, d1, 5, 'stone', -1);
+    wall(-10, 13, 44, 46); wall(19, 42, 44, 46); wall(-10, 42, 94, 96); wall(-10, -8, 46, 94); wall(40, 42, 46, 94);
+    for (const x of [-9, 41]) for (const d of [45, 95]) B.decor(CYL, 0xffd23f, x, 5.3, d, .5, .6, .5);
+    // the middle: a raised deck with a ramp at each end; pillars, low walls, crates and sandbags round it
+    B.slab(10, 22, 64, 76, 0, 2, 'metal');
+    B.ramp(13, 19, 58, 64, 0, 2, 'd', 'metal'); B.ramp(13, 19, 76, 82, 2, 0, 'd', 'metal');
+    for (const [x, d] of [[-1, 58], [33, 58], [-1, 82], [33, 82]]) { B.slab(x - .8, x + .8, d - .8, d + .8, 0, 4.5, 'stone'); B.decor(CYL, 0xf0503a, x, 4.6, d, .5, .2, .5); }
+    B.slab(3, 9, 69.5, 70.5, 0, 1.3, 'stone'); B.slab(23, 29, 69.5, 70.5, 0, 1.3, 'stone');
+    B.slab(13, 19, 53.5, 54.5, 0, 2.2, 'stone'); B.slab(13, 19, 85.5, 86.5, 0, 2.2, 'stone');
+    B.crate(8, 0, 54, 1.6); B.crate(8, 1.6, 54, 1.1); B.crate(24, 0, 54, 1.6); B.crate(8, 0, 86, 1.6); B.crate(24, 0, 86, 1.6); B.crate(24, 1.6, 86, 1.1);
+    B.sandbags(-5, -4, 64, 76); B.sandbags(36, 37, 64, 76);
+    for (const [x, d] of [[3, 50], [29, 50], [3, 90], [29, 90]]) B.barrel(x, 0, d);
+    const host = B.npc('commander', 10, 0, 40.5, 'Сержант Топтыгин', () => [
+      'Здравия желаю! Я брат командира Мишки. Встань на красный коврик в воротах арены, и начнётся дуэль.',
+      'Дуэль до трёх побед. Соперники по очереди, каждый сильнее прошлого. Последний Чемпион Макс!',
+      ftNextBot() ? 'Следующий соперник: ' + ftNextBot().name + '. ' + ftNextBot().say : 'Всех победил! Теперь любой соперник выйдет на реванш.',
+      'Прячься за укрытиями, пока перезаряжаешься. Граната выгонит соперника из-за ящика!',
+    ]);
+    B.pad('duel', 16, 0, 49.5);
+    B.sign(21.5, 0, 40, ['Арена'], 0);
+    B.flag(11, 5, 45, 0xf0503a, 3.5); B.flag(21, 5, 45, 0x4262ff, 3.5);
+    B.star('du.win', 12.5, 2.2, 40, !questDone('du.win'));
+    B.star('du.clean', 16, 2.2, 40, !questDone('du.clean'));
+    B.star('du.champ', 19.5, 2.2, 40, !questDone('du.champ'));
+
+    // --- the shooting range: targets to hit before the time runs out, a backstop of rock behind them ---
+    B.slab(50, 80, 1.6, 2, 0, .3, 'stone');
+    mesa(B, 48, 84, 80, 84, 5, 'canyon', -2); mesa(B, 62, 66, 70, 74, 2, 'canyon');
+    const zork = B.npc('alien', 53, 0, 6, 'Зорк', () => (questDone('du.range')
+      ? [hasStar('du.range') ? 'Бип-боп! Меткость как у нас на Луне!' : 'Звезда у меня, забирай!', 'Стреляй ещё: мишени не обидятся.']
+      : ['Бип! Это тир. Попади во все восемь мишеней за 40 секунд. Время пойдёт с первого попадания.',
+        'Дальние мишени лучше бить из снайперки: жми «Прицел», и они станут ближе.']), { yaw: -Math.PI / 2 });
+    B.beacons({ key: 'du.range', star: 'du.range', owner: zork, style: 'target', limit: 40, label: 'Мишени', where: 'Зорк ждёт в тире',
+      fail: 'Не все мишени… Давай ещё раз!', win: 'Все мишени! Держи звезду!' },
+      [[56, 0, 24], [66, 0, 20], [76, 0, 30], [60, 0, 42], [72, 0, 50], [54, 0, 62], [64, 2, 72], [78, 0, 70]]);
+    B.star('du.range', 57, 2.2, 6, !questDone('du.range'));
+    B.sign(50, 0, -3, ['Тир'], -Math.PI / 2);
+    B.flag(51, 0, 0, 0xf0503a, 4); B.flag(79, 0, 0, 0xf0503a, 4);
+
+    // --- the sniper canyon: two ledges across a gorge, walled in, cover along each edge ---
+    B.ground(-84, -30, 26, 40, 0, 12, 'canyon');
+    B.ground(-84, -30, 40, 100, -12, 6, 'canyon', true);
+    B.ground(-84, -30, 100, 114, 0, 12, 'canyon');
+    B.water(-84, -30, 67, 73, -11.7);
+    B.ramp(-34, -30, 40, 88, 0, -12, 'd', 'canyon');
+    const rock = (x0, x1, d0, d1) => mesa(B, x0, x1, d0, d1, 3, 'canyon', -1);
+    rock(-84, -58, 24, 26); rock(-52, -30, 24, 26); rock(-32, -30, 26, 40);
+    rock(-84, -58, 114, 116); rock(-52, -30, 114, 116); rock(-32, -30, 100, 114);
+    for (const c of [-70, -56, -42]) { B.slab(c - 1.6, c + 1.6, 35.4, 36.6, 0, 2.1, 'sandstone'); B.slab(c - 1.6, c + 1.6, 103.4, 104.6, 0, 2.1, 'sandstone'); }
+    for (const [x, d] of [[-64, 46], [-48, 58], [-74, 80], [-40, 92], [-56, 70]]) B.rock(x, -12, d, 1.2 + R() * .8, 0xc9744a);
+    const hedgy = B.npc('hedgehog', -46, 0, 28.5, 'Ёжик Меткий', () => [
+      'Я и тут! Это снайперское ущелье. Встань на красный коврик, и начнётся снайперская дуэль.',
+      'Соперник на том краю. Прячься за блоками, выглядывай и стреляй. Попадание в голову сразу нокаут!',
+      'Видишь блик на том краю? Это прицел соперника. Значит, сейчас выстрелит: прячься!',
+      SAVE.duSn ? 'Снайперских побед: ' + SAVE.duSn + '. Соперник с каждым разом метче.' : 'Три победы в раундах, и дуэль твоя.',
+    ]);
+    B.pad('snipe', -56, 0, 31);
+    B.sign(-50, 0, 21, ['Снайперское', 'ущелье'], 0);
+    B.star('du.snipe', -52.5, 2.2, 28, !questDone('du.snipe'));
+    B.star('du.head', -59.5, 2.2, 28, !questDone('du.head'));
+
+    // the duels' places: where everyone stands, the barriers, the cover spots the bots use
+    ISL.ft = {
+      arena: { x0: -8, x1: 40, z0: -94, z1: -46, top: 0, gate: ftBarrier(13, 19, 44, 46, 0, 5), host, pads: [[16, -49.5, Math.PI], [16, -91, 0]],
+        spots: [[16, -49.5, Math.PI], [16, -91, 0], [-4.5, -70, -Math.PI / 2], [36.5, -70, Math.PI / 2]] },
+      snipe: { x0: -84, x1: -32, top: 0, host: hedgy, near: { z0: -40, z1: -26, gate: ftBarrier(-58, -52, 24, 26, 0, 3), spot: [-56, -31, Math.PI], cover: [-35.4, -36.6] },
+        far: { z0: -114, z1: -100, gate: ftBarrier(-58, -52, 114, 116, 0, 3), spot: [-56, -109, 0], cover: [-104.6, -103.4] }, blocks: [-70, -56, -42] },
+    };
+
+    // --- red badges ---
+    B.itemSet({ key: 'du.red', star: 'du.red' });
+    for (const [i, x, y, d] of [[0, 16, 3.2, 70], [1, -60, -10.8, 56], [2, -25, 7.8, 11], [3, 66, 1.2, 92], [4, -70, 1.2, 126], [5, 24, 3.9, 86], [6, -32, -4.8, 64], [7, 80, 1.2, -20]]) B.collect('du.red', i, x, y, d);
+    B.star('du.red', -6, 2.2, 8, setOf('du.red').length < RED_N);
+
+    // --- badges, flags, cacti and rocks on the plain ---
+    for (const [x, d] of [[-20, 30], [-4, 110], [30, 112], [58, 104], [-60, 128], [70, -12], [-40, -10]]) B.coinArc(x, 1.2, d - 2, d + 2, 3, .8);
+    for (let x = -2; x <= 34; x += 3) B.coin(x, 1.2, 100);
+    for (const [x, top, d] of [[8, 0, 32], [-44, 0, 16], [56, 0, 10], [-20, 0, 124], [60, 0, 120], [-70, -12, 84]]) B.checkpoint(x, top, d);
+    const keepOut = [[-12, 44, 38, 98], [46, 84, -4, 88], [-86, -28, 20, 118], [-30, 34, -26, 22], [-28, -14, 0, 16]];
+    for (let i = 0, n = 0; i < 400 && n < 40; i++) {
+      const x = -80 + R() * 160, d = -22 + R() * 154;
+      if (keepOut.some(([x0, x1, d0, d1]) => x > x0 && x < x1 && d > d0 && d < d1)) continue;
+      if (R() < .3) B.rock(x, 0, d, .7 + R() * .6, 0xc9744a); else if (R() < .2) B.bush(x, 0, d, .8 + R() * .4); else { B.tree(x, 0, d, .85 + R() * .5); n++; }
+    }
+    sceneryDuelsHub(B);
+  }
+
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
       sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc, glow: [0xfff6d8, .45] },
@@ -7712,7 +7976,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { n: 8, name: 'Долина динозавров', need: 0, levels: [], col: 0x7ab648, hub: 'dino', where: 'Древние врата на мысу к востоку от огорода Фомы.' },
     { n: 9, name: 'Драконьи пики', need: 0, levels: [], col: 0xff7a3a, hub: 'dragon', where: 'Драконьи врата на мысу к востоку от огорода Фомы, рядом с Древними.' },
     { n: 10, name: 'Танковый полигон', need: 0, levels: [], col: 0x5f8fd6, hub: 'tanks', where: 'Танковые врата на том же мысу, ближе к морю.' },
-    { n: 11, name: 'Тёмный лес', need: 0, levels: [], col: 0x3f7a3a, hub: 'forest', where: 'Лесные врата на самом краю мыса, у моря.' },
+    { n: 11, name: 'Тёмный лес', need: 0, levels: [], col: 0x3f7a3a, hub: 'forest', where: 'Лесные врата на мысу, у моря.' },
+    { n: 12, name: 'Дуэльная арена', need: 0, levels: [], col: 0xe0503a, hub: 'duels', where: 'Дуэльные врата на самом краю мыса, за Лесными.' },
   ];
   const worldOf = (li) => WORLDS.findIndex((w) => w.levels.includes(li));
   const hubOfLevel = (li) => WORLDS[worldOf(li)].hub || 'island';
@@ -7883,6 +8148,20 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         { id: 'nf.n99', name: '99 ночей', hint: 'Главная звезда леса: переживи все 99 ночей за один поход!' },
         { id: 'nf.red', name: 'Красные значки', hint: 'Восемь красных значков спрятаны в лесу, многие за туманом: чем больше костёр, тем дальше можно пройти.', prog: ['nf.red', 8] },
       ] },
+    // the Duel Arena: duels with guns against bots and friends, a sniper canyon, a shooting range (duels: the guns come out)
+    duels: { id: 'hub-duels', key: 'duels', name: 'Дуэльная арена', to: 'На Дуэльную арену', shop: 'Оружейная кота Курка', col: 0xe0503a, hub: true, seed: 1201, killY: -30,
+      music: 'arena', theme: 'sand', build: buildDuels, scatter: 10, amb: 'desert', far: 360, duels: true,
+      sky: [[0, '#2f86d8'], [.55, '#8fc8ee'], [1, '#ffe9c2']], fog: [0xf6e2bc, 140, 340], hemi: [0xfff3dd, 0xb9864f, .86], sun: 0xfff0d0, glow: [0xffd08a, .55, true],
+      stars: [
+        { id: 'du.win', name: 'Первая победа', hint: 'Сержант Топтыгин у ворот арены. Встань на красный коврик в воротах и выиграй дуэль до трёх побед.' },
+        { id: 'du.clean', name: 'Всухую', hint: 'Выиграй дуэль на арене со счётом 3:0.' },
+        { id: 'du.champ', name: 'Чемпион арены', hint: 'Победи всех соперников по очереди. Последний — Чемпион Макс с миниганом.' },
+        { id: 'du.snipe', name: 'Снайперская дуэль', hint: 'Ёжик Меткий в снайперском ущелье на западе. Встань на красный коврик и выиграй снайперскую дуэль.' },
+        { id: 'du.head', name: 'Прямо в голову', hint: 'В снайперской дуэли попади сопернику в голову: это сразу нокаут.' },
+        { id: 'du.range', name: 'Тир', hint: 'Зорк в тире на востоке: попади во все восемь мишеней за 40 секунд.' },
+        { id: 'du.tower', name: 'Снайперская вышка', hint: 'Вышка у лобби: прыгай по площадкам вокруг неё до самого верха.' },
+        { id: 'du.red', name: 'Красные значки', hint: 'Восемь красных значков: на арене, в ущелье, на вышке, за тиром…', prog: ['du.red', 8] },
+      ] },
   };
   // the Dark Forest's sky at night: stars and a pale moon
   const NIGHT_SKY = { id: 'hub-forest-night', seed: 1102, sky: [[0, '#04060e'], [.55, '#0b1224'], [1, '#1a2238']], stars: true, starN: 700,
@@ -7923,6 +8202,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function disposeGroup(g) { g.traverse((o) => { if (o.geometry && !o.geometry.userData.shared) o.geometry.dispose(); }); }
   function loadLevel(def) {
     if (L && L.def.nights) ntLeave();
+    if (L && L.def.duels) duLeave();
     if (L) { scene.remove(L.group); disposeGroup(L.group); }
     bubblesEl.textContent = '';
     fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true; $('result').hidden = true;
@@ -8001,8 +8281,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // on a dragon: in flight or not, speed along the way, the nose's pitch, the bank, a flap's lift, cooldowns; where the saddle is
     flyOn: false, flySpd: 0, flyPitch: 0, flyBank: 0, flapV: 0, flapCd: 0, breathCd: 0, bumpCd: 0, seat: new T.Vector3(),
     // in a tank: where the turret points, what it is aimed at (and when to look again), the reload
-    aim: 0, aimAt: null, aimT: 0, tankCd: 0 };
-  const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null, tight: false };
+    aim: 0, aimAt: null, aimT: 0, tankCd: 0,
+    // in a duel with guns: health, the time left knocked out, fire burning on him
+    hp: 100, koT: 0, burn: 0, burnAcc: 0 };
+  // (aim: how far up or down the crosshair looks, with the guns of the Duel Arena)
+  const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null, tight: false, aim: 0 };
   let time = 0;
 
   // ================= collision =================
@@ -8299,10 +8582,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   let btnMode = '';
   function updateButtons() {
     updateKvBtns();
-    const W = P.veh && P.veh.wings, gun = !!(P.veh && P.veh.cannon), salvo = gun && !!P.veh.hull, mode = W ? W.breath : salvo ? 'salvo' : gun ? 'gun' : P.fire ? 'fire' : '';
+    const W = P.veh && P.veh.wings, gun = !!(P.veh && P.veh.cannon), salvo = gun && !!P.veh.hull, gw = gunOn() ? gunCur() : null;
+    const mode = gw ? 'g:' + gw.kind : W ? W.breath : salvo ? 'salvo' : gun ? 'gun' : P.fire ? 'fire' : '';
     if (mode === btnMode) return;
     btnMode = mode;
-    const act = W ? BREATH[W.breath].name : salvo ? 'ЗАЛП' : gun || P.fire ? 'ОГОНЬ' : 'УДАР';
+    // with the Duel Arena's guns: fire, a swing, a throw, healing, the jetpack
+    const act = gw ? { melee: 'УДАР', throw: 'БРОСОК', heal: 'ЛЕЧИТЬ', jet: 'ВЗЛЁТ' }[gw.kind] || 'ОГОНЬ'
+      : W ? BREATH[W.breath].name : salvo ? 'ЗАЛП' : gun || P.fire ? 'ОГОНЬ' : 'УДАР';
     btnAct.classList.toggle('fire', !!mode); actLbl.textContent = act; btnAct.setAttribute('aria-label', salvo ? 'Залп' : gun ? 'Выстрел' : act[0] + act.slice(1).toLowerCase());
     jumpLbl.textContent = W ? 'ВЗМАХ' : 'ПРЫЖОК'; btnJump.setAttribute('aria-label', W ? 'Взмах крыльями' : 'Прыжок');
   }
@@ -8388,6 +8674,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- action button: spin on the ground, ground pound in the air, fireballs with the pepper ----------
   function action() {
     if (P.pound || G.state !== 'playing') return;
+    if (gunOn()) { gunPress(); return; } // in the Duel Arena the button fires the gun in hand
     if (P.swim) { swimDash(); return; }
     if (P.veh && P.veh.wings) { breathe(); return; }
     if (P.veh && P.veh.cannon) { tankFire(); return; }
@@ -9103,7 +9390,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       Snd.at(P.pos.x, qy, P.pos.z).sink(); puff(P.pos.x, qy + .1, P.pos.z, 0xe0bd78, 6, 1.5, .5, .6, .9);
     } else if (!inSand) P.sand = false;
     // skid: reversing hard at speed digs the heels in; a jump out of it becomes a side flip
-    if (P.onGround && !P.swim && !P.riding && !V && !P.pound && P.skidT <= 0 && mag > .6 && spd0 > 5.5 && (wx * P.vel.x + wz * P.vel.z) / (spd0 * mag) < -.6) {
+    if (P.onGround && !P.swim && !P.riding && !V && !P.pound && P.skidT <= 0 && !gunOn() && mag > .6 && spd0 > 5.5 && (wx * P.vel.x + wz * P.vel.z) / (spd0 * mag) < -.6) {
       P.skidT = .34; Snd.sfx.skid();
     }
     if (P.skidT > 0 && (!P.onGround || spd0 < 1)) P.skidT = 0;
@@ -9124,6 +9411,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (slide && !grip) acc = mag > .01 ? 10 : 2.5;
       let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1);
       if (slide) spdMax = Math.max(spdMax, 14); // steering down a slide must not brake it
+      if (gunOn()) spdMax *= gunSpeedK(); // slower through a scope and with a spinning minigun
       let tx = wx, tz = wz;
       if (V && V.cannon && mag > .08) { // a tank turns on its tracks at its own pace, and drives only the way it faces
         const d = wrapPi(Math.atan2(wx, wz) - P.facing), turn = ((V.turn || TANK_TURN) + tankMod(3) * .45) * dt, k = mag * Math.max(0, Math.cos(d)), f0 = P.facing;
@@ -9139,8 +9427,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (dl > md) { dvx *= md / dl; dvz *= md / dl; }
       P.vel.x += dvx; P.vel.z += dvz;
       if (slide) slidePull(dt);
-      if (P.wallSlide) P.facing = angleDamp(P.facing, Math.atan2(-P.wallN.x, -P.wallN.z), 18, dt);
-      else if (mag > .08 && P.wallLock <= 0 && !(V && V.cannon)) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), V && V.pose === 'sit' ? 9 : 16, dt);
+      if (P.wallSlide && !gunOn()) P.facing = angleDamp(P.facing, Math.atan2(-P.wallN.x, -P.wallN.z), 18, dt);
+      else if (mag > .08 && P.wallLock <= 0 && !(V && V.cannon) && !gunOn()) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), V && V.pose === 'sit' ? 9 : 16, dt);
     }
 
     if (input.jumpQueued) { P.jumpBuf = .14; input.jumpQueued = false; }
@@ -9858,7 +10146,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // the 99 nights in the Dark Forest: the run kept at its last dawn (or null), the most nights lived through, the runs won
     nt: null, ntBest: 0, ntWins: 0,
     // the forest skills, kept from one run to the next: trees felled, animals beaten, things picked up, nights and the Deer
-    ntSkill: { wood: 0, hunt: 0, pack: 0, brave: 0 } });
+    ntSkill: { wood: 0, hunt: 0, pack: 0, brave: 0 },
+    // the Duel Arena: the guns bought and the set taken into a duel (main, spare, close combat, special), the next arena
+    // opponent, the arena duels won, the sniper duels won, the opponents beaten at least once
+    guns: ['sniper', 'rifle', 'revolver', 'katana', 'grenade'], load: ['sniper', 'revolver', 'katana', 'grenade'], duLad: 0, duWins: 0, duSn: 0, duBeat: [] });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
   // older saves: the island's red badges and froglets had lists of their own, and the turquoise cap was the default
   if (SAVE.red) { SAVE.sets.red = SAVE.red; delete SAVE.red; }
@@ -9887,7 +10178,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const ISL = {};
   function resetIsland() {
     Object.assign(ISL, { trail: [], lost: null, sets: {}, race: null, clears: [], switches: null, magicT: 0, cp: null, deliveries: [], chases: [], beacons: null, carry: null,
-      surv: null, cup: null, tb: null, nt: null });
+      surv: null, cup: null, tb: null, nt: null, ft: null });
   }
   resetIsland();
   function awardStar(id) {
@@ -11692,6 +11983,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // what the hero is up to right now, for the line under the buttons: a delivery, a race, beacons, a runaway, followers
   function questTrack() {
     const du = duelTrack(); if (du) return du;
+    if (FT) return null; // a duel shows its own panel at the top
     if (survOn()) {
       const S = ISL.surv, hearts = '❤'.repeat(S.hearts) + '♡'.repeat(Math.max(0, S.max - S.hearts));
       return [S.phase === 'count' ? 'Выживание' : S.phase === 'rest' ? 'Передышка · волна ' + (S.wave + 1) + ' скоро' : 'Выживание · волна ' + S.wave, hearts + ' · прогнано ' + S.kills];
@@ -11722,6 +12014,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // seconds left on whatever challenge is timed right now (the HUD shows them), or null
   function challengeLeft() {
     const dc = duelClock(); if (dc !== null) return dc;
+    if (FT) return FT.phase === 'fight' ? Math.max(0, FT.left) : null; // the round's time
     if (survOn()) return Math.max(0, ISL.surv.t);
     if (tbOn()) return ISL.tb.phase === 'wave' || ISL.tb.won ? null : Math.max(0, ISL.tb.t); // the wait for the next wave
     if (cupOn()) return ISL.cup.phase === 'run' ? ((ISL.cup.fin || performance.now() - ISL.cup.runAt)) / 1000 : null;
@@ -12807,6 +13100,1306 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return best;
   }
 
+  // ================= the Duel Arena: guns, bots and duels =================
+  // In the Duel Arena the hero carries guns, as in the Roblox shooters: four slots (a main gun, a spare one, one for close
+  // combat and a special one), a crosshair in the middle of the screen, the camera over the right shoulder, and a scope that
+  // brings far things close. A shot goes where the crosshair points: a ray from the camera for bullets, a flying arrow,
+  // bolt, rocket or paint ball for the rest. A head takes more than a body. Duels are fought against bots (on the arena and
+  // in the sniper canyon) and against friends (games with friends); a knock-out is a puff of smoke, nobody gets hurt.
+  const GUN_SLOTS = ['Основное', 'Запасное', 'Ближний бой', 'Особое'];
+  // kind: ray (bullets: pellets, the spread scoped and not, auto fire, a spin-up), proj (it flies: speed v, drop g, a splash,
+  // a bow's draw), melee (reach and the arc of a swing), flame, throw (a grenade or smoke on a fuse), heal, jet. mag: shots
+  // before a reload (0: never runs out); charges: uses of a special thing, each one coming back after `regen` seconds.
+  // mz: the muzzle on the model; br and bm: the range a bot likes to fight at with it, and the furthest it fires from.
+  const GUNS = {
+    sniper: { name: 'Снайперка', slot: 0, price: 0, icon: '🎯', sub: 'Бьёт издалека. С прицелом в голову сразу нокаут', kind: 'ray', dmg: 90, head: 2.3, cd: 1.15, mag: 5, reload: 2.4,
+      spread: .0012, hip: .06, scope: 11, range: 240, snd: 'snipe', two: true, mz: [0, .09, 1.27], trail: .3, kick: .05, br: 30, bm: 200 },
+    rifle: { name: 'Автомат', slot: 0, price: 0, icon: '🔫', sub: 'Стреляет очередью, пока жмёшь', kind: 'ray', auto: true, dmg: 13, head: 1.6, cd: .1, mag: 30, reload: 2,
+      spread: .012, hip: .028, scope: 34, range: 130, snd: 'rifle', two: true, mz: [0, .07, .79], kick: .012, br: 16, bm: 70 },
+    shotgun: { name: 'Дробовик', slot: 0, price: 150, icon: '💥', sub: 'Восемь дробин разом. Вблизи сносит!', kind: 'ray', pellets: 8, dmg: 11, head: 1.3, cd: .85, mag: 6, reload: 2.2,
+      spread: .06, hip: .085, scope: 45, range: 34, snd: 'shotgun', two: true, mz: [0, .1, .93], kick: .06, br: 6, bm: 22 },
+    minigun: { name: 'Миниган', slot: 0, price: 320, icon: '🌀', sub: 'Раскручивается и поливает градом пуль. С ним ходишь медленнее', kind: 'ray', auto: true, spin: .7, dmg: 8, head: 1.3,
+      cd: .055, mag: 120, reload: 3.4, spread: .03, hip: .045, range: 90, snd: 'minigun', two: true, slow: .62, mz: [0, .03, .96], kick: .006, br: 15, bm: 55 },
+    bow: { name: 'Лук', slot: 0, price: 180, icon: '🏹', sub: 'Держи, чтобы натянуть сильнее. Стрела летит по дуге', kind: 'proj', draw: 1, dmg: [34, 96], head: 1.6, v: [28, 74], g: 13,
+      mag: 1, reload: .35, scope: 30, proj: 'arrow', snd: 'bow', two: true, mz: [0, 0, .45], br: 22, bm: 70 },
+    crossbow: { name: 'Арбалет', slot: 0, price: 220, icon: '🎳', sub: 'Болт летит быстро и прямо', kind: 'proj', dmg: 72, head: 1.8, v: 95, g: 4, mag: 1, reload: 1.3, scope: 24,
+      proj: 'bolt', snd: 'twang', two: true, mz: [0, .1, .65], br: 24, bm: 90 },
+    rpg: { name: 'Гранатомёт', slot: 0, price: 350, icon: '🚀', sub: 'Ракета взрывается и задевает всех рядом. Можно подпрыгнуть на взрыве!', kind: 'proj', dmg: 95, splash: 4.5, sdmg: 75,
+      v: 36, g: 0, mag: 1, reload: 2.6, proj: 'rocket', snd: 'rocket', two: true, self: .35, mz: [0, .06, 1.0], br: 14, bm: 45 },
+    flamer: { name: 'Огнемёт', slot: 0, price: 260, icon: '🔥', sub: 'Струя огня вблизи, а потом ещё жжётся', kind: 'flame', dmg: 6, cd: .08, range: 9, cone: .3, mag: 100, reload: 3,
+      burn: 3, snd: 'flame', two: true, mz: [0, .06, .71], br: 5, bm: 8.5 },
+    paint: { name: 'Пейнтбол', slot: 0, price: 120, icon: '🎨', sub: 'Цветные шарики, очередью. Всё вокруг в краске!', kind: 'proj', auto: true, dmg: 24, head: 1.5, cd: .24, v: 44, g: 11, mag: 12,
+      reload: 1.8, proj: 'paint', snd: 'paint', two: true, mz: [0, .05, .6], br: 14, bm: 45 },
+    revolver: { name: 'Револьвер', slot: 1, price: 0, icon: '🤠', sub: 'Шесть метких выстрелов', kind: 'ray', dmg: 36, head: 2, cd: .42, mag: 6, reload: 2.1, spread: .004, hip: .014, scope: 40,
+      range: 150, snd: 'pistol', mz: [0, .08, .4], kick: .04, br: 16, bm: 60 },
+    uzi: { name: 'Узи', slot: 1, price: 140, icon: '⚡', sub: 'Маленький, а стреляет очень быстро', kind: 'ray', auto: true, dmg: 9, head: 1.4, cd: .065, mag: 30, reload: 1.6, spread: .04, hip: .055,
+      range: 70, snd: 'rifle', mz: [0, .06, .33], kick: .01, br: 9, bm: 35 },
+    sling: { name: 'Рогатка', slot: 1, price: 90, icon: '🪨', sub: 'Камешки по дуге, и никогда не кончаются', kind: 'proj', dmg: 40, head: 2, cd: .55, v: 46, g: 14, mag: 0, proj: 'pebble', snd: 'bow',
+      mz: [0, .18, .05], br: 16, bm: 45 },
+    katana: { name: 'Катана', slot: 2, price: 0, icon: '🗡', sub: 'Быстрый удар с рывком вперёд', kind: 'melee', dmg: 45, reach: 3, arc: 1.4, cd: .5, lunge: 10, snd: 'slash', br: 1.6, bm: 3 },
+    scythe: { name: 'Коса', slot: 2, price: 160, icon: '🌙', sub: 'Широкий взмах, достаёт дальше всех', kind: 'melee', dmg: 55, reach: 3.7, arc: 2.3, cd: .85, snd: 'slash', br: 2, bm: 3.6 },
+    hammer: { name: 'Молот', slot: 2, price: 200, icon: '🔨', sub: 'Медленный, зато подбрасывает соперника', kind: 'melee', dmg: 70, reach: 2.7, arc: 1.3, cd: 1.15, knock: 13, snd: 'thud', br: 1.5, bm: 2.6 },
+    grenade: { name: 'Граната', slot: 3, price: 0, icon: '💣', sub: 'Отскакивает и взрывается. Выгонит из-за укрытия', kind: 'throw', dmg: 85, splash: 5, fuse: 1.6, v: 17, up: 6, g: 22, charges: 2, regen: 8,
+      proj: 'grenade', snd: 'toss' },
+    smoke: { name: 'Дымовуха', slot: 3, price: 100, icon: '💨', sub: 'Облако дыма: сквозь него не видно', kind: 'throw', smoke: 4.6, fuse: 1.1, v: 16, up: 6, g: 22, charges: 2, regen: 12, proj: 'smoke', snd: 'toss' },
+    shuriken: { name: 'Сюрикены', slot: 3, price: 110, icon: '✴', sub: 'Три звёздочки веером', kind: 'proj', fan: 3, dmg: 24, head: 1.5, v: 52, g: 3, charges: 3, regen: 3.5, proj: 'star', snd: 'toss' },
+    medkit: { name: 'Аптечка', slot: 3, price: 130, icon: '➕', sub: 'Лечит 50 сердечек', kind: 'heal', heal: 50, charges: 1, regen: 15, snd: 'heal' },
+    jetpack: { name: 'Джетпак', slot: 3, price: 150, icon: '🎒', sub: 'Реактивный прыжок высоко вверх', kind: 'jet', charges: 2, regen: 6, snd: 'jet' },
+  };
+  const GUN_IDS = Object.keys(GUNS);
+  const SNIPE_LOAD = ['sniper', null, null, null];
+
+  // ---------- the guns' models: the grip at the origin, the barrel along +z, the top +y ----------
+  const GZ = Math.PI / 2, THIN_ARC = shared(new T.TorusGeometry(1, .05, 6, 18, Math.PI));
+  const gz = (len, r, col, x, y, z) => [CYL, col, M4(x, y, z, r, len, r, GZ, 0, 0)]; // a rod along z
+  const grip = (col = 0x2b2f4a, z = 0) => [BOX, col, M4(0, -.08, z, .065, .16, .08, .25, 0, 0)];
+  GEO.gun = {
+    sniper: mergedGeo([[BOX, 0x4f7a3a, M4(0, .06, .22, .1, .13, .62)], [BOX, 0x8a5a36, M4(0, .02, -.2, .09, .15, .34)], grip(0x8a5a36), gz(.7, .03, 0x2b2f4a, 0, .09, .85),
+      gz(.1, .045, 0xffd23f, 0, .09, 1.22), gz(.36, .055, 0x1c1e2e, 0, .2, .28), [SPH, 0x6fe0ff, M4(0, .2, .47, .045, .045, .02)], [BOX, 0x1c1e2e, M4(0, .15, .28, .03, .06, .05)],
+      [BOX, 0x2b2f4a, M4(0, -.06, .3, .06, .1, .12)]]),
+    rifle: mergedGeo([[BOX, 0x4a5165, M4(0, .05, .2, .1, .15, .52)], [BOX, 0x2b2f4a, M4(0, .03, -.17, .08, .13, .26)], grip(), [BOX, 0xff8a2a, M4(0, -.12, .24, .07, .2, .1, -.2, 0, 0)],
+      gz(.34, .028, 0x1c1e2e, 0, .07, .62), [BOX, 0xff8a2a, M4(0, .15, .18, .03, .05, .12)], gz(.2, .045, 0x3b3f50, 0, .06, .46)]),
+    shotgun: mergedGeo([[BOX, 0xb8423a, M4(0, .05, .12, .1, .13, .42)], [BOX, 0x8a5a36, M4(0, .02, -.2, .09, .15, .32)], grip(0x8a5a36), gz(.62, .04, 0x3b3f50, 0, .1, .6),
+      gz(.24, .055, 0x8a5a36, 0, .03, .52), gz(.05, .05, 0xffd23f, 0, .1, .92)]),
+    minigun: mergedGeo([[BOX, 0x5a6275, M4(0, .03, .08, .22, .22, .34)], ...[0, 1, 2, 3, 4, 5].map((i) => gz(.72, .024, 0x3b3f50, Math.cos(i * 1.047) * .065, .03 + Math.sin(i * 1.047) * .065, .6)),
+      gz(.04, .1, 0xffd23f, 0, .03, .45), gz(.04, .1, 0xffd23f, 0, .03, .92), [BOX, 0xf0503a, M4(0, -.12, .02, .16, .12, .2)], [BOX, 0x2b2f4a, M4(0, .2, .05, .04, .1, .2)], grip()]),
+    bow: mergedGeo([[THIN_ARC, 0x8a5a36, M4(0, 0, -.5, .5, .5, .5, 0, -GZ, -GZ)], [BOX, 0xffffff, M4(0, 0, -.5, .008, 1, .008)], [CYL, 0xf0503a, M4(0, 0, 0, .04, .16, .04)],
+      gz(.9, .012, 0xdfe3ee, 0, 0, -.05), [CONE, 0x8a92a4, M4(0, 0, .43, .03, .08, .03, GZ, 0, 0)], [BOX, 0xf0503a, M4(0, .03, -.45, .005, .05, .1)], [BOX, 0xf0503a, M4(0, -.03, -.45, .005, .05, .1)]]),
+    crossbow: mergedGeo([[BOX, 0x8a5a36, M4(0, .04, .15, .08, .1, .7)], grip(0x8a5a36), [THIN_ARC, 0x3b3f50, M4(0, .06, .3, .4, .3, .4, GZ, 0, 0)], [BOX, 0xffffff, M4(0, .06, .3, .8, .008, .008)],
+      gz(.5, .015, 0xdfe3ee, 0, .1, .4), [CONE, 0x8a92a4, M4(0, .1, .67, .025, .06, .025, GZ, 0, 0)]]),
+    rpg: mergedGeo([gz(1.1, .09, 0x5f8a3a, 0, .06, .25), [CONE, 0xf0503a, M4(0, .06, .9, .09, .22, .09, GZ, 0, 0)], gz(.08, .1, 0xffd23f, 0, .06, .8), gz(.08, .1, 0xffd23f, 0, .06, -.28),
+      grip(), [BOX, 0x2b2f4a, M4(0, .19, .15, .04, .07, .12)]]),
+    flamer: mergedGeo([[BOX, 0xd8302a, M4(0, .04, .12, .11, .14, .45)], gz(.35, .035, 0x3b3f50, 0, .06, .5), gz(.06, .055, 0xffd23f, 0, .06, .68), [SPH, 0xffc53d, M4(0, -.1, .2, .1, .12, .1)], grip()]),
+    paint: mergedGeo([[BOX, 0x4262ff, M4(0, .04, .12, .1, .13, .4)], gz(.3, .03, 0x2b2f4a, 0, .05, .45), [SPH, 0xff5ab0, M4(0, .2, .06, .1, .12, .1)], [SPH, 0x9dff7a, M4(.03, .27, .07, .04, .04, .04)], grip()]),
+    revolver: mergedGeo([[BOX, 0x8a92a4, M4(0, .06, .08, .06, .09, .16)], gz(.12, .055, 0x5a6275, 0, .06, .1), gz(.24, .022, 0x5a6275, 0, .08, .28), [BOX, 0x8a5a36, M4(0, -.06, -.02, .055, .15, .07, .35, 0, 0)],
+      [BOX, 0x5a6275, M4(0, .12, .38, .015, .03, .02)]]),
+    uzi: mergedGeo([[BOX, 0x2b2f4a, M4(0, .05, .1, .08, .1, .28)], [BOX, 0x2b2f4a, M4(0, -.08, .02, .06, .17, .06)], gz(.1, .02, 0x1c1e2e, 0, .06, .28), [BOX, 0xffd23f, M4(0, .11, .08, .02, .02, .12)]]),
+    sling: mergedGeo([[CYL, 0x8a5a36, M4(0, -.02, 0, .025, .18, .025)], [CYL, 0x8a5a36, M4(-.05, .12, .02, .02, .14, .02, 0, 0, .35)], [CYL, 0x8a5a36, M4(.05, .12, .02, .02, .14, .02, 0, 0, -.35)],
+      [BOX, 0xf0503a, M4(0, .18, -.04, .12, .015, .012)]]),
+    katana: mergedGeo([gz(.24, .03, 0x2b2f4a, 0, 0, -.02), [CYL, 0xffd23f, M4(0, 0, .12, .09, .02, .09, GZ, 0, 0)], [BOX, 0xdfe3ee, M4(0, 0, .62, .018, .06, .95)], [BOX, 0xffffff, M4(0, .026, .62, .012, .012, .95)]]),
+    scythe: mergedGeo([gz(1.3, .03, 0x7a4f2c, 0, 0, .35), [BOX, 0xb8bfcc, M4(0, -.22, .98, .02, .46, .12, -.25, 0, 0)], [CONE, 0xb8bfcc, M4(0, -.5, .9, .02, .14, .07, Math.PI + .4, 0, 0)],
+      [SPH, 0x7b52d6, M4(0, 0, 1.02, .05, .05, .05)]]),
+    hammer: mergedGeo([gz(.8, .035, 0x8a5a36, 0, 0, .2), [CYL, 0xf0503a, M4(0, 0, .72, .17, .44, .17, 0, 0, GZ)], [CYL, 0xffd23f, M4(.23, 0, .72, .175, .03, .175, 0, 0, GZ)],
+      [CYL, 0xffd23f, M4(-.23, 0, .72, .175, .03, .175, 0, 0, GZ)]]),
+    grenade: mergedGeo([[SPH, 0x5f8a3a, M4(0, .02, .04, .09, .11, .09)], [CYL, 0x8a92a4, M4(0, .14, .04, .035, .04, .035)], [DONUT, 0xffd23f, M4(.04, .17, .04, .025, .025, .025)]]),
+    smoke: mergedGeo([[CYL, 0xb8bfcc, M4(0, .03, .04, .06, .2, .06)], [CYL, 0x5a6275, M4(0, .03, .04, .062, .04, .062)], [CYL, 0x8a92a4, M4(0, .15, .04, .03, .04, .03)]]),
+    shuriken: mergedGeo([[STAR5, 0xb8bfcc, M4(0, .03, .06, .12, .12, .1)], [CYL, 0x2b2f4a, M4(0, .03, .06, .03, .04, .03, GZ, 0, 0)]]),
+    medkit: mergedGeo([[BOX, 0xffffff, M4(0, .02, .06, .2, .15, .08)], [BOX, 0xf0503a, M4(0, .02, .105, .12, .035, .01)], [BOX, 0xf0503a, M4(0, .02, .105, .035, .12, .01)], [BOX, 0x8a92a4, M4(0, .11, .06, .08, .02, .02)]]),
+    // worn on the back, not held
+    jetpack: mergedGeo([[CYL, 0xb8bfcc, M4(-.12, 0, 0, .09, .42, .09)], [CYL, 0xb8bfcc, M4(.12, 0, 0, .09, .42, .09)], [BOX, 0xf0503a, M4(0, .02, .05, .3, .3, .06)],
+      [CONE, 0xffd23f, M4(-.12, -.26, 0, .07, .12, .07, Math.PI, 0, 0)], [CONE, 0xffd23f, M4(.12, -.26, 0, .07, .12, .07, Math.PI, 0, 0)], [SPH, 0xf0503a, M4(-.12, .21, 0, .09, .05, .09)],
+      [SPH, 0xf0503a, M4(.12, .21, 0, .09, .05, .09)]]),
+  };
+  // what flies: an arrow, a bolt, a rocket with fins, paint balls in three colours, a pebble, a grenade, a smoke can, a star
+  GEO.flies = {
+    arrow: mergedGeo([gz(.9, .014, 0xdfe3ee, 0, 0, 0), [CONE, 0x8a92a4, M4(0, 0, .48, .035, .09, .035, GZ, 0, 0)], [BOX, 0xf0503a, M4(0, .03, -.4, .006, .05, .12)], [BOX, 0xf0503a, M4(0, -.03, -.4, .006, .05, .12)]]),
+    bolt: mergedGeo([gz(.55, .018, 0xdfe3ee, 0, 0, 0), [CONE, 0x8a92a4, M4(0, 0, .3, .03, .08, .03, GZ, 0, 0)], [BOX, 0x4262ff, M4(0, .025, -.24, .006, .04, .08)]]),
+    rocket: mergedGeo([gz(.5, .07, 0x5f8a3a, 0, 0, 0), [CONE, 0xf0503a, M4(0, 0, .35, .07, .2, .07, GZ, 0, 0)], [BOX, 0xffd23f, M4(0, 0, -.22, .3, .02, .1)], [BOX, 0xffd23f, M4(0, 0, -.22, .02, .3, .1)]]),
+    paint: [0xff5ab0, 0x9dff7a, 0x5ad0ff].map((c) => mergedGeo([[SPH, c, M4(0, 0, 0, .09, .09, .09)]])),
+    pebble: mergedGeo([[ICO, 0x8a8698, M4(0, 0, 0, .08, .07, .08)]]),
+    grenade: GEO.gun.grenade, smoke: GEO.gun.smoke, star: mergedGeo([[STAR5, 0xb8bfcc, M4(0, 0, 0, .14, .14, .08, GZ, 0, 0)]]),
+  };
+  const PAINT_COLS = [0xff5ab0, 0x9dff7a, 0x5ad0ff];
+
+  // a gun in a rig's hand (the right one, arms[0]), made on demand; the jetpack goes on the back
+  function rigGun(h, id) {
+    const u = h.guns || (h.guns = { hold: null, back: null, id: '', meshes: {} });
+    if (u.id === id) return;
+    u.id = id;
+    if (!u.hold) {
+      u.hold = new T.Group(); u.hold.position.set(0, -.085, .01); u.hold.rotation.x = Math.PI / 2; h.arms[0].wr.add(u.hold);
+      u.back = new T.Mesh(GEO.gun.jetpack, MAT.char); u.back.position.set(0, .26, -.36); u.back.castShadow = true; u.back.visible = false; h.torso.add(u.back);
+    }
+    for (const k in u.meshes) u.meshes[k].visible = false;
+    if (!id || id === 'jetpack' || !GEO.gun[id]) return;
+    let m = u.meshes[id];
+    if (!m) { m = u.meshes[id] = new T.Mesh(GEO.gun[id], MAT.char); m.castShadow = true; u.hold.add(m); }
+    m.visible = true;
+  }
+  // where a rig's gun fires from, in the world
+  const _gm = new T.Vector3();
+  function rigMuzzle(h, id, out = _gm) {
+    const w = GUNS[id], u = h.guns;
+    if (!w || !w.mz || !u || !u.hold || !h.root.visible) return h.arms[0].wr.getWorldPosition(out);
+    return u.hold.localToWorld(out.set(w.mz[0], w.mz[1], w.mz[2]));
+  }
+
+  // ---------- the hero's guns ----------
+  // what the hero holds: the set (ids), the slot in hand, rounds left in each, the reload, the time to the next shot, the
+  // minigun's spin, the bow's draw, the scope, the specials' charges; a swing or a throw for the pose, a recoil kick
+  const GN = { ids: [null, null, null, null], slot: 0, ammo: [0, 0, 0, 0], rel: 0, cd: 0, spin: 0, draw: 0, held: false, was: false, scope: false, scopeK: 0,
+    ch: {}, chT: {}, swingT: 0, throwT: 0, recoil: 0, kick: 0, healT: 0, prev: 0, near: false, sent: '', sendT: 0 };
+  const gunOn = () => !!L && !!L.def.duels && !P.veh && G.state !== 'title' && G.state !== 'win' && G.state !== 'over';
+  const gunCur = () => GUNS[GN.ids[GN.slot]] || null;
+  const gunScoped = () => gunOn() && GN.scopeK > .6 && (G.state === 'playing' || G.state === 'dying');
+  // the set taken into a fight: sniper rifles only in a sniper duel, the hero's own set otherwise (own: always his own)
+  function gunLoadOut(own) {
+    if (!own && (duelSniping() || (FT && FT.kind === 'snipe'))) return SNIPE_LOAD.slice();
+    return [0, 1, 2, 3].map((i) => { const id = SAVE.load[i]; return id && GUNS[id] && GUNS[id].slot === i && SAVE.guns.includes(id) ? id : null; });
+  }
+  // a fresh set: full rounds and charges, the first gun in hand
+  function gunReset(ids = gunLoadOut()) {
+    GN.ids = ids; GN.ammo = ids.map((id) => (id ? GUNS[id].mag || 0 : 0));
+    GN.ch = {}; GN.chT = {};
+    for (const id of ids) if (id && GUNS[id].charges) { GN.ch[id] = GUNS[id].charges; GN.chT[id] = 0; }
+    GN.slot = Math.max(0, ids.findIndex(Boolean)); GN.prev = GN.slot;
+    GN.rel = 0; GN.cd = .2; GN.spin = 0; GN.draw = 0; GN.scope = false; GN.swingT = 0; GN.throwT = 0; GN.healT = 0;
+    gunShow();
+  }
+  // the hero's model holds what is in hand (and wears the jetpack when it is in the set)
+  function gunShow() {
+    const on = gunOn(), id = on ? GN.ids[GN.slot] : '';
+    rigGun(hero, id || '');
+    if (hero.guns) hero.guns.back.visible = on && GN.ids.includes('jetpack');
+    gunUiKey = '';
+  }
+  function gunSwitch(i) {
+    if (!gunOn() || i === GN.slot || !GN.ids[i] || G.state !== 'playing') return;
+    const w = GUNS[GN.ids[i]];
+    if (w.charges && !GN.ch[GN.ids[i]]) { Snd.sfx.dry(); popup('Ещё не готово', P.pos.x, P.pos.y + PH + .6, P.pos.z); return; }
+    GN.prev = GN.slot; GN.slot = i; GN.rel = 0; GN.spin = 0; GN.draw = 0; GN.cd = Math.max(GN.cd, .22); GN.scope = false;
+    Snd.sfx.gunLoad(); gunShow(); gunNet('w');
+  }
+  function gunCycle(k) { for (let j = 1; j < 4; j++) { const i = (GN.slot + k * j + 8) % 4; if (GN.ids[i]) { gunSwitch(i); return; } } }
+  function gunReload() {
+    const w = gunCur();
+    if (!w || !w.mag || GN.rel > 0 || GN.ammo[GN.slot] >= w.mag) return;
+    GN.rel = w.reload; GN.scope = false; GN.spin = 0; Snd.sfx.gunLoad();
+  }
+  function gunScopeSet(on) {
+    const w = gunCur(); on = !!on && !!w && !!w.scope && GN.rel <= 0;
+    if (on === GN.scope) return;
+    GN.scope = on; if (on) Snd.sfx.zoom();
+    gunNet('z');
+  }
+  // the fire button: held, it keeps firing an automatic gun and draws a bow; a tap fires the rest
+  const mouseFire = { held: false };
+  const gunHeld = () => G.state === 'playing' && (actHeld() || mouseFire.held);
+  function gunPress() {
+    const w = gunCur(); if (!w || G.state !== 'playing') return;
+    if (ftFrozen()) return;
+    if (w.auto || w.draw || w.kind === 'flame') return; // updateGun fires these while held
+    gunTry(w, 0);
+  }
+  // fires if it can: loaded, not reloading, the last shot's time gone by; out of rounds it reloads
+  function gunTry(w, k) {
+    if (GN.cd > 0 || GN.rel > 0 || P.koT > 0) return false;
+    const i = GN.slot;
+    if (w.mag && GN.ammo[i] <= 0) { gunReload(); if (GN.rel <= 0) Snd.sfx.dry(); return false; }
+    if (w.charges && !GN.ch[GN.ids[i]]) { Snd.sfx.dry(); return false; }
+    gunFire(w, k);
+    if (w.mag) GN.ammo[i]--;
+    if (w.charges) { GN.ch[GN.ids[i]]--; if (!GN.ch[GN.ids[i]]) GN.chT[GN.ids[i]] = w.regen; }
+    GN.cd = w.cd || .35;
+    if (w.mag && GN.ammo[i] <= 0) setTimeout(() => { if (GN.slot === i && GN.ammo[i] <= 0 && gunOn()) gunReload(); }, 260);
+    // a special thing used up: back to the gun that was in hand before
+    if (w.charges && !GN.ch[GN.ids[i]] && GN.ids[GN.prev] && GN.prev !== i) setTimeout(() => { if (GN.slot === i && gunOn()) gunSwitch(GN.prev); }, 350);
+    return true;
+  }
+  function updateGun(dt) {
+    GN.cd -= dt; GN.swingT -= dt; GN.throwT -= dt; GN.recoil = Math.max(0, GN.recoil - dt * 6); GN.kick = damp(GN.kick, 0, 7, dt);
+    for (const id in GN.chT) if (GN.chT[id] > 0) { GN.chT[id] -= dt; if (GN.chT[id] <= 0 && GN.ch[id] < GUNS[id].charges) { GN.ch[id]++; if (GN.ch[id] < GUNS[id].charges) GN.chT[id] = GUNS[id].regen; } }
+    if (GN.healT > 0) { const k = Math.min(GN.healT, dt); GN.healT -= dt; P.hp = Math.min(100, P.hp + k * 50 / 1.4); if (Math.random() < dt * 12) glow(P.pos.x, P.pos.y + 1, P.pos.z, 0x9dff7a, 1, 1, 1.5, 0, .5, .25); }
+    const on = gunOn(), w = on ? gunCur() : null;
+    GN.scopeK = damp(GN.scopeK, on && GN.scope && G.state === 'playing' ? 1 : 0, 14, dt);
+    if (!on || G.state !== 'playing') { GN.was = false; return; }
+    P.facing = wrapPi(cam.yaw + Math.PI); // the hero faces where the crosshair points
+    if (GN.rel > 0) {
+      GN.rel -= dt;
+      if (GN.rel <= 0) { GN.rel = 0; GN.ammo[GN.slot] = w.mag; Snd.sfx.gunLoad(); }
+    }
+    const held = gunHeld() && !holdStill();
+    if (w && w.spin) { GN.spin = clamp(GN.spin + (held && GN.rel <= 0 ? dt : -dt * 1.5) / w.spin, 0, 1); if (held && Math.random() < dt * 8) Snd.sfx.minigun(); }
+    if (w && w.auto && held && (!w.spin || GN.spin >= 1)) gunTry(w, 0);
+    if (w && w.kind === 'flame' && held) gunTry(w, 0);
+    if (w && w.draw) {
+      if (held && GN.rel <= 0 && GN.cd <= 0 && GN.ammo[GN.slot] > 0) GN.draw = Math.min(w.draw, GN.draw + dt);
+      else if (GN.was && GN.draw > 0) { gunTry(w, GN.draw / w.draw); GN.draw = 0; }
+      else GN.draw = 0;
+    }
+    GN.was = held;
+    if (w && w.mag && GN.ammo[GN.slot] <= 0 && GN.rel <= 0 && GN.cd <= 0) gunReload();
+    // on a phone the crosshair slows down over a foe, so it is easier to stay on one
+    GN.near = isTouch && !!gunAimAssist(camera.position, aimRay().d, .06, 90);
+    // friends see what is in the hero's hand
+    GN.sendT -= dt; if (GN.sendT <= 0) { GN.sendT = 3; gunNet('w'); }
+  }
+  const gunSpeedK = () => { const w = gunCur(); return (GN.scopeK > .5 ? .55 : 1) * (w && w.slow && (GN.spin > 0 || GN.was) ? w.slow : 1) * (w && w.draw && GN.draw > 0 ? .7 : 1); };
+
+  // ---------- rays: what a shot meets ----------
+  const _gd = new T.Vector3(), _go = new T.Vector3(), _gq = new T.Vector3(), _gy = new T.Vector3(0, 1, 0);
+  // where a ray from (o) along the unit (d) first enters a solid box, or Infinity; a ramp is followed along its slope
+  function rayBox(s, ox, oy, oz, dx, dy, dz, max) {
+    let t0 = 0, t1 = max;
+    const lo = [s.min.x, s.min.y, s.min.z], hi = [s.max.x, s.max.y, s.max.z], o = [ox, oy, oz], d = [dx, dy, dz];
+    for (let a = 0; a < 3; a++) {
+      if (Math.abs(d[a]) < 1e-9) { if (o[a] < lo[a] || o[a] > hi[a]) return Infinity; continue; }
+      let ta = (lo[a] - o[a]) / d[a], tb = (hi[a] - o[a]) / d[a];
+      if (ta > tb) { const q = ta; ta = tb; tb = q; }
+      if (ta > t0) t0 = ta; if (tb < t1) t1 = tb;
+      if (t0 > t1) return Infinity;
+    }
+    if (!s.ramp) return t0;
+    for (let t = t0; t <= t1; t += .15) if (oy + dy * t <= topOf(s, ox + dx * t, oz + dz * t)) return t;
+    return Infinity;
+  }
+  function raySolids(ox, oy, oz, dx, dy, dz, max, list = FT ? FT.solids : L.solids) {
+    let best = max, hit = null;
+    for (const s of list) {
+      if (!s.active) continue;
+      const t = rayBox(s, ox, oy, oz, dx, dy, dz, best);
+      if (t < best) { best = t; hit = s; }
+    }
+    return { t: best, s: hit };
+  }
+  function raySphere(ox, oy, oz, dx, dy, dz, cx, cy, cz, r) {
+    const lx = cx - ox, ly = cy - oy, lz = cz - oz, tc = lx * dx + ly * dy + lz * dz, d2 = lx * lx + ly * ly + lz * lz - tc * tc;
+    if (d2 > r * r) return Infinity;
+    const th = Math.sqrt(r * r - d2), t = tc - th;
+    return t >= 0 ? t : tc + th >= 0 ? 0 : Infinity;
+  }
+  // a standing cylinder from y0 to y1
+  function rayCyl(ox, oy, oz, dx, dy, dz, cx, cz, r, y0, y1) {
+    const fx = ox - cx, fz = oz - cz, a = dx * dx + dz * dz;
+    let lo = -Infinity, hi = Infinity;
+    if (a > 1e-9) {
+      const b = 2 * (fx * dx + fz * dz), c = fx * fx + fz * fz - r * r, disc = b * b - 4 * a * c;
+      if (disc < 0) return Infinity;
+      const sq = Math.sqrt(disc); lo = (-b - sq) / (2 * a); hi = (-b + sq) / (2 * a);
+    } else if (fx * fx + fz * fz > r * r) return Infinity;
+    if (Math.abs(dy) > 1e-9) { let ta = (y0 - oy) / dy, tb = (y1 - oy) / dy; if (ta > tb) { const q = ta; ta = tb; tb = q; } lo = Math.max(lo, ta); hi = Math.min(hi, tb); }
+    else if (oy < y0 || oy > y1) return Infinity;
+    if (lo > hi || hi < 0) return Infinity;
+    return Math.max(lo, 0);
+  }
+  // Who a shot can hit: [x, feet y, z, size] and what it is. The hero's shots: the bots, the friends in a duel with guns;
+  // a bot's shots: the hero.
+  function gunMarks(mine) {
+    const out = [];
+    if (!mine) { if (FT && FT.phase === 'fight' && P.koT <= 0 && hero.root.visible) out.push({ x: P.pos.x, y: P.pos.y, z: P.pos.z, s: P.scaleCur, kind: 'me' }); return out; }
+    if (FT && FT.bot && FT.bot.alive) out.push({ x: FT.bot.x, y: FT.bot.y, z: FT.bot.z, s: 1, kind: 'bot', ref: FT.bot });
+    if (duelGunRun()) {
+      const loc = netLoc();
+      for (const id of duel.players) {
+        const g = id === duelMe() ? null : net.peers.get(id);
+        if (g && g.rig && g.rig.root.visible && g.loc === loc) out.push({ x: g.px, y: g.py, z: g.pz, s: g.cur[2] || 1, kind: 'friend', ref: id });
+      }
+    }
+    return out;
+  }
+  const HEAD_Y = 1.36, HEAD_R = .4, BODY_R = .42, BODY_Y = 1.06;
+  function rayMark(m, ox, oy, oz, dx, dy, dz) {
+    const th = raySphere(ox, oy, oz, dx, dy, dz, m.x, m.y + HEAD_Y * m.s, m.z, HEAD_R * m.s);
+    const tb = rayCyl(ox, oy, oz, dx, dy, dz, m.x, m.z, BODY_R * m.s, m.y + .05, m.y + BODY_Y * m.s);
+    return th < tb ? { t: th, head: true } : { t: tb, head: false };
+  }
+  // the first thing along a ray: a solid, one of the marks (a head or a body), or a target of the range
+  function gunRay(ox, oy, oz, dx, dy, dz, max, marks, tg = false) {
+    const sol = raySolids(ox, oy, oz, dx, dy, dz, max);
+    let best = sol.t, who = null, head = false, tgt = null;
+    for (const m of marks) { const r = rayMark(m, ox, oy, oz, dx, dy, dz); if (r.t < best) { best = r.t; who = m; head = r.head; } }
+    const q = ISL.beacons;
+    if (tg && q && q.style === 'target' && !questDone(q.star)) for (const b of q.list) {
+      if (b.lit) continue;
+      const t = raySphere(ox, oy, oz, dx, dy, dz, b.x, b.y + TARGET_Y, b.z, .9);
+      if (t < best) { best = t; who = null; tgt = b; }
+    }
+    return { t: best, x: ox + dx * best, y: oy + dy * best, z: oz + dz * best, who, head, tgt, solid: !who && !tgt && best < max };
+  }
+  // nothing solid and no smoke on the line between two points
+  function gunClear(ax, ay, az, bx, by, bz) {
+    const dx = bx - ax, dy = by - ay, dz = bz - az, l = Math.hypot(dx, dy, dz) || 1;
+    return raySolids(ax, ay, az, dx / l, dy / l, dz / l, l).t >= l - .05 && !smokeHides(ax, ay, az, bx, by, bz);
+  }
+  // on a phone, a shot that only just misses a foe's middle goes to it (not through the scope, not through walls)
+  function gunAimAssist(o, d, ang, range) {
+    let best = null, bestA = ang;
+    for (const m of gunMarks(true)) {
+      const cx = m.x - o.x, cy = m.y + .95 * m.s - o.y, cz = m.z - o.z, t = cx * d.x + cy * d.y + cz * d.z;
+      if (t < 2 || t > range) continue;
+      const a = Math.hypot(cx - d.x * t, cy - d.y * t, cz - d.z * t) / t;
+      if (a < bestA && gunClear(o.x + d.x, o.y + d.y, o.z + d.z, m.x, m.y + .95 * m.s, m.z)) { bestA = a; best = m; }
+    }
+    return best;
+  }
+
+  // ---------- firing ----------
+  // where the crosshair looks up or down: the view, and a gun's kick for a moment after a shot
+  const gunAim = () => clamp(cam.aim + GN.kick, -1.4, 1.4);
+  // the crosshair's ray: out of the camera, starting level with the hero so nothing behind him gets in the way
+  function aimRay() {
+    const a = gunAim(), d = _gd.set(-Math.sin(cam.yaw) * Math.cos(a), Math.sin(a), -Math.cos(cam.yaw) * Math.cos(a));
+    const c = camera.position, t0 = Math.max(0, (P.pos.x - c.x) * d.x + (P.pos.y + 1.3 - c.y) * d.y + (P.pos.z - c.z) * d.z);
+    return { o: _go.set(c.x + d.x * t0, c.y + d.y * t0, c.z + d.z * t0), d };
+  }
+  // a direction spread round (d) by up to (s) radians
+  function spreadDir(d, s, out) {
+    if (s <= 0) return out.copy(d);
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * s;
+    const ux = Math.abs(d.y) < .95 ? 0 : 1, uy = ux ? 0 : 1; // any direction not along d, crossed with it twice for two sideways ones
+    const px = d.y * 0 - d.z * uy, py = d.z * ux - d.x * 0, pz = d.x * uy - d.y * ux, pl = Math.hypot(px, py, pz) || 1;
+    const qx = d.y * pz - d.z * py, qy = d.z * px - d.x * pz, qz = d.x * py - d.y * px, ql = Math.hypot(qx, qy, qz) || 1;
+    out.set(d.x + (px / pl * Math.cos(a) + qx / ql * Math.sin(a)) * r, d.y + (py / pl * Math.cos(a) + qy / ql * Math.sin(a)) * r, d.z + (pz / pl * Math.cos(a) + qz / ql * Math.sin(a)) * r);
+    return out.normalize();
+  }
+  const _gs = new T.Vector3(), _ge = new T.Vector3();
+  function gunFire(w, k) {
+    const id = GN.ids[GN.slot], snd = Snd.sfx[w.snd]; if (snd) snd();
+    GN.recoil = 1; if (w.kick) GN.kick = Math.min(.3, GN.kick + w.kick * (GN.scopeK > .5 ? .5 : 1)); // the barrel jumps up, and settles back
+    if (FT) FT.shots++;
+    if (w.kind === 'melee') { gunSwing(w); return; }
+    if (w.kind === 'heal') { GN.healT = 1.4; GN.throwT = .4; popup('+' + w.heal + ' ❤', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); return; }
+    if (w.kind === 'jet') {
+      const f = P.facing; P.vel.y = 19 * jumpK(); P.vel.x += Math.sin(f) * 5; P.vel.z += Math.cos(f) * 5; P.onGround = false; P.noCut = true; P.jetT = .6; P.airJumps = Math.max(P.airJumps, 0);
+      wave(P.pos.x, P.pos.y, P.pos.z, 0xffc04a, 1.8, .35); G.kick = .8; gunNet('j');
+      return;
+    }
+    const { o, d } = aimRay(), mz = rigMuzzle(hero, id, _gm).clone();
+    if (w.kind === 'throw') { GN.throwT = .35; gunThrow(w, mz, d, 'me'); return; }
+    if (w.kind === 'flame') { gunFlame(w, mz, o, d, 'me'); return; }
+    if (w.kind === 'proj') {
+      // it flies from the gun towards where the crosshair points
+      const aim = gunRay(o.x, o.y, o.z, d.x, d.y, d.z, 160, gunMarks(true), true), dir = _gs.set(aim.x - mz.x, aim.y - mz.y, aim.z - mz.z).normalize();
+      const n = w.fan || 1;
+      for (let i = 0; i < n; i++) {
+        const v = Array.isArray(w.v) ? lerp(w.v[0], w.v[1], k) : w.v, yaw = (i - (n - 1) / 2) * .1;
+        const cy = Math.cos(yaw), sy = Math.sin(yaw), vx = (dir.x * cy + dir.z * sy) * v, vz = (-dir.x * sy + dir.z * cy) * v;
+        gunShot(w, id, mz.x, mz.y, mz.z, vx, dir.y * v, vz, 'me', false, k);
+      }
+      if (w.proj === 'rocket') puff(mz.x, mz.y, mz.z, 0xe8e6ee, 5, 2, .4, .6, 1);
+      return;
+    }
+    // bullets: each pellet its own ray, spread wider without the scope, on the move and in the air
+    const moving = Math.hypot(P.vel.x, P.vel.z), sc = GN.scopeK > .6;
+    const s = (sc ? w.spread : w.hip) * (1 + moving * .06 + (P.onGround ? 0 : .8)) + (w.spin ? .01 * (1 - GN.spin) : 0);
+    const help = isTouch && !sc && w.range < 200 ? gunAimAssist(o, d, .045, w.range) : null;
+    if (help) d.set(help.x - o.x, help.y + .95 * help.s - o.y, help.z - o.z).normalize();
+    const ends = [], marks = gunMarks(true);
+    let hitAny = false;
+    for (let i = 0; i < (w.pellets || 1); i++) {
+      const dd = spreadDir(d, s, _ge), r = gunRay(o.x, o.y, o.z, dd.x, dd.y, dd.z, w.range, marks, true);
+      ends.push([r.x, r.y, r.z]);
+      tracer(mz.x, mz.y, mz.z, r.x, r.y, r.z, sc && w.trail ? w.trail : .07, sc && w.trail ? 0xbfefff : 0xfff0a0, id === 'sniper' ? .035 : .018);
+      if (gunImpact(r, w, dd, 'me', w.dmg * (r.head ? w.head : 1) * (w.pellets ? clamp(1.3 - r.t / w.range, .35, 1) : 1))) hitAny = true;
+    }
+    if (hitAny && FT) FT.hits++;
+    flashAt(mz.x, mz.y, mz.z, 0xffe07a, id === 'sniper' ? 1.6 : 1, .06);
+    gunNet('s', false, { p: [mz.x, mz.y, mz.z], e: ends });
+  }
+  // what a shot does where it lands: a mark takes the hit (a friend is told), a target of the range lights, a wall puffs
+  function gunImpact(r, w, d, by, dmg) {
+    if (r.tgt && ISL.beacons) { lightBeacon(ISL.beacons, r.tgt); return false; }
+    if (r.who) { gunHit(r.who, Math.round(dmg), r.head, d, by, w); return true; }
+    if (r.solid) { puff(r.x, r.y, r.z, 0xe8dcc4, 2, .8, .3, .4, .5); emit(r.x, r.y, r.z, 0xfff3a0, 3, 3, 1, 8, .25, .12); }
+    return false;
+  }
+  // a hit on someone: the bot or the hero takes it here, a friend's screen is told; the shooter sees a mark and the number
+  function gunHit(m, dmg, head, d, by, w) {
+    if (dmg <= 0) return;
+    const hx = m.x, hy = m.y + (head ? HEAD_Y : .9) * m.s, hz = m.z;
+    emit(hx, hy, hz, head ? 0xff5a4a : 0xfff3a0, head ? 12 : 7, 4, 1, 8, .35, .16); glow(hx, hy, hz, 0xffffff, 3, 2, 0, 0, .2, .3);
+    if (by === 'me') {
+      hitMark(head); popup((head ? '💥' : '') + dmg, hx, hy + .9, hz, head ? 'gold' : '');
+      if (FT && head) FT.heads++;
+    }
+    if (m.kind === 'bot') botHurt(m.ref, dmg, head, d, w);
+    else if (m.kind === 'friend') { if (duelGunRun()) { duelSay({ t: 'gh', who: m.ref, d: dmg, h: head ? 1 : 0, k: w && w.knock ? 1 : 0 }); if (head && duel.kind === 'snipe') gunHeadStar(); } }
+    else if (m.kind === 'me') heroHurt(dmg, head, d, by, w);
+  }
+  function gunHeadStar() {
+    const S = ISL.ft && ISL.ft.snipe; if (!S || questDone('du.head')) return;
+    npcSay(S.host, 'Прямо в голову! Держи звезду!'); revealStar('du.head', S.host.x, S.host.y + S.host.h, S.host.z);
+  }
+  // a swing: everyone within reach in front of the hero, a lunge with the katana, a toss with the hammer
+  function gunSwing(w) {
+    GN.swingT = .32;
+    const f = P.facing, x = P.pos.x, y = P.pos.y + .9, z = P.pos.z;
+    for (let i = 0; i < 6; i++) { const a = f + (i / 5 - .5) * w.arc, r = w.reach * .8; glow(x + Math.sin(a) * r, y + .2, z + Math.cos(a) * r, 0xdff6ff, 2, .6, 0, 0, .22, .3); }
+    let near = null;
+    for (const m of gunMarks(true)) {
+      const dx = m.x - x, dz = m.z - z, d = Math.hypot(dx, dz), off = Math.abs(wrapPi(Math.atan2(dx, dz) - f));
+      if (w.lunge && d < 7 && off < .6 && !near) near = m;
+      if (d > w.reach + .4 || off > w.arc / 2 + .2 || Math.abs(m.y - P.pos.y) > 2) continue;
+      if (!gunClear(x, y, z, m.x, m.y + .9, m.z)) continue;
+      gunHit(m, w.dmg, false, _gd.set(dx / (d || 1), 0, dz / (d || 1)), 'me', w);
+      if (FT) FT.hits++;
+    }
+    if (near) { P.vel.x += Math.sin(f) * w.lunge; P.vel.z += Math.cos(f) * w.lunge; }
+    gunNet('m');
+  }
+  // the flamethrower: a jet of fire, and whoever is in it burns
+  function gunFlame(w, mz, o, d, by) {
+    jetP(POOL.glow, mz.x, mz.y, mz.z, d.x, d.y, d.z, 13, Math.random() < .5 ? 0xff7a1a : 0xffc04a, 4, .55, .35, .08, .4, 1);
+    if (Math.random() < .5) Snd.sfx.flame();
+    const marks = by === 'me' ? gunMarks(true) : gunMarks(false), ox = by === 'me' ? P.pos.x : by.x, oy = (by === 'me' ? P.pos.y : by.y) + 1.2, oz = by === 'me' ? P.pos.z : by.z;
+    for (const m of marks) {
+      const cx = m.x - ox, cy = m.y + .9 - oy, cz = m.z - oz, l = Math.hypot(cx, cy, cz);
+      if (l > w.range || (cx * d.x + cy * d.y + cz * d.z) / (l || 1) < Math.cos(w.cone) || !gunClear(ox, oy, oz, m.x, m.y + .9, m.z)) continue;
+      gunHit(m, w.dmg, false, d, by, w);
+      if (m.kind === 'bot') m.ref.burn = w.burn; else if (m.kind === 'me') P.burn = w.burn;
+    }
+    if (by === 'me') gunNet('f', false, { p: [mz.x, mz.y, mz.z], d: [d.x, d.y, d.z] });
+  }
+  // particles along a direction (a jet of flame, the smoke out of a rocket)
+  function jetP(pool, x, y, z, dx, dy, dz, v, color, n, life, s0, s1, drag, a0) {
+    const i0 = pool.next; spawnP(pool, x, y, z, color, n, v * .12, 0, 0, life, s0, s1, drag, a0);
+    for (let k = 0; k < n; k++) { const p = pool.p[(i0 + k) % pool.n], f = v * (.7 + Math.random() * .5); p.vx += dx * f; p.vy += dy * f; p.vz += dz * f; }
+  }
+  // a grenade or a smoke can: thrown ahead and up, bouncing until its fuse burns down
+  function gunThrow(w, mz, d, by) {
+    const dx = d.x, dz = d.z, l = Math.hypot(dx, dz) || 1, up = clamp(d.y, -.4, .8);
+    gunShot(w, w.proj === 'smoke' ? 'smoke' : 'grenade', mz.x, mz.y, mz.z, dx / l * w.v * Math.cos(up * .8), w.up + up * w.v * .6, dz / l * w.v * Math.cos(up * .8), by, false, 0);
+  }
+
+  // ---------- what flies: arrows, bolts, rockets, paint, pebbles, stars, grenades and smoke ----------
+  // (a friend's shot on our screen is a ghost: it flies and bursts, and what it hits is for the friend's screen to say)
+  const gunShots = [];
+  function gunShot(w, id, x, y, z, vx, vy, vz, by, ghost, k) {
+    const geo = w.proj === 'paint' ? GEO.flies.paint[(Math.random() * 3) | 0] : GEO.flies[w.proj];
+    const m = new T.Mesh(geo, MAT.char); m.rotation.order = 'YXZ'; m.position.set(x, y, z); m.castShadow = true; L.group.add(m);
+    const dmg = Array.isArray(w.dmg) ? lerp(w.dmg[0], w.dmg[1], k) : w.dmg;
+    gunShots.push({ m, w, id, x, y, z, vx, vy, vz, by, ghost, dmg, life: w.fuse || 3, bounce: w.kind === 'throw', spin: 0 });
+    if (by === 'me' && !ghost) gunNet('p', false, { i: id, p: [x, y, z], v: [vx, vy, vz], k });
+  }
+  function updateGunShots(dt) {
+    for (let i = gunShots.length - 1; i >= 0; i--) {
+      const f = gunShots[i], w = f.w;
+      f.life -= dt; f.vy -= (w.g || 0) * dt;
+      const sx = f.vx * dt, sy = f.vy * dt, sz = f.vz * dt, len = Math.hypot(sx, sy, sz) || 1e-6, dx = sx / len, dy = sy / len, dz = sz / len;
+      const marks = f.ghost || f.bounce ? [] : f.by === 'me' ? gunMarks(true) : gunMarks(false);
+      const r = gunRay(f.x, f.y, f.z, dx, dy, dz, len + .05, marks, f.by === 'me' && !f.ghost);
+      if (r.t <= len + .05 && (r.who || r.solid || r.tgt)) {
+        if (f.bounce && !r.who) { // a grenade bounces off what it meets
+          f.x = r.x - dx * .06; f.y = r.y - dy * .06; f.z = r.z - dz * .06;
+          const s = raySolids(f.x, f.y, f.z, dx, dy, dz, .3).s;
+          if (s && f.y >= s.max.y - .12) { f.vy = Math.abs(f.vy) * .35; f.vx *= .6; f.vz *= .6; }
+          else if (s) { const cx = (s.min.x + s.max.x) / 2, cz = (s.min.z + s.max.z) / 2, ox = f.x - cx, oz = f.z - cz, ex = (s.max.x - s.min.x) / 2, ez = (s.max.z - s.min.z) / 2;
+            if (Math.abs(ox) / ex > Math.abs(oz) / ez) f.vx = -f.vx * .5; else f.vz = -f.vz * .5; }
+          else { f.vy = Math.abs(f.vy) * .35; f.vx *= .6; f.vz *= .6; }
+          if (Math.hypot(f.vx, f.vy, f.vz) > 2) Snd.at(f.x, f.y, f.z).bump();
+        } else { gunLand(f, r); gunShots.splice(i, 1); continue; }
+      } else { f.x += sx; f.y += sy; f.z += sz; }
+      if (f.life <= 0 || f.y < L.killY) { if (f.bounce && f.life <= 0) gunLand(f, null); else L.group.remove(f.m); gunShots.splice(i, 1); continue; }
+      f.m.position.set(f.x, f.y, f.z);
+      if (f.bounce || w.proj === 'star' || w.proj === 'pebble') { f.spin += dt * 14; f.m.rotation.set(f.spin, f.spin * .7, 0); }
+      else f.m.rotation.set(-Math.atan2(f.vy, Math.hypot(f.vx, f.vz)), Math.atan2(f.vx, f.vz), 0);
+      if (w.proj === 'rocket') { glow(f.x - f.vx * .012, f.y - f.vy * .012, f.z - f.vz * .012, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 2, .5, 0, 0, .25, .3); if (Math.random() < .5) puff(f.x, f.y, f.z, 0xe8e6ee, 1, .2, .2, .4, .5); }
+      else if (w.proj === 'grenade' && Math.random() < dt * 10) glow(f.x, f.y + .1, f.z, 0xff5a4a, 1, .2, 0, 0, .2, .15);
+    }
+  }
+  // it lands: a hit, a splash of paint, a burst (rockets and grenades hurt everyone round), a cloud of smoke
+  function gunLand(f, r) {
+    L.group.remove(f.m);
+    const w = f.w, x = r ? r.x : f.x, y = r ? r.y : f.y, z = r ? r.z : f.z;
+    if (w.smoke) { gunSmoke(x, y, z, w.smoke); return; }
+    if (w.splash) { gunBoom(x, y, z, w, f); return; }
+    if (r && r.tgt && ISL.beacons && !f.ghost) { lightBeacon(ISL.beacons, r.tgt); return; }
+    if (w.proj === 'paint') { emit(x, y, z, PAINT_COLS[(Math.random() * 3) | 0], 14, 4, 1, 10, .5, .2); Snd.at(x, y, z).splat(); }
+    else if (r && r.solid) { puff(x, y, z, 0xe8dcc4, 2, .8, .3, .4, .5); Snd.at(x, y, z).clink(); }
+    if (r && r.who && !f.ghost) { gunHit(r.who, Math.round(f.dmg * (r.head ? w.head || 1 : 1)), r.head, _gd.set(f.vx, f.vy, f.vz).normalize(), f.by, w); if (f.by === 'me' && FT) FT.hits++; }
+  }
+  // a burst: a flash, a ring, smoke; everyone close by takes less the further off they are (the hero's own rocket can
+  // throw him up into the air, as in the Roblox games)
+  function gunBoom(x, y, z, w, f) {
+    Snd.at(x, y, z).boom();
+    flashAt(x, y, z, 0xfff3b0, 3, .16); wave(x, y, z, 0xffc04a, w.splash, .35);
+    glow(x, y, z, 0xffa12e, 16, 5, 1, 4, .45, .4); emit(x, y, z, 0xffe07a, 10, 6, 2, 8, .5, .2); puff(x, y, z, 0x8a8490, 6, 2.2, .8, .7, 1.2);
+    const dd = Math.hypot(P.pos.x - x, P.pos.z - z); if (dd < 14) G.shake = Math.max(G.shake, .25 * (1 - dd / 14));
+    if (f.ghost) return;
+    const R = w.splash, full = w.sdmg || w.dmg;
+    const hurtAll = (marks) => {
+      for (const m of marks) {
+        const cx = m.x - x, cy = m.y + .9 - y, cz = m.z - z, l = Math.hypot(cx, cy, cz);
+        if (l > R + .4 || !gunClear(x, y + .2, z, m.x, m.y + .9, m.z)) continue;
+        gunHit(m, Math.round(full * clamp(1.1 - l / R, .25, 1)), false, _gd.set(cx / (l || 1), .5, cz / (l || 1)), f.by, w);
+        if (m.kind === 'bot') { m.ref.kx += cx / (l || 1) * 9; m.ref.kz += cz / (l || 1) * 9; m.ref.vy = Math.max(m.ref.vy, 7); m.ref.onG = false; }
+      }
+    };
+    hurtAll(f.by === 'me' ? gunMarks(true) : gunMarks(false));
+    // the hero's own burst: a push (a rocket jump) and a little damage in a duel
+    if (f.by === 'me' && gunOn()) {
+      const cx = P.pos.x - x, cy = P.pos.y + .9 - y, cz = P.pos.z - z, l = Math.hypot(cx, cy, cz);
+      if (l < R) {
+        const k = 1 - l / R;
+        P.vel.x += cx / (l || 1) * 12 * k; P.vel.z += cz / (l || 1) * 12 * k; P.vel.y = Math.max(P.vel.y, 17 * k); P.onGround = false; P.noCut = true;
+        if (w.self && (FT && FT.phase === 'fight' || duelGunRun())) heroHurt(Math.round(full * w.self * k), false, null, 'me', w);
+      }
+    }
+  }
+  // smoke: a cloud that hides whoever is in it or behind it (the bots cannot see through it)
+  const smokes = [];
+  function gunSmoke(x, y, z, r) {
+    smokes.push({ x, y: y + 1.2, z, r, t: 9 });
+    Snd.at(x, y, z).poof(); puff(x, y + 1, z, 0xdfe1ea, 14, 3, .8, 1.4, 2.2);
+  }
+  function updateSmokes(dt) {
+    for (let i = smokes.length - 1; i >= 0; i--) {
+      const s = smokes[i]; s.t -= dt;
+      if (s.t <= 0) { smokes.splice(i, 1); continue; }
+      const k = Math.min(1, s.t / 2);
+      if (Math.random() < dt * 22 * k) { const a = Math.random() * 6.3, rr = Math.sqrt(Math.random()) * s.r * .8; puff(s.x + Math.cos(a) * rr, s.y - .8 + Math.random() * 2, s.z + Math.sin(a) * rr, 0xdfe1ea, 1, .4, .2, 2.4, 2.6); }
+    }
+  }
+  function smokeHides(ax, ay, az, bx, by, bz) {
+    for (const s of smokes) {
+      if (s.t < 1) continue;
+      const dx = bx - ax, dy = by - ay, dz = bz - az, l2 = dx * dx + dy * dy + dz * dz || 1;
+      const k = clamp(((s.x - ax) * dx + (s.y - ay) * dy + (s.z - az) * dz) / l2, 0, 1);
+      if (Math.hypot(ax + dx * k - s.x, ay + dy * k - s.y, az + dz * k - s.z) < s.r * .85) return true;
+    }
+    return false;
+  }
+
+  // ---------- tracers: a streak from the gun to where the bullet landed ----------
+  const tracers = [];
+  function tracer(x0, y0, z0, x1, y1, z1, life, col, w) {
+    let t = tracers.find((q) => q.t <= 0);
+    if (!t) {
+      if (tracers.length > 40) return;
+      const m = new T.Mesh(CYL, new T.MeshBasicMaterial({ color: col, transparent: true, opacity: .9, depthWrite: false, blending: T.AdditiveBlending }));
+      m.frustumCulled = false; scene.add(m); t = { m, t: 0, life: 1 }; tracers.push(t);
+    }
+    const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, l = Math.hypot(dx, dy, dz);
+    if (l < .1) return;
+    t.m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    t.m.quaternion.setFromUnitVectors(_gy, _gq.set(dx / l, dy / l, dz / l));
+    t.m.scale.set(w, l, w); t.m.material.color.setHex(col); t.m.visible = true; t.t = t.life = life;
+  }
+  function updateTracers(dt) {
+    for (const t of tracers) {
+      if (t.t <= 0) continue;
+      t.t -= dt;
+      if (t.t <= 0) { t.m.visible = false; continue; }
+      t.m.material.opacity = .9 * (t.t / t.life);
+    }
+  }
+  function clearGunFx() {
+    for (const f of gunShots) L.group.remove(f.m);
+    gunShots.length = 0; smokes.length = 0;
+    for (const t of tracers) { t.t = 0; t.m.visible = false; }
+  }
+
+  // ---------- the camera over the shoulder, and through the scope ----------
+  const _gc = new T.Vector3();
+  function gunCam(dt, snap) {
+    if (cam.yawGoal !== null) { cam.yaw = angleDamp(cam.yaw, cam.yawGoal, 7, dt); if (Math.abs(wrapPi(cam.yaw - cam.yawGoal)) < .01) cam.yawGoal = null; }
+    if (keys.has('KeyQ')) { cam.yaw += dt * 2.2; cam.yawGoal = null; }
+    if (keys.has('KeyE')) { cam.yaw -= dt * 2.2; cam.yawGoal = null; }
+    // a sniper's scope sways a little with the breath
+    const k = GN.scopeK, sway = k > .5 && gunCur() && gunCur().scope < 20 ? 1 : 0;
+    const yaw = cam.yaw + Math.sin(time * 1.1) * .0016 * sway, aim = gunAim() + Math.sin(time * 1.7) * .0012 * sway;
+    const dx = -Math.sin(yaw) * Math.cos(aim), dy = Math.sin(aim), dz = -Math.cos(yaw) * Math.cos(aim), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    const s = P.scaleCur, py = P.pos.y + 1.45 * s;
+    if (snap) cam.ty = py; else cam.ty = damp(cam.ty, py, P.onGround ? 18 : 12, dt);
+    const hx = P.pos.x, hz = P.pos.z;
+    // over the right shoulder, pulled in when a wall is behind
+    const dist = (innerWidth < innerHeight ? 5.2 : 4.3) * s, side = 1.05 * s, up = .38;
+    let bx = hx + rx * side, by = cam.ty + up, bz = hz + rz * side;
+    const cl = raySolids(hx, cam.ty, hz, rx, 0, rz, side + .25).t; if (cl < side + .25) { bx = hx + rx * Math.max(0, cl - .25); bz = hz + rz * Math.max(0, cl - .25); }
+    const back = raySolids(bx, by, bz, -dx, -dy, -dz, dist + .3).t, D = Math.max(.6, Math.min(dist, back - .3));
+    let cx = bx - dx * D, cy = by - dy * D, cz = bz - dz * D;
+    // through the scope: at the hero's eyes
+    if (k > .01) { cx = lerp(cx, hx + dx * .3, k); cy = lerp(cy, P.pos.y + 1.4 * s, k); cz = lerp(cz, hz + dz * .3, k); }
+    camera.position.set(cx, cy, cz);
+    if (G.shake > 0) {
+      G.shake = Math.max(0, G.shake - dt * 1.6);
+      const a = G.shake * G.shake * .6 * (1 - k * .8);
+      camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a;
+    }
+    camera.lookAt(_gc.set(camera.position.x + dx, camera.position.y + dy, camera.position.z + dz));
+    G.kick = Math.max(0, G.kick - dt * 2.2);
+    const w = gunCur(), fov = lerp(baseFov + G.kick * 5, w && w.scope ? w.scope : baseFov, k);
+    if (Math.abs(camera.fov - fov) > .01) { camera.fov = snap ? fov : damp(camera.fov, fov, 16, dt); camera.updateProjectionMatrix(); }
+    cam.tx = hx; cam.tz = hz;
+    sun.target.position.set(hx, P.pos.y, hz);
+    sun.position.set(hx + SUN_OFF.x, P.pos.y + SUN_OFF.y, hz + SUN_OFF.z);
+  }
+  // turning the view: slower through a scope, and slower over a foe on a phone
+  function gunLook(dx, dy, kind) {
+    let k = kind === 'lock' ? .0024 : kind === 'touch' ? .0068 : .0045;
+    if (GN.scopeK > .5) k *= camera.fov / baseFov * 1.3;
+    if (kind === 'touch' && GN.near && GN.scopeK < .5) k *= .6;
+    cam.yaw -= dx * k; cam.aim = clamp(cam.aim - dy * k, -1.35, 1.35); cam.yawGoal = null;
+  }
+
+  // ---------- the pose: arms out along the aim, a swing, a throw ----------
+  function gunArms(t, w, pitch, swingT, throwT, recoil, drawK) {
+    if (!w) return;
+    const up = -Math.PI / 2 - pitch;
+    t.twist = 0; t.hipsY = 0; t.torsoX = Math.min(t.torsoX, .1); t.headX = -pitch * .6; t.headY = 0;
+    if (w.kind === 'melee' || w.kind === 'throw' || w.kind === 'heal' || w.kind === 'jet') {
+      t.shLx = up + .9; t.shLy = 0; t.shLz = .15; t.elL = -.6; t.wrL = 0;
+      t.shRx = .15; t.shRz = .2; t.elR = -.4;
+      if (swingT > 0) { const k = 1 - swingT / .32; t.shLx = lerp(-2.9, -.5, k); t.shLz = lerp(.6, -.1, k); t.elL = -.2; t.twist = lerp(.5, -.6, k); }
+      if (throwT > 0) { const k = 1 - throwT / .35; t.shLx = k < .4 ? lerp(-1.2, .8, k / .4) : lerp(.8, -2.2, (k - .4) / .6); t.elL = -.3; t.twist = k < .4 ? .4 : -.3; }
+      return;
+    }
+    t.shLx = up - recoil * .18; t.shLy = 0; t.shLz = 0; t.elL = 0; t.wrL = 0;
+    if (w.two) { t.shRx = up + .12 - recoil * .1; t.shRy = 0; t.shRz = -.78; t.elR = w.draw ? -.3 - drawK * 1.2 : -.35; }
+    else { t.shRx = .12; t.shRz = .16; t.elR = -.35; }
+  }
+
+  // ---------- the look on screen: the crosshair, the scope, the gun bar, the hit mark ----------
+  const gunUiEl = $('gunUi'), crossEl = $('cross'), scopeEl = $('scope'), hitEl = $('hitmark'), gunBarEl = $('gunBar'), btnScope = $('btnScope'), btnGunLoad = $('btnGunLoad');
+  let gunUiKey = '', hitT = 0, gunUiOn = false;
+  function hitMark(head) {
+    hitT = .18; hitEl.classList.toggle('head', !!head); hitEl.hidden = false;
+    if (head) Snd.sfx.headshot(); else Snd.sfx.hitmark();
+  }
+  function gunHud(dt) {
+    const on = gunOn() && (G.state === 'playing' || G.state === 'dying') && !hudEl.hidden;
+    if (on !== gunUiOn) {
+      gunUiOn = on; gunUiEl.hidden = !on; btnCam.hidden = on; btnScope.hidden = btnGunLoad.hidden = true; gunUiKey = ''; document.body.classList.toggle('guns', on);
+      if (!on) { mouseFire.held = false; scopeEl.hidden = true; }
+    }
+    if (G.state !== 'playing' && locked()) gunUnlock(); // a card or the pause gives the mouse back
+    hitT -= dt; if (hitT <= 0 && !hitEl.hidden) hitEl.hidden = true;
+    if (!on) return;
+    const w = gunCur(), sc = GN.scopeK > .6, full = sc && w && w.scope < 20;
+    scopeEl.hidden = !full; crossEl.hidden = full || !w || w.kind === 'heal' || w.kind === 'jet';
+    // the crosshair opens with the spread
+    if (w && !crossEl.hidden) {
+      const s = w.kind === 'ray' ? (sc ? w.spread : w.hip) * (1 + Math.hypot(P.vel.x, P.vel.z) * .06 + (P.onGround ? 0 : .8)) : w.kind === 'melee' ? .03 : .012;
+      const gap = Math.round(clamp(s / (camera.fov * Math.PI / 180) * innerHeight, 3, 60));
+      if (crossEl.gap !== gap) { crossEl.gap = gap; crossEl.style.setProperty('--gap', gap + 'px'); }
+      crossEl.classList.toggle('on', !!GN.near || (w.draw && GN.draw > 0));
+    }
+    // the buttons: the scope only for a gun with one, the reload only for a gun with rounds
+    btnScope.hidden = !isTouch || !w || !w.scope; btnScope.classList.toggle('on', GN.scope);
+    btnGunLoad.hidden = !isTouch || !w || !w.mag;
+    const rk = w && w.mag && GN.rel > 0 ? 1 - GN.rel / w.reload : 0;
+    kvLoad(btnGunLoad, GN.rel > 0 ? 1 - rk : 0);
+    // the bar: a slot for each of the four, what is in it, rounds or charges
+    const key = GN.ids.join() + '|' + GN.slot + '|' + GN.ammo.join() + '|' + Math.ceil(GN.rel * 4) + '|' + GN.ids.map((id) => (id && GUNS[id].charges ? GN.ch[id] + ':' + Math.ceil(GN.chT[id] || 0) : '')).join();
+    if (key === gunUiKey) return;
+    gunUiKey = key;
+    gunBarEl.textContent = '';
+    GN.ids.forEach((id, i) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'gun-slot' + (i === GN.slot ? ' on' : '') + (id ? '' : ' empty');
+      const g = id ? GUNS[id] : null;
+      const ic = document.createElement('i'); ic.textContent = g ? g.icon : '·';
+      const nm = document.createElement('small'); nm.textContent = isTouch ? '' : String(i + 1);
+      const am = document.createElement('b');
+      if (g && g.mag) am.textContent = i === GN.slot && GN.rel > 0 ? '⟳' : GN.ammo[i] + '/' + g.mag;
+      else if (g && g.charges) am.textContent = GN.ch[id] ? '×' + GN.ch[id] : Math.ceil(GN.chT[id] || 0) + 'с';
+      else am.textContent = g ? '∞' : '';
+      b.append(ic, am); if (!isTouch) b.append(nm);
+      b.setAttribute('aria-label', g ? g.name : GUN_SLOTS[i] + ': пусто');
+      b.disabled = !id;
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Snd.init(); if (i === GN.slot) gunReload(); else gunSwitch(i); });
+      gunBarEl.append(b);
+    });
+  }
+  // the scope and reload buttons on a phone, and the fire button that also aims when the thumb slides on it
+  btnScope.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); gunScopeSet(!GN.scope); btnScope.classList.add('on'); });
+  btnGunLoad.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); gunReload(); });
+  for (const b of [btnScope, btnGunLoad]) b.addEventListener('contextmenu', (e) => e.preventDefault());
+  const actAim = { x: 0, y: 0 };
+  $('btnAct').addEventListener('pointerdown', (e) => { actAim.x = e.clientX; actAim.y = e.clientY; });
+  $('btnAct').addEventListener('pointermove', (e) => {
+    if (e.pointerId !== touchAct.id || !gunOn()) return;
+    gunLook(e.clientX - actAim.x, e.clientY - actAim.y, 'touch'); actAim.x = e.clientX; actAim.y = e.clientY;
+  });
+  // on a computer: a click takes the mouse for aiming (Esc gives it back), the left button fires, the right one scopes
+  let lockWanted = false;
+  const locked = () => document.pointerLockElement === canvas;
+  function gunLock() { if (isTouch || locked() || !canvas.requestPointerLock) return; lockWanted = true; try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed here */ } }
+  function gunUnlock() { lockWanted = false; mouseFire.held = false; if (locked() && document.exitPointerLock) document.exitPointerLock(); }
+  document.addEventListener('pointerlockchange', () => { if (!locked()) { mouseFire.held = false; if (lockWanted && G.state === 'playing') { lockWanted = false; pause(); } } });
+  canvas.addEventListener('mousedown', (e) => {
+    if (!gunOn() || G.state !== 'playing' || isTouch) return;
+    if (!locked()) { if (e.button === 0) gunLock(); return; }
+    if (e.button === 0) { mouseFire.held = true; input.actQueued = true; }
+    if (e.button === 2) gunScopeSet(true);
+  });
+  addEventListener('mouseup', (e) => { if (e.button === 0) mouseFire.held = false; if (e.button === 2 && gunOn()) gunScopeSet(false); });
+  addEventListener('mousemove', (e) => { if (locked() && gunOn() && G.state === 'playing') gunLook(e.movementX || 0, e.movementY || 0, 'lock'); });
+  canvas.addEventListener('wheel', (e) => { if (!gunOn() || G.state !== 'playing') return; e.preventDefault(); gunCycle(e.deltaY > 0 ? 1 : -1); }, { passive: false });
+
+  // ---------- friends see the guns ----------
+  // what is in hand (now and then, and when it changes), the scope's glint, and every shot's streak or flying thing; hits
+  // and knock-outs go through the game (duelSay)
+  function gunNet(t, quiet, extra) {
+    if (!net.room || !net.act || !net.act.gun) return;
+    const loc = netLoc(), to = [];
+    for (const g of net.peers.values()) if (g.loc === loc && !g.old) to.push(g.id);
+    if (!to.length) return;
+    const m = { t, w: GN.ids[GN.slot] || '', z: GN.scope ? 1 : 0 };
+    if (t === 'w' && quiet && GN.sent === m.w + m.z) return;
+    if (t === 'w' || t === 'z') GN.sent = m.w + m.z;
+    if (extra) Object.assign(m, extra);
+    const r2 = (v) => Math.round(v * 100) / 100;
+    for (const k of ['p', 'v', 'd']) if (m[k]) m[k] = m[k].map(r2);
+    if (m.e) m.e = m.e.slice(0, 10).map((a) => a.map(r2));
+    netSend(net.act.gun, m, { target: to });
+  }
+  function netOnGun(d, from) {
+    const g = net.peers.get(from);
+    if (!g || !d || typeof d !== 'object' || g.loc !== netLoc() || !L.def.duels) return;
+    const id = GUNS[d.w] ? d.w : '', ok = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => Number.isFinite(v) && Math.abs(v) < 1e4);
+    g.gun = id; g.scope = !!d.z;
+    if (g.rig) { rigGun(g.rig, id); if (g.rig.guns) g.rig.guns.back.visible = false; }
+    const w = GUNS[id];
+    if (d.t === 's' && w && ok(d.p) && Array.isArray(d.e)) {
+      Snd.at(d.p[0], d.p[1], d.p[2])[w.snd]();
+      for (const e of d.e.slice(0, 10)) if (ok(e)) { tracer(d.p[0], d.p[1], d.p[2], e[0], e[1], e[2], .09, 0xffb08a, .02); puff(e[0], e[1], e[2], 0xe8dcc4, 1, .6, .2, .3, .4); }
+    } else if (d.t === 'p' && ok(d.p) && ok(d.v) && Math.hypot(...d.v) < 140) {
+      const pw = GUNS[d.i] || w; if (!pw || !pw.proj) return;
+      Snd.at(d.p[0], d.p[1], d.p[2])[pw.snd]();
+      gunShot(pw, d.i, d.p[0], d.p[1], d.p[2], d.v[0], d.v[1], d.v[2], from, true, clamp(+d.k || 0, 0, 1));
+    } else if (d.t === 'f' && ok(d.p) && ok(d.d)) jetP(POOL.glow, d.p[0], d.p[1], d.p[2], d.d[0], d.d[1], d.d[2], 13, 0xff9a2a, 4, .55, .35, .08, .4, 1);
+    else if (d.t === 'm' && w) { Snd.at(g.px, g.py, g.pz)[w.snd](); glow(g.px, g.py + 1, g.pz, 0xdff6ff, 6, 2, 0, 0, .25, .3); }
+    else if (d.t === 'j') { Snd.at(g.px, g.py, g.pz).jet(); wave(g.px, g.py, g.pz, 0xffc04a, 1.8, .35); }
+  }
+
+  // ---------- the bots ----------
+  // Opponents on the arena, one after another, each stronger than the last: skill is how soon they react, how fast they
+  // turn, how close their shots go, how often they strafe, jump and hide. They look like players (a hero in a costume and
+  // a hat) and fight with guns of their own. The canyon's sniper grows sharper with every win against him.
+  const BOTS = [
+    { name: 'Нубик', look: { skin: 'classic', cap: 'blue', hat: '' }, guns: ['rifle', 'revolver', 'katana', null], skill: .22, say: 'Он только учится, зато с автоматом.' },
+    { name: 'Ковбой Джо', look: { skin: 'explorer', cap: 'auto', hat: 'cowboy' }, guns: ['shotgun', 'revolver', null, 'grenade'], skill: .36, say: 'Любит подойти поближе с дробовиком.' },
+    { name: 'Лучница Ника', look: { skin: 'forest', cap: 'auto', hat: 'flower' }, guns: ['bow', 'revolver', 'katana', 'smoke'], skill: .46, say: 'Стреляет из лука издалека и прячется в дыму.' },
+    { name: 'Ниндзя Кэн', look: { skin: 'ninja', cap: 'black', hat: '' }, guns: [null, 'uzi', 'katana', 'shuriken'], skill: .56, rush: true, say: 'Бегает с катаной и кидает сюрикены. Не подпускай близко!' },
+    { name: 'Капитан Бах', look: { skin: 'pirate', cap: 'auto', hat: 'pirate' }, guns: ['rpg', 'revolver', 'hammer', 'grenade'], skill: .66, say: 'Гранатомёт и гранаты! Не стой на месте.' },
+    { name: 'Чемпион Макс', look: { skin: 'gold', cap: 'auto', hat: 'crown' }, guns: ['minigun', 'revolver', 'scythe', 'grenade'], skill: .8, say: 'Миниган, коса и гранаты. Самый сильный на арене.' },
+  ];
+  const SNIPER_BOT = { name: 'Снайпер Ястреб', look: { skin: 'robo', cap: 'black', hat: 'shades' }, guns: ['sniper', null, null, null] };
+  const ftNextBot = () => BOTS[SAVE.duLad] || null;
+  const botGun = (b) => GUNS[b.ids[b.slot]] || null;
+  function botMake(def, skill) {
+    const h = buildHero(); L.group.add(h.root);
+    dressHero(h, def.look, false, false);
+    h.frown.visible = h.open.visible = h.grin.visible = false;
+    const el = document.createElement('div'); el.className = 'tag bot';
+    const dot = document.createElement('i'), nm = document.createElement('span'), hp = document.createElement('b'), bar = document.createElement('i');
+    dot.style.background = hexCss(skinDef(def.look.skin).shirt); nm.textContent = def.name; hp.className = 'tag-hp'; hp.append(bar); el.append(dot, nm, hp); tagsEl.append(el);
+    const b = { def, name: def.name, skill, rig: h, tag: el, bar, x: 0, y: 0, z: 0, vy: 0, onG: true, hw: .45, h: 1.62, solids: FT.solids, aimY: 0, aimP: 0, hp: 100, alive: true,
+      ids: def.guns.slice(), slot: 0, ammo: [], cd: 0, rel: 0, ch: {}, chT: {}, spin: 0, draw: 0, kx: 0, kz: 0, burn: 0, burnAcc: 0, hurtT: 0, koT: 0, anim: 0, J: {}, T: null,
+      goalX: 0, goalZ: 0, goalT: 0, strafe: 1, strafeT: 0, jumpT: 1, seen: 0, lost: 9, lx: 0, lz: 0, react: .75 - skill * .5, errY: 0, errP: 0, errT: 0, headAim: false,
+      swingT: 0, throwT: 0, recoil: 0, burst: 0, restT: 0, hiding: 0, alert: 0, state: 'hide', st: 0, aimT: 0, block: 1, stuck: 0, spd: 0, px: 0, pz: 0, faceHappy: 0 };
+    return b;
+  }
+  function botDrop(b) { if (!b) return; L.group.remove(b.rig.root); b.tag.remove(); }
+  // a fresh round: at its spot, full health, full rounds, the main gun in hand
+  function botPlace(b, x, y, z, face) {
+    Object.assign(b, { x, y, z, vy: 0, onG: true, aimY: face, aimP: 0, hp: 100, alive: true, kx: 0, kz: 0, burn: 0, hurtT: 0, koT: 0, seen: 0, lost: 9, lx: P.pos.x, lz: P.pos.z,
+      cd: .6, rel: 0, bgT: 0, detourT: 0, spin: 0, draw: 0, hiding: 0, alert: 0, state: 'hide', st: 0, burst: 0, restT: 0, stuck: 0, faceHappy: 0 });
+    b.ammo = b.ids.map((id) => (id ? GUNS[id].mag || 0 : 0)); b.ch = {}; b.chT = {};
+    for (const id of b.ids) if (id && GUNS[id].charges) { b.ch[id] = GUNS[id].charges; b.chT[id] = 0; }
+    b.slot = Math.max(0, b.ids.findIndex((id, i) => id && i < 3));
+    b.rig.root.visible = true; b.rig.root.rotation.set(0, face, 0); rigGun(b.rig, b.ids[b.slot]);
+    b.rig.smile.visible = true; b.rig.grin.visible = b.rig.open.visible = false;
+  }
+  function botSwitch(b, i) {
+    if (!b.ids[i] || b.slot === i) return;
+    if (b.rel > 0 && b.slot === 0) b.bgT = b.rel; // the main gun goes on reloading while the spare one is out
+    b.slot = i; b.cd = Math.max(b.cd, .35); b.rel = 0; b.spin = 0; b.draw = 0; rigGun(b.rig, b.ids[i]);
+  }
+  const botEye = (b) => b.y + 1.42;
+  // the hero is in sight: his head or his middle, with nothing solid and no smoke between
+  function botSees(b) {
+    if (P.koT > 0 || !hero.root.visible) return false;
+    const s = P.scaleCur, e = botEye(b);
+    if (Math.hypot(P.pos.x - b.x, P.pos.z - b.z) > 130) return false;
+    return gunClear(b.x, e, b.z, P.pos.x, P.pos.y + HEAD_Y * s, P.pos.z) || gunClear(b.x, e, b.z, P.pos.x, P.pos.y + .9 * s, P.pos.z);
+  }
+  // Turns its aim towards a point. The aim wanders off by an error that is bigger for a weaker bot and against a hero on
+  // the move, and shrinks while the bot keeps him in sight. Returns how far off the aim still is.
+  function botAim(b, dt, tx, ty, tz, errK = 1) {
+    if (b.errT <= 0) {
+      b.errT = .35 + Math.random() * .45; b.headAim = Math.random() < b.skill * .35;
+      const e = ((1 - b.skill) * .15 + Math.hypot(P.vel.x, P.vel.z) * .007 * (1 - b.skill * .5)) * errK;
+      b.errY = (Math.random() - .5) * 2 * e; b.errP = (Math.random() - .5) * e;
+    }
+    const settle = Math.max(.3, 1 - b.seen * .45), h = Math.hypot(tx - b.x, tz - b.z);
+    const wy = Math.atan2(tx - b.x, tz - b.z) + b.errY * settle, wp = Math.atan2(ty - botEye(b), h) + b.errP * settle, k = 3 + b.skill * 9;
+    b.aimY = angleDamp(b.aimY, wy, k, dt); b.aimP = damp(b.aimP, clamp(wp, -1.2, 1.2), k, dt);
+    return Math.abs(wrapPi(Math.atan2(tx - b.x, tz - b.z) - b.aimY)) + Math.abs(Math.atan2(ty - botEye(b), h) - b.aimP);
+  }
+  // a step: towards (vx, vz) round what is in the way, a knock fading, gravity; it keeps inside its place
+  function botMove(b, vx, vz, dt, box) {
+    b.kx = damp(b.kx, 0, 4, dt); b.kz = damp(b.kz, 0, 4, dt);
+    const ox = b.x, oz = b.z, ok = foeMove(b, vx + b.kx, vz + b.kz, dt);
+    if (box) { b.x = clamp(b.x, box[0], box[1]); b.z = clamp(b.z, box[2], box[3]); }
+    b.stuck = !ok || (Math.hypot(vx, vz) > 2 && Math.hypot(b.x - ox, b.z - oz) < Math.hypot(vx, vz) * dt * .2) ? b.stuck + dt : 0;
+    b.spd = damp(b.spd, Math.hypot(b.x - ox, b.z - oz) / Math.max(dt, 1e-4), 10, dt);
+    if (b.y < L.killY) b.y = FT.place.top;
+  }
+  // a place out of the hero's sight near the bot, to reload or heal behind
+  function botCover(b, box) {
+    const hx = P.pos.x, hy = P.pos.y + 1.3, hz = P.pos.z;
+    let best = null, bd = 1e9;
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2, r = 3 + (i % 3) * 3, x = clamp(b.x + Math.sin(a) * r, box[0], box[1]), z = clamp(b.z + Math.cos(a) * r, box[2], box[3]);
+      if (foeBlocked(b, x, b.y, z) || gunClear(hx, hy, hz, x, b.y + 1.3, z)) continue;
+      const d = Math.hypot(x - b.x, z - b.z) + Math.hypot(x - hx, z - hz) * -.1;
+      if (d < bd) { bd = d; best = [x, z]; }
+    }
+    return best;
+  }
+  // it fires what is in its hand along its aim (with the gun's spread), or swings, or throws
+  function botFire(b, w, k = 0) {
+    const id = b.ids[b.slot], e = botEye(b), cp = Math.cos(b.aimP);
+    const d = _gd.set(Math.sin(b.aimY) * cp, Math.sin(b.aimP), Math.cos(b.aimY) * cp), mz = rigMuzzle(b.rig, id, _gm).clone();
+    Snd.at(b.x, e, b.z)[w.snd]();
+    b.recoil = 1;
+    if (w.kind === 'melee') {
+      b.swingT = .32;
+      const dx = P.pos.x - b.x, dz = P.pos.z - b.z, dist = Math.hypot(dx, dz);
+      if (dist < w.reach + .4 && Math.abs(wrapPi(Math.atan2(dx, dz) - b.aimY)) < w.arc / 2 + .2 && Math.abs(P.pos.y - b.y) < 2)
+        for (const m of gunMarks(false)) gunHit(m, w.dmg, false, _gs.set(dx / (dist || 1), 0, dz / (dist || 1)), b, w);
+      if (w.lunge && dist < 7) { b.kx += Math.sin(b.aimY) * w.lunge; b.kz += Math.cos(b.aimY) * w.lunge; }
+      return;
+    }
+    if (w.kind === 'flame') { gunFlame(w, mz, null, d, b); return; }
+    if (w.kind === 'proj') {
+      const n = w.fan || 1, v = Array.isArray(w.v) ? lerp(w.v[0], w.v[1], k) : w.v;
+      for (let i = 0; i < n; i++) {
+        const yaw = (i - (n - 1) / 2) * .1, cy = Math.cos(yaw), sy = Math.sin(yaw);
+        gunShot(w, id, mz.x, mz.y, mz.z, (d.x * cy + d.z * sy) * v, d.y * v, (-d.x * sy + d.z * cy) * v, b, false, k);
+      }
+      return;
+    }
+    const s = (id === 'sniper' ? w.spread * 3 : w.hip * .85) + (w.spin ? .01 * (1 - b.spin) : 0), marks = gunMarks(false);
+    for (let i = 0; i < (w.pellets || 1); i++) {
+      const dd = spreadDir(d, s, _ge), r = gunRay(b.x, e, b.z, dd.x, dd.y, dd.z, w.range, marks);
+      tracer(mz.x, mz.y, mz.z, r.x, r.y, r.z, id === 'sniper' ? .3 : .08, 0xff9a7a, id === 'sniper' ? .035 : .02);
+      gunImpact(r, w, dd, b, w.dmg * (r.head ? w.head : 1) * (w.pellets ? clamp(1.3 - r.t / w.range, .35, 1) : 1));
+    }
+    flashAt(mz.x, mz.y, mz.z, 0xffe07a, 1, .06);
+  }
+  // a grenade (or smoke) thrown to land at a spot: the flight time from the distance, the lift from the time
+  function botToss(b, u, tx, ty, tz) {
+    const e = botEye(b), dx = tx - b.x, dy = ty - e, dz = tz - b.z, D = Math.hypot(dx, dz), T = clamp(D / 13, .45, 1.5);
+    b.throwT = .35; Snd.at(b.x, e, b.z).toss();
+    gunShot(u, u.proj, b.x, e, b.z, dx / T, (dy + .5 * u.g * T * T) / T, dz / T, b, false, 0);
+    b.ch[b.ids[3]]--; if (!b.ch[b.ids[3]]) b.chT[b.ids[3]] = u.regen;
+  }
+  // The arena: it fights at the range its gun likes, strafing from side to side (and jumping, the better it is), goes to
+  // look where the hero was last seen, hides to reload when hurt, throws grenades at him behind cover, smoke when in
+  // trouble, switches to its sword up close, to its spare gun while the main one reloads.
+  function botThink(b, dt) {
+    const F = FT, s = b.skill, pl = F.place, box = [pl.x0 + 1, pl.x1 - 1, pl.z0 + 1, pl.z1 - 1];
+    for (const k of ['cd', 'swingT', 'throwT', 'hurtT', 'errT', 'goalT', 'strafeT', 'jumpT', 'alert', 'hiding', 'restT']) b[k] -= dt;
+    b.recoil = Math.max(0, b.recoil - dt * 6);
+    for (const id in b.chT) if (b.chT[id] > 0) { b.chT[id] -= dt; if (b.chT[id] <= 0) b.ch[id] = GUNS[id].charges; }
+    if (b.rel > 0) { b.rel -= dt; if (b.rel <= 0) b.ammo[b.slot] = botGun(b).mag; }
+    if (b.bgT > 0) { b.bgT -= dt; if (b.bgT <= 0 && b.ids[0]) b.ammo[0] = GUNS[b.ids[0]].mag; }
+    const hx = P.pos.x, hz = P.pos.z, dist = Math.hypot(hx - b.x, hz - b.z), eyes = botSees(b);
+    // a glimpse lost for a moment (round a corner) still counts: it would dither in and out of sight otherwise
+    if (eyes) { b.seen += dt; b.lost = 0; b.lx = hx; b.lz = hz; } else { b.lost += dt; if (b.lost > .4) b.seen = 0; }
+    const sees = eyes || b.lost < .4;
+    // what to hold: the sword close up, the spare gun while the main one reloads or is empty, the main gun otherwise
+    const [p0, p1, p2] = b.ids, near = dist < (b.def.rush ? 7 : 3.2);
+    if (near && p2 && (!p0 || !GUNS[p0].pellets || dist < 2)) botSwitch(b, 2);
+    else if (p0 && (b.slot !== 0 || b.rel <= 0) && (b.ammo[0] > 0 || !GUNS[p0].mag) && !(b.def.rush && p2 && dist < 7)) { if (b.slot !== 0 && b.rel <= 0) botSwitch(b, 0); }
+    else if (p1 && b.slot === 0 && b.rel > 1 && dist < 30) botSwitch(b, 1); // (a bow's quick nock is not worth a switch)
+    else if (!p0 && p1 && b.slot !== 1 && !near) botSwitch(b, 1);
+    const w = botGun(b);
+    // where to go
+    const pref = b.def.rush && p2 ? 1.6 : w ? w.br : 12, spd = 6.4 * (1 + s * .15) * (w && w.slow && b.spin > 0 ? w.slow : 1);
+    let vx = 0, vz = 0;
+    if (b.hiding > 0 || b.detourT > 0) { // to cover, or round what it got stuck on
+      b.detourT -= dt;
+      const ex = b.goalX - b.x, ez = b.goalZ - b.z, ed = Math.hypot(ex, ez);
+      if (ed > .6) { vx = ex / ed * spd; vz = ez / ed * spd; } else b.detourT = 0;
+    } else if (sees || b.lost < 2.5) {
+      const ex = b.lx - b.x, ez = b.lz - b.z, ed = Math.hypot(ex, ez) || 1, ux = ex / ed, uz = ez / ed;
+      const radial = sees ? clamp((ed - pref) / 4, -1, 1) : 1;
+      if (b.strafeT <= 0) { b.strafe = Math.random() < .5 ? -1 : 1; b.strafeT = .5 + Math.random() * (1.9 - s); }
+      const side = sees ? b.strafe * (.45 + s * .55) : 0;
+      vx = ux * radial - uz * side; vz = uz * radial + ux * side;
+      const l = Math.hypot(vx, vz); if (l > 1) { vx /= l; vz /= l; }
+      vx *= spd; vz *= spd;
+      if (sees && b.onG && b.jumpT <= 0) { if (Math.random() < s * .55) { b.vy = 10.5; b.onG = false; } b.jumpT = .9 + Math.random() * 2.2; }
+    } else { // it heads for the hero, roughly: it has heard him
+      if (b.goalT <= 0) { b.goalT = 2; b.goalX = clamp(hx + (Math.random() - .5) * 8, box[0], box[1]); b.goalZ = clamp(hz + (Math.random() - .5) * 8, box[2], box[3]); }
+      const ex = b.goalX - b.x, ez = b.goalZ - b.z, ed = Math.hypot(ex, ez) || 1;
+      if (ed > 1) { vx = ex / ed * spd * .8; vz = ez / ed * spd * .8; }
+    }
+    if (b.stuck > .35) { // stuck: a jump, and a few steps off to one side
+      const a = Math.atan2(vx, vz) + (Math.random() < .5 ? 1 : -1) * (1.2 + Math.random() * .8);
+      b.goalX = clamp(b.x + Math.sin(a) * 4, box[0], box[1]); b.goalZ = clamp(b.z + Math.cos(a) * 4, box[2], box[3]); b.detourT = 1.2;
+      b.strafe = -b.strafe; b.strafeT = .8; if (b.onG) { b.vy = 10.5; b.onG = false; } b.stuck = 0; b.goalT = 0;
+    }
+    // hurt and reloading: behind cover (a good bot), or smoke
+    if (sees && b.hiding <= 0 && s > .4 && b.hp < 55 && (b.rel > 0 || (w && w.mag && b.ammo[b.slot] <= 1))) {
+      const c = botCover(b, box); if (c) { b.goalX = c[0]; b.goalZ = c[1]; b.hiding = Math.max(1.2, b.rel + .4); }
+    }
+    // the special thing
+    const uid = b.ids[3], u = uid ? GUNS[uid] : null;
+    if (u && b.ch[uid] > 0 && b.cd <= 0 && F.phase === 'fight') {
+      if (u.kind === 'throw' && !u.smoke && ((b.lost > .7 && b.lost < 4 && Math.hypot(b.lx - b.x, b.lz - b.z) < 22) || (sees && dist > 7 && dist < 18 && Math.random() < dt * .35 * s))) { botToss(b, u, b.lx, P.pos.y, b.lz); b.cd = .5; }
+      else if (u.smoke && sees && b.hp < 50 && Math.random() < dt * 1.2) { botToss(b, u, (b.x + hx) / 2, b.y, (b.z + hz) / 2); b.cd = .4; }
+      else if (u.kind === 'proj' && sees && dist < 26 && dist > 4 && Math.random() < dt * .9 * s) {
+        botAim(b, 1, hx, P.pos.y + .9, hz, .6); const was = b.slot; b.slot = 3; botFire(b, u); b.slot = was;
+        b.ch[uid]--; if (!b.ch[uid]) b.chT[uid] = u.regen; b.cd = .3;
+      } else if (u.kind === 'heal' && !sees && b.hp < 50) { b.hp = Math.min(100, b.hp + u.heal); b.ch[uid] = 0; b.chT[uid] = u.regen; glow(b.x, b.y + 1, b.z, 0x9dff7a, 12, 2, 1.5, 0, .6, .3); Snd.at(b.x, b.y, b.z).heal(); }
+    }
+    // aim at the hero (where it saw him last, else where it is going), leading a slow shot, and fire when on him
+    let off = 9;
+    if (sees || b.alert > 0) {
+      let tx = hx, ty = P.pos.y + (b.headAim ? HEAD_Y : .95) * P.scaleCur, tz = hz;
+      if (w && w.kind === 'proj') {
+        const v = Array.isArray(w.v) ? w.v[1] * .8 : w.v, T = dist / v;
+        tx += P.vel.x * T * s; tz += P.vel.z * T * s; ty += .5 * (w.g || 0) * T * T;
+      }
+      if (w && w.splash) ty = P.pos.y + .2; // a rocket at the feet
+      off = botAim(b, dt, tx, ty, tz);
+    } else if (Math.hypot(vx, vz) > .5) { b.aimY = angleDamp(b.aimY, Math.atan2(vx, vz), 5, dt); b.aimP = damp(b.aimP, 0, 4, dt); }
+    botTrigger(b, dt, w, eyes, dist, off);
+    botMove(b, vx, vz, dt, box);
+  }
+  function botTrigger(b, dt, w, sees, dist, off) {
+    if (!w || FT.phase !== 'fight') return;
+    const ready = sees && b.seen >= b.react && b.rel <= 0 && dist <= w.bm && b.restT <= 0;
+    if (w.spin) b.spin = clamp(b.spin + (ready ? dt : -dt * 1.5) / w.spin, 0, 1);
+    if (w.mag && b.ammo[b.slot] <= 0 && b.rel <= 0) { b.rel = w.reload * (1.2 - b.skill * .2); return; }
+    if (!ready || b.cd > 0) { if (!ready) b.draw = 0; return; }
+    if (w.kind === 'melee') { if (dist < w.reach + .2) { botFire(b, w); b.cd = w.cd * 1.2; } return; }
+    const tol = w.kind === 'flame' ? w.cone : w.pellets ? .14 : Math.max(.02, 1.1 / Math.max(3, dist));
+    if (off > tol * 1.6) { b.draw = 0; return; }
+    if (w.draw) { b.draw += dt; if (b.draw < .45 + b.skill * .45) return; }
+    if (w.spin && b.spin < 1) return;
+    botFire(b, w, w.draw ? clamp(b.draw / w.draw, 0, 1) : 0);
+    b.draw = 0;
+    if (w.mag) b.ammo[b.slot]--;
+    b.cd = (w.cd || .5) * (1.3 - b.skill * .3);
+    // automatic guns in bursts, a breath between them
+    if (w.auto && ++b.burst >= 6 + b.skill * 8) { b.burst = 0; b.restT = .5 - b.skill * .3; }
+  }
+  // The canyon: it waits behind one of its three blocks, steps out beside one (a good one jumps out), takes aim with its
+  // scope glinting (the hero's warning), fires, and goes back behind cover, to another block now and then.
+  function botSnipe(b, dt) {
+    const F = FT, S = F.place, far = S.far, s = b.skill;
+    for (const k of ['cd', 'hurtT', 'errT', 'st', 'jumpT']) b[k] -= dt;
+    b.recoil = Math.max(0, b.recoil - dt * 6);
+    if (b.rel > 0) { b.rel -= dt; if (b.rel <= 0) b.ammo[0] = GUNS.sniper.mag; }
+    const sees = botSees(b), w = GUNS.sniper, box = [S.x0 + 1, S.x1 - 1, far.z0 + 1.5, far.z1 - 1];
+    if (sees) { b.seen += dt; b.lost = 0; } else { b.seen = 0; b.lost += dt; }
+    const hideZ = far.cover[0] - 2, peekZ = far.cover[0] - .4;
+    let gx = b.goalX, gz = b.goalZ;
+    if (b.state === 'hide') {
+      gz = hideZ; gx = S.blocks[b.block];
+      if (b.st <= 0 && Math.abs(b.x - gx) < .8 && b.rel <= 0) {
+        if (Math.random() < .35) b.block = (Math.random() * 3) | 0;
+        b.state = 'move'; b.side = Math.random() < .5 ? -1 : 1;
+        b.goalX = S.blocks[b.block] + b.side * 2.6; b.goalZ = peekZ;
+      }
+    } else if (b.state === 'move') {
+      gx = b.goalX; gz = b.goalZ;
+      if (Math.hypot(b.x - gx, b.z - gz) < .5) {
+        b.state = 'aim'; b.st = 1.5 - s * .8 + Math.random() * .4; b.aimT = b.st;
+        if (s > .6 && b.onG && Math.random() < .35) { b.vy = 10.5; b.onG = false; }
+        Snd.at(b.x, b.y + 1.4, b.z).glint();
+      }
+    } else if (b.state === 'aim') {
+      gx = b.goalX; gz = b.goalZ;
+      if (b.hurtT > 0 || (!sees && b.lost > 1.4) || b.rel > 0) { b.state = 'hide'; b.st = .8 + Math.random() * 1.5; }
+      else if (sees) {
+        const off = botAim(b, dt, P.pos.x, P.pos.y + (b.headAim ? HEAD_Y : .95) * P.scaleCur, P.pos.z, .2);
+        if (b.st <= 0 && b.cd <= 0 && off < .05) {
+          botFire(b, w); b.ammo[0]--; b.cd = w.cd * 1.4;
+          if (b.ammo[0] <= 0) b.rel = w.reload;
+          b.state = 'hide'; b.st = 1 + Math.random() * (2.4 - s * 1.2);
+        }
+      }
+    }
+    if (b.state !== 'aim') { b.aimY = angleDamp(b.aimY, Math.atan2(P.pos.x - b.x, P.pos.z - b.z), 4, dt); b.aimP = damp(b.aimP, 0, 4, dt); }
+    const ex = gx - b.x, ez = gz - b.z, ed = Math.hypot(ex, ez), v = ed > .15 ? Math.min(5.5, ed * 6) : 0;
+    botMove(b, ed ? ex / ed * v : 0, ed ? ez / ed * v : 0, dt, box);
+  }
+  // a hit on the bot: a flinch, the number, it turns to where it came from; the last one knocks it out
+  function botHurt(b, dmg, head, d, w) {
+    if (!b.alive || !FT || FT.phase !== 'fight') return;
+    b.hp = Math.max(0, b.hp - dmg); b.hurtT = .3; b.alert = 1.5; b.lx = P.pos.x; b.lz = P.pos.z;
+    if (w && w.knock && d) { b.vy = 9; b.onG = false; b.kx += d.x * w.knock; b.kz += d.z * w.knock; }
+    if (b.hp <= 0) { botKO(b, head); return; }
+    Snd.at(b.x, b.y + 1, b.z).grunt();
+    b.rig.open.visible = true; b.rig.smile.visible = false; b.faceHappy = -.4;
+  }
+  function botKO(b, head) {
+    b.alive = false; b.koT = 1.1; b.hp = 0;
+    Snd.sfx.ko(); popup(head ? 'Хедшот!' : 'Нокаут!', b.x, b.y + 2.6, b.z, 'gold');
+    glow(b.x, b.y + 2, b.z, 0xfff3a0, 16, 3, 1, 0, .8, .3);
+    ftKO('me', head);
+  }
+  // each frame: the bot's pose (running, the gun along its aim, a swing, a throw), its knock-out, its name tag, the glint
+  function botAnimate(b, dt) {
+    const h = b.rig, r = h.root;
+    if (!b.alive) {
+      b.koT -= dt;
+      if (b.koT > .35) { r.rotation.x = damp(r.rotation.x, -1.45, 9, dt); if (Math.random() < dt * 8) glow(b.x, b.y + .6, b.z, 0xfff3a0, 1, .4, .5, 0, .5, .22); }
+      else if (r.visible) { r.visible = false; puff(b.x, b.y + .8, b.z, 0xe8e6ee, 12, 2.5, .8, .8, 1.3); Snd.at(b.x, b.y, b.z).poof(); }
+    } else { r.visible = true; r.rotation.x = 0; }
+    r.position.set(b.x, b.y, b.z); r.rotation.y = b.aimY;
+    if (b.faceHappy < 0) { b.faceHappy += dt; if (b.faceHappy >= 0) { b.faceHappy = 0; h.open.visible = false; h.smile.visible = true; } }
+    // the pose
+    const t = b.T || (b.T = Object.assign({}, POSE0)); for (const k in POSE0) t[k] = POSE0[k];
+    const k = clamp(b.spd / 7.5, 0, 1);
+    if (!b.onG) { t.hipL = -.55; t.kneeL = 1.1; t.hipR = .15; t.kneeR = .7; t.ankL = t.ankR = .2; }
+    else if (b.spd > .5) {
+      b.anim += dt * (2.4 + b.spd * 1.72);
+      const s = Math.sin(b.anim), c = Math.cos(b.anim), A = .45 + .5 * k;
+      t.hipL = s * A; t.hipR = -s * A;
+      t.kneeL = .12 + (.35 + 1.25 * k) * Math.max(0, -c); t.kneeR = .12 + (.35 + 1.25 * k) * Math.max(0, c);
+      t.ankL = .45 * k * Math.max(0, s) - .2 * Math.max(0, -c); t.ankR = .45 * k * Math.max(0, -s) - .2 * Math.max(0, c);
+      t.bob = Math.abs(c) * (.03 + .07 * k);
+    } else { const sh = Math.sin(time * .9 + b.anim); t.kneeL = .1 + .12 * Math.max(0, sh); t.kneeR = .1 + .12 * Math.max(0, -sh); }
+    gunArms(t, b.alive ? botGun(b) : null, b.aimP, b.swingT, b.throwT, b.recoil, b.draw);
+    if (b.hurtT > 0) t.torsoX -= b.hurtT;
+    if (!b.alive) { t.shLx = t.shRx = -2.6; t.shLz = t.shRz = .9; }
+    rigPose(h, b.J, t, dt, 20);
+    // its name and health over its head
+    const tg = b.tag, y = b.y + 2.3;
+    _gc.set(b.x, y, b.z).applyMatrix4(camera.matrixWorldInverse);
+    const behind = _gc.z > -.2, dist = Math.hypot(b.x - P.pos.x, b.z - P.pos.z);
+    _v.set(b.x, y, b.z).project(camera);
+    b.tagT = (b.tagT || 0) - dt;
+    if (b.tagT <= 0) { b.tagT = .2; const c = camera.position; b.inView = gunClear(c.x, c.y, c.z, b.x, b.y + 1.9, b.z) || gunClear(c.x, c.y, c.z, b.x, b.y + 1, b.z); } // not through walls
+    const show = r.visible && b.inView && !behind && !hudEl.hidden && Math.abs(_v.x) < 1.1 && Math.abs(_v.y) < 1.1;
+    tg.hidden = !show;
+    if (show) {
+      tg.style.transform = `translate(${((_v.x * .5 + .5) * innerWidth).toFixed(1)}px, ${((-_v.y * .5 + .5) * innerHeight).toFixed(1)}px) translate(-50%, -100%) scale(${clamp(26 / Math.max(dist, 1), .7, 1).toFixed(2)})`;
+      const hp = Math.round(b.hp);
+      if (b.shownHp !== hp) { b.shownHp = hp; b.bar.style.transform = 'scaleX(' + (hp / 100).toFixed(2) + ')'; b.bar.classList.toggle('low', hp < 35); }
+    }
+    glintAt(b.state === 'aim' && b.alive && FT && FT.kind === 'snipe' ? rigMuzzle(h, 'sniper', _gm).set(_gm.x, _gm.y + .12, _gm.z) : null, 0);
+  }
+  // easing a rig towards a pose, as animateHero does for our own hero
+  function rigPose(h, J, t, dt, rate) {
+    const kk = 1 - Math.exp(-dt * rate);
+    for (const k in t) J[k] = J[k] === undefined ? t[k] : J[k] + (t[k] - J[k]) * kk;
+    h.legs[0].hip.rotation.set(J.hipL, 0, -J.sprL); h.legs[1].hip.rotation.set(J.hipR, 0, J.sprR);
+    h.legs[0].knee.rotation.x = J.kneeL; h.legs[1].knee.rotation.x = J.kneeR;
+    h.legs[0].ankle.rotation.x = J.ankL; h.legs[1].ankle.rotation.x = J.ankR;
+    h.arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz); h.arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz);
+    h.arms[0].el.rotation.x = J.elL; h.arms[1].el.rotation.x = J.elR; h.arms[0].wr.rotation.x = J.wrL; h.arms[1].wr.rotation.x = J.wrR;
+    const legH = (a, kn, sp) => (.2 * Math.cos(a) + .19 * Math.cos(a + kn)) * Math.cos(sp);
+    const drop = .39 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR));
+    h.hips.position.set(0, .52 - drop + J.bob, 0); h.hips.rotation.y = J.hipsY;
+    h.torso.rotation.set(J.torsoX, J.twist, J.torsoZ);
+    h.head.rotation.set(J.headX, J.headY, J.headZ);
+  }
+  // a sniper's scope glinting in the sun: a flare that keeps its size on the screen (slot 0: the bot; 1…: friends)
+  const glints = [];
+  function glintAt(p, i) {
+    let g = glints[i];
+    if (!g) {
+      const m = new T.Mesh(DISC_GEO, new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .95, depthWrite: false, blending: T.AdditiveBlending }));
+      const m2 = new T.Mesh(DISC_GEO, new T.MeshBasicMaterial({ color: 0xbfe8ff, transparent: true, opacity: .45, depthWrite: false, blending: T.AdditiveBlending }));
+      m.renderOrder = m2.renderOrder = 8; m.visible = m2.visible = false; scene.add(m, m2); g = glints[i] = { m, m2 };
+    }
+    if (!p) { g.m.visible = g.m2.visible = false; return; }
+    const d = camera.position.distanceTo(p), f = .85 + Math.sin(time * 30 + i) * .15;
+    for (const [m, k] of [[g.m, .012], [g.m2, .03]]) { m.visible = true; m.position.copy(p); m.quaternion.copy(camera.quaternion); m.scale.setScalar(d * k * f); }
+  }
+
+  // ---------- the hero in a duel: health, hits, a knock-out ----------
+  function heroHurt(dmg, head, d, by, w) {
+    if (P.koT > 0 || dmg <= 0 || !gunOn()) return;
+    if (!(FT && FT.phase === 'fight') && !duelGunRun()) return;
+    if (P.inv > 0 && duelGunRun() && by !== 'me') return; // just back after a knock-out
+    P.hp = Math.max(0, P.hp - dmg); P.hurtT = .35;
+    G.flash = Math.max(G.flash, head ? .55 : .3); G.flashCol = '#ff3b2f'; G.shake = Math.max(G.shake, head ? .3 : .14);
+    if (dmg >= 20) Snd.sfx.yelp(); else Snd.sfx.bump();
+    popup('−' + dmg, P.pos.x, P.pos.y + PH + .7, P.pos.z, head ? 'gold' : '');
+    if (d) {
+      const kn = w && w.knock ? w.knock : w && w.splash ? 6 : 1.5;
+      P.vel.x += d.x * kn; P.vel.z += d.z * kn; if (kn > 5) { P.vel.y = Math.max(P.vel.y, 8); P.onGround = false; P.noCut = true; }
+    }
+    if (P.hp <= 0) heroKO(by, head);
+  }
+  function heroKO(by, head) {
+    P.koT = FT ? 99 : 3; GN.scope = false; GN.healT = 0;
+    puff(P.pos.x, P.pos.y + .8, P.pos.z, 0xe8e6ee, 14, 2.5, .8, .9, 1.4); glow(P.pos.x, P.pos.y + 1.4, P.pos.z, 0xfff3a0, 16, 3, 1, 0, .8, .3);
+    Snd.sfx.ko(); hero.root.visible = false;
+    if (FT) ftKO('foe', head);
+    else if (duelGunRun()) duelGunKO(by, head);
+  }
+  // fire on someone burns a little more for a few seconds
+  function gunBurns(dt) {
+    if (P.burn > 0) {
+      P.burn -= dt; P.burnAcc = (P.burnAcc || 0) + dt * 5;
+      if (Math.random() < dt * 14) glow(P.pos.x, P.pos.y + .8, P.pos.z, 0xff7a1a, 1, .5, 1.2, 0, .4, .25);
+      if (P.burnAcc >= 3) { P.burnAcc -= 3; heroHurt(3, false, null, 'fire', null); }
+    }
+    const b = FT && FT.bot;
+    if (b && b.alive && b.burn > 0) {
+      b.burn -= dt; b.burnAcc += dt * 5;
+      if (Math.random() < dt * 14) glow(b.x, b.y + .8, b.z, 0xff7a1a, 1, .5, 1.2, 0, .4, .25);
+      if (b.burnAcc >= 3) { b.burnAcc -= 3; botHurt(b, 3, false, null, null); }
+    }
+  }
+
+  // ---------- duels against the bots ----------
+  // The red pad in the arena's gate (or on the canyon's ledge) starts one: the barrier closes the way in, the hero and the
+  // bot stand at their spots with full health, and after a count the round is on. A knock-out wins the round (so does
+  // more health left when the round's time is up; leaving the arena or falling off the ledge loses it); three rounds win
+  // the duel. The results: the score, the aim, the heads, the badges; stars for the first win, a win 3:0, beating the
+  // champion, and in the canyon a win and a head hit.
+  let FT = null;
+  const ftFrozen = () => !!FT && FT.phase === 'count';
+  const ftPlaceOf = (kind) => (kind === 'snipe' ? ISL.ft.snipe : ISL.ft.arena);
+  function ftStart(kind) {
+    const F = ISL.ft;
+    if (!F || FT || duelOn() || duelPending() || G.state !== 'playing') return;
+    const pl = ftPlaceOf(kind), snipe = kind === 'snipe';
+    let def, skill, idx = -1;
+    if (snipe) { def = SNIPER_BOT; skill = clamp(.3 + SAVE.duSn * .1, .3, .88); }
+    else { idx = SAVE.duLad < BOTS.length ? SAVE.duLad : (Math.random() * BOTS.length) | 0; def = BOTS[idx]; skill = Math.min(.92, def.skill + (SAVE.duLad >= BOTS.length ? .1 : 0)); }
+    const cx = snipe ? (pl.x0 + pl.x1) / 2 : (pl.x0 + pl.x1) / 2, cz = snipe ? (pl.near.z1 + pl.far.z0) / 2 : (pl.z0 + pl.z1) / 2;
+    FT = { kind, place: pl, def, idx, skill, phase: 'count', t: 3.6, tick: 4, round: 0, me: 0, foe: 0, need: 3, shots: 0, hits: 0, heads: 0, left: 0, bot: null,
+      solids: nearSolids(cx, cz, snipe ? 70 : 42) };
+    FT.bot = botMake(def, skill);
+    ftRound();
+    Snd.startMusic('battle');
+    npcSay(pl.host, snipe ? 'Снайперская дуэль! Соперник: ' + def.name + '. Следи за бликом его прицела!' : 'Дуэль! Твой соперник: ' + def.name + '. ' + def.say);
+  }
+  function ftRound() {
+    const F = FT, pl = F.place, snipe = F.kind === 'snipe';
+    F.round++; F.phase = 'count'; F.t = F.round === 1 ? 3.6 : 2.6; F.tick = 4; F.left = snipe ? 120 : 90;
+    const hs = snipe ? pl.near.spot : pl.pads[0], bs = snipe ? pl.far.spot : pl.pads[1];
+    if (ISL.carry) dropCarry('fall');
+    placePlayer({ x: hs[0], y: pl.top + .05, z: hs[1] }, hs[2]);
+    P.koT = 0; P.hp = 100; P.burn = 0; hero.root.visible = true; cam.aim = snipe ? .02 : 0;
+    gunReset();
+    botPlace(F.bot, bs[0], pl.top, bs[1], bs[2]);
+    F.bot.block = 1; F.bot.state = 'hide'; F.bot.st = 1.2;
+    clearGunFx(); padsHere();
+    toast('Раунд ' + F.round, 'Ты ' + F.me + ' : ' + F.foe + ' ' + F.def.name); Snd.sfx.bell();
+  }
+  function ftKO(who, head, why) {
+    const F = FT; if (!F || F.phase !== 'fight') return;
+    F.phase = 'ko'; F.t = 2.8; GN.scope = false;
+    if (who === 'me') {
+      F.me++; toast(head ? 'Хедшот!' : 'Нокаут!', 'Ты ' + F.me + ' : ' + F.foe + ' ' + F.def.name); P.cheerT = 1.4; P.happyT = 1.6;
+      if (head && F.kind === 'snipe') gunHeadStar();
+    } else if (who === 'foe') {
+      F.foe++; toast(why || 'Тебя нокаутировали', 'Ты ' + F.me + ' : ' + F.foe + ' ' + F.def.name);
+      const h = F.bot.rig; h.grin.visible = true; h.smile.visible = false;
+    } else toast('Ничья', 'Раунд без победителя');
+    if (F.me >= F.need || F.foe >= F.need) F.t = 2.2;
+  }
+  function ftUpdate(dt) {
+    const F = ISL.ft; if (!F) return;
+    // the barriers: up while a duel is on there (ours with a bot, or one with friends)
+    const dk = duelGunning() ? duel.kind : '', on = { arena: (FT && FT.kind === 'arena') || dk === 'gun', snipe: (FT && FT.kind === 'snipe') || dk === 'snipe' };
+    for (const [gt, up] of [[F.arena.gate, on.arena], [F.snipe.near.gate, on.snipe], [F.snipe.far.gate, on.snipe]]) {
+      gt.k = damp(gt.k, up ? 1 : 0, 3.5, dt); gt.m.visible = gt.k > .01; gt.m.position.y = lerp(gt.y1 - gt.h - .1, gt.y1, gt.k); gt.s.active = up;
+      if (up && overlapP(gt.s, P.pos.x, P.pos.y, P.pos.z)) pushOut(gt.s);
+    }
+    updateGunShots(dt); updateSmokes(dt);
+    if (!FT || G.state !== 'playing') return;
+    const B = FT.bot, pl = FT.place;
+    gunBurns(dt);
+    if (FT.phase === 'count') {
+      FT.t -= dt;
+      const k = Math.ceil(FT.t);
+      if (k < FT.tick && k >= 1 && k <= 3) { FT.tick = k; toast(String(k), 'Раунд ' + FT.round); Snd.sfx.tock(false); }
+      if (FT.t <= 0) { FT.phase = 'fight'; toast('В бой!', FT.kind === 'snipe' ? 'Выгляни из-за укрытия и стреляй' : 'До трёх побед'); Snd.sfx.whistle(); }
+      botMove(B, 0, 0, dt, null);
+      return;
+    }
+    if (FT.phase === 'ko') {
+      FT.t -= dt;
+      if (B.alive) botMove(B, 0, 0, dt, null);
+      if (FT.t <= 0) { if (FT.me >= FT.need || FT.foe >= FT.need) ftOver(); else ftRound(); }
+      return;
+    }
+    // the fight
+    const before = FT.left; FT.left -= dt;
+    if (FT.left < 5 && Math.ceil(FT.left) !== Math.ceil(before)) Snd.sfx.tock(true);
+    if (FT.kind === 'snipe') botSnipe(B, dt); else botThink(B, dt);
+    const out = FT.kind === 'snipe'
+      ? P.pos.x < pl.x0 - .5 || P.pos.x > pl.x1 + .5 || P.pos.z < pl.near.z0 - .5 || P.pos.z > pl.near.z1 + .5 || P.pos.y < pl.top - 2
+      : P.pos.x < pl.x0 - .5 || P.pos.x > pl.x1 + .5 || P.pos.z < pl.z0 - .5 || P.pos.z > pl.z1 + .5;
+    if (out && P.koT <= 0) { P.koT = 99; hero.root.visible = false; puff(P.pos.x, P.pos.y + .8, P.pos.z, 0xe8e6ee, 10, 2, .8, .8, 1.2); ftKO('foe', false, FT.kind === 'snipe' ? 'Упал с уступа!' : 'Вне арены!'); return; }
+    if (FT.left <= 0) ftKO(P.hp > B.hp ? 'me' : P.hp < B.hp ? 'foe' : '', false, 'Время вышло');
+  }
+  function ftOver() {
+    const F = FT, won = F.me > F.foe, snipe = F.kind === 'snipe', host = F.place.host;
+    const pay = won ? (snipe ? 20 + 5 * Math.min(6, SAVE.duSn) : 20 + 10 * Math.max(0, F.idx)) : 5;
+    SAVE.bank += pay;
+    const champ = !snipe && won && F.idx === BOTS.length - 1, next = won && !snipe && F.idx === SAVE.duLad;
+    if (won) {
+      if (snipe) SAVE.duSn++;
+      else { SAVE.duWins++; if (next) SAVE.duLad = Math.min(BOTS.length, SAVE.duLad + 1); if (!SAVE.duBeat.includes(F.def.name)) SAVE.duBeat.push(F.def.name); }
+    }
+    saveGame();
+    const star = (id, line) => { if (!questDone(id)) { npcSay(host, line); revealStar(id, host.x, host.y + host.h, host.z); } };
+    if (won && snipe) star('du.snipe', 'Отличный выстрел! Держи звезду снайпера!');
+    if (won && !snipe) star('du.win', 'Первая победа на арене! Держи звезду!');
+    if (won && !snipe && F.foe === 0) star('du.clean', 'Всухую! Вот это класс! Ещё одна звезда!');
+    if (champ) star('du.champ', 'Ты победил Чемпиона! Теперь ты чемпион арены! Держи звезду!');
+    if (won) { P.cheerT = 2; P.happyT = 2.4; Snd.sfx.clear(); } else Snd.sfx.over();
+    const acc = F.shots ? Math.round(F.hits / F.shots * 100) + '%' : '—', nx = ftNextBot();
+    showResult({ head: (snipe ? 'Снайперская дуэль' : 'Дуэль') + ' · итоги', big: won ? 'Победа!' : 'Поражение',
+      rows: [['🏆', 'Счёт', F.me + ' : ' + F.foe, true], ['🤖', 'Соперник', F.def.name], ['🎯', 'Попадания', F.hits + ' из ' + F.shots + ' (' + acc + ')'], ['💥', 'В голову', String(F.heads)],
+        ['🪙', 'Значки', '+' + pay]].concat(!snipe && won && nx && next ? [['➡', 'Дальше', nx.name]] : champ ? [['👑', 'Все соперники', 'побеждены!']] : []),
+      yes: won && !snipe && nx ? 'Следующий' : 'Реванш', onYes: () => { if (G.state === 'paused') resume(); ftGo(F.kind); } });
+    ftEnd();
+  }
+  // back to the spot before the pad, and on again (the "Rematch" button)
+  function ftGo(kind) {
+    if (!ISL.ft || FT) return;
+    const pl = ftPlaceOf(kind), sp = kind === 'snipe' ? pl.near.spot : pl.pads[0];
+    placePlayer({ x: sp[0], y: pl.top + .05, z: sp[1] }, sp[2]); ftStart(kind);
+  }
+  function ftEnd() {
+    if (!FT) return;
+    const b = FT.bot; FT = null;
+    if (b) { if (b.alive) puff(b.x, b.y + .8, b.z, 0xe8e6ee, 10, 2, .8, .8, 1.2); botDrop(b); }
+    glintAt(null, 0);
+    P.koT = 0; P.hp = 100; P.burn = 0; hero.root.visible = true; gunReset(); padsHere();
+    Snd.startMusic(L.def.music);
+  }
+  // the pads under the hero wait until he steps off them (a duel's spot is on its pad: the end must not start another)
+  function padsHere() { for (const pd of L.pads) if (Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r + .6) pd.armed = false; }
+  // each frame: the bot, the panel at the top (the score and both health bars), the friends' glints
+  const ftBarEl = $('ftBar');
+  const ftKey = {};
+  function ftSet(k, v, fn) { if (ftKey[k] !== v) { ftKey[k] = v; fn(v); } }
+  function ftAnimate(dt) {
+    if (FT && FT.bot) botAnimate(FT.bot, dt);
+    let gi = 1;
+    if (L.def.duels) for (const g of net.peers.values()) if (g.scope && g.rig && g.rig.root.visible && g.gun === 'sniper' && g.loc === netLoc() && gi < 5) glintAt(rigMuzzle(g.rig, 'sniper', _gm).set(_gm.x, _gm.y + .12, _gm.z), gi++);
+    for (; gi < glints.length; gi++) glintAt(null, gi);
+    if (P.koT > 0) hero.root.visible = false;
+    const show = gunUiOn && (!!FT || duelGunning());
+    ftSet('show', show, (v) => { ftBarEl.hidden = !v; });
+    if (!show) return;
+    ftSet('me', Math.round(P.hp), (v) => { $('ftMeHp').style.transform = 'scaleX(' + (v / 100).toFixed(2) + ')'; $('ftMeHp').classList.toggle('low', v < 35); $('ftMeN').textContent = '❤ ' + v; });
+    if (FT) {
+      ftSet('foe', Math.round(FT.bot.hp), (v) => { $('ftFoeHp').style.transform = 'scaleX(' + (v / 100).toFixed(2) + ')'; $('ftFoeHp').classList.toggle('low', v < 35); $('ftFoeN').textContent = '❤ ' + v; });
+      ftSet('name', FT.def.name, (v) => { $('ftFoeName').textContent = v; $('ftFoe').hidden = false; });
+      ftSet('score', FT.me + ' : ' + FT.foe, (v) => { $('ftScore').textContent = v; });
+      ftSet('sub', 'Раунд ' + FT.round + ' · до ' + FT.need + ' побед', (v) => { $('ftSub').textContent = v; });
+    } else {
+      const d = duel, me = duelMe(), mine = d.score.get(me) || 0;
+      let lead = '', top = 0;
+      for (const id of d.players) if (id !== me && (d.score.get(id) || 0) >= top) { top = d.score.get(id) || 0; lead = id; }
+      ftSet('name', lead ? duelName(lead) : '', (v) => { $('ftFoeName').textContent = v; });
+      ftSet('foeHide', true, () => { $('ftFoe').hidden = true; });
+      ftKey.foe = -1;
+      ftSet('score', mine + ' : ' + top, (v) => { $('ftScore').textContent = v; });
+      ftSet('sub', 'нокауты · до ' + GUN_DUEL_KO, (v) => { $('ftSub').textContent = v; });
+    }
+  }
+  // the Duel Arena opens: the guns come out; it closes: they go away and a duel still on ends without a score
+  function duEnter() {
+    gunReset(); cam.aim = 0;
+    if (!isTouch && !store.get('gunTip', 0)) { store.set('gunTip', 1); setTimeout(() => toast('Кликни мышкой', 'Мышь целится, левая кнопка стреляет, правая прицел, 1–4 оружие, R перезарядка'), 2600); }
+  }
+  function duLeave() {
+    if (FT) { const b = FT.bot; FT = null; botDrop(b); }
+    ftKey.show = null; ftBarEl.hidden = true;
+    for (let i = 0; i < glints.length; i++) glintAt(null, i);
+    clearGunFx(); gunUnlock(); GN.scope = false; GN.scopeK = 0; P.koT = 0; P.hp = 100; P.burn = 0;
+    rigGun(hero, ''); if (hero.guns) hero.guns.back.visible = false;
+  }
+
   // ---------- gates: to the worlds (on the island), between the worlds, into the levels ----------
   SWIRL_TEX.center.set(.5, .5);
   // A level is open when it is the first behind its gate or the one before it has been cleared. Friends in one room share
@@ -12841,11 +14434,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
       const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
       if (!inside) pd.armed = true;
-      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn()) {
+      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT) {
         pd.armed = false;
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
         else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
         else if (pd.kind === 'craft') ntCraftPad();
+        else if (pd.kind === 'duel' || pd.kind === 'snipe') ftStart(pd.kind === 'duel' ? 'arena' : 'snipe');
       }
     }
     for (const pt of L.portals) {
@@ -12856,7 +14450,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!inside) { pt.armed = true; continue; }
       if (!pt.armed || G.state !== 'playing') continue;
       pt.armed = false;
-      const busy = duelOn() || survOn() || cupOn() || tbOn(); // a game with friends (or the survival game, the cup, a tank battle) keeps everyone in this world until it is over
+      const busy = duelOn() || survOn() || cupOn() || tbOn() || !!FT; // a game with friends (or the survival game, the cup, a tank battle, a duel) keeps everyone in this world until it is over
       if (open && !busy) { enterGate(pt); continue; }
       P.vel.set(pt.nx * 7, 7, pt.nz * 7); P.onGround = false; P.noCut = true; G.shake = Math.max(G.shake, .2);
       Snd.sfx.locked();
@@ -13183,6 +14777,21 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           } });
       });
       sec('В играх с друзьями танки у всех одинаковые: там побеждает меткость');
+    } else if (shopTab === 'guns') {
+      // the Duel Arena's guns: each slot of the set in turn; a bought gun goes into its slot with a tap
+      GUN_SLOTS.forEach((slotName, i) => {
+        sec(slotName + (i === 3 ? ': гранаты и другое' : ''));
+        if (i === 3 || i === 2) item({ title: 'Пусто', sub: 'Без ' + (i === 3 ? 'особого' : 'ближнего боя'), state: SAVE.load[i] ? 'Убрать' : 'В наборе', can: !!SAVE.load[i], on: !SAVE.load[i], act: () => { SAVE.load[i] = null; if (gunOn() && !FT) gunReset(); } });
+        for (const id of GUN_IDS) {
+          const g = GUNS[id]; if (g.slot !== i) continue;
+          const own = SAVE.guns.includes(id), on = SAVE.load[i] === id;
+          item({ title: g.icon + ' ' + g.name, sub: g.sub, price: g.price, state: own ? (on ? 'В наборе' : 'Взять') : null, can: !on, on, act: () => {
+            if (!own) SAVE.guns.push(id);
+            SAVE.load[i] = id; P.happyT = 1; if (gunOn() && !FT && !duelGunning()) gunReset();
+          } });
+        }
+      });
+      sec('С набором выходишь на арену. В снайперском ущелье у всех снайперки');
     } else {
       sec(isTouch ? 'Кнопка с самокатом наверху экрана зовёт транспорт в открытых мирах' : 'Клавиша V или кнопка наверху экрана зовёт транспорт в открытых мирах');
       for (const id of SHOP_RIDES) {
@@ -13426,13 +15035,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function rideToggle() {
     if (holdStill()) return;
+    if (!P.veh && L.def.duels) { popup('На арене только пешком', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (!P.veh) { rideOn(); return; }
     if (tankLocked()) { popup('Из танка не вылезти, пока идёт бой', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     rideOff(false);
   }
   const btnRide = $('btnRide');
   function updateRideBtn() {
-    const id = worldRide() || SAVE.ride, show = !!(L && L.def.hub && (RIDES[id] || P.veh) && !hudEl.hidden);
+    const id = worldRide() || SAVE.ride, show = !!(L && L.def.hub && !L.def.duels && (RIDES[id] || P.veh) && !hudEl.hidden); // (the Duel Arena is on foot)
     btnRide.hidden = !show; btnRide.classList.toggle('on', !!P.veh);
     btnRide.setAttribute('aria-label', P.veh ? 'Слезть с транспорта' : 'Транспорт: ' + (RIDES[id] ? RIDES[id].name : ''));
   }
@@ -13536,6 +15146,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     cupUpdate(dt);
     tbUpdate(dt);
     ntUpdate(dt);
+    ftUpdate(dt);
     updatePerches(dt);
     updateGates(dt);
   }
@@ -13864,6 +15475,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function resetIdle() { idleT = 0; idleAll = 0; fidget = null; }
   function pickLook() {
     lookTgt = null;
+    if (gunOn()) return; // with a gun he looks where he aims
     if (fidget === 'wave') { lookTgt = [camera.position.x, camera.position.y, camera.position.z, true]; return; }
     let best = 81;
     for (const e of L.enemies) {
@@ -14117,6 +15729,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         groundAt(P.pos.x + Math.sin(P.facing) * (HW + .2), P.pos.z + Math.cos(P.facing) * (HW + .2), P.pos.y + .05, 0) < P.pos.y - 1.2;
     }
     let [face, rate] = heroPose(t, dt, spd, turn);
+    if (gunOn() && G.state !== 'dying') gunArms(t, gunCur(), gunAim(), GN.swingT, GN.throwT, GN.recoil, GN.draw); // the gun along the aim
     if (!(P.onGround || G.state === 'title') || P.spinT > 0 || P.pound || P.throwT > 0 || P.waveT > 0) { idleT = 0; idleAll = 0; fidget = null; }
     if (G.state !== 'dying' && G.state !== 'title' && face !== 'hurt' && (G.state === 'goal' || P.happyT > 0) && !teeter) face = face === 'cheer' ? 'cheer' : 'happy';
     else if (P.hurtT > 0 && face === 'normal') face = 'hurt';
@@ -14230,6 +15843,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- camera ----------
   function updateCam(dt, snap) {
+    if (gunOn()) { gunCam(dt, snap); return; } // over the shoulder, with the guns of the Duel Arena
     if (cam.yawGoal !== null) {
       cam.yaw = angleDamp(cam.yaw, cam.yawGoal, 7, dt);
       if (Math.abs(wrapPi(cam.yaw - cam.yawGoal)) < .01) cam.yawGoal = null;
@@ -14436,6 +16050,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       : key === 'island' ? '★ ' + starCount() + ' / ' + TOTAL_STARS : 'Звёзды этого мира: ' + ws.got + ' из ' + ws.all);
     Snd.setRoom(.12); Snd.setAmbient(def.amb); Snd.startMusic(def.music);
     if (def.nights) ntBegin(); // the 99 nights go on
+    if (def.duels) duEnter(); // the guns come out
   }
   // falling in an open world costs nothing: the hero is back at the last flag he touched (in a race with friends, at the
   // last ring he flew through, on the race's ride)
@@ -14451,7 +16066,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (back) { if (cupOn()) mountDragon(SAVE.dragon || 'drRed'); else duelMount(); }
     else if (dragon) mountDragon(dragon);
     updateRideBtn();
-    Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : tbOn() ? 'battle' : ntOn() ? ntSong() : L.def.music);
+    Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : tbOn() || FT ? 'battle' : ntOn() ? ntSong() : L.def.music);
     if (!quiet) toast('Ой!', back ? 'Назад к кольцу' : c ? 'Начнём от флажка' : 'Начнём сначала');
   }
   function startGame(key = 'island', mode = false) {
@@ -14634,8 +16249,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
     if (ACT_KEYS.includes(e.code) && !e.repeat && G.state === 'playing') input.actQueued = true;
-    if (e.code === 'KeyC' && !e.repeat && G.state === 'playing') input.nadeQueued = true; // a KV-44's grenade launcher
-    if (e.code === 'KeyR' && !e.repeat && G.state === 'playing') input.rocketQueued = true; // and its rockets
+    // in the Duel Arena: 1–4 pick a gun, R reloads, C scopes
+    if (gunOn() && G.state === 'playing' && !e.repeat) {
+      const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
+      if (n >= 0) gunSwitch(n);
+      if (e.code === 'KeyR') gunReload();
+      if (e.code === 'KeyC') gunScopeSet(!GN.scope);
+    } else {
+      if (e.code === 'KeyC' && !e.repeat && G.state === 'playing') input.nadeQueued = true; // a KV-44's grenade launcher
+      if (e.code === 'KeyR' && !e.repeat && G.state === 'playing') input.rocketQueued = true; // and its rockets
+    }
     keys.add(e.code);
   });
   addEventListener('keyup', (e) => keys.delete(e.code));
@@ -14646,7 +16269,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   canvas.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse') return; drag = { x: e.clientX, y: e.clientY }; try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } });
   canvas.addEventListener('pointermove', (e) => {
     if (!drag) return;
-    cam.yaw -= (e.clientX - drag.x) * .006; cam.pitch = clamp(cam.pitch + (e.clientY - drag.y) * .004, .08, 1.15); cam.yawGoal = null;
+    if (gunOn()) { if (!locked()) gunLook(e.clientX - drag.x, e.clientY - drag.y, 'mouse'); }
+    else { cam.yaw -= (e.clientX - drag.x) * .006; cam.pitch = clamp(cam.pitch + (e.clientY - drag.y) * .004, .08, 1.15); cam.yawGoal = null; }
     drag.x = e.clientX; drag.y = e.clientY;
   });
   const endDrag = () => { drag = null; };
@@ -14696,7 +16320,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   });
   lookZone.addEventListener('pointermove', (e) => {
     if (e.pointerId !== look.id) return;
-    cam.yaw -= (e.clientX - look.x) * .0075; cam.pitch = clamp(cam.pitch + (e.clientY - look.y) * .005, .08, 1.15); cam.yawGoal = null;
+    if (gunOn()) gunLook(e.clientX - look.x, e.clientY - look.y, 'touch');
+    else { cam.yaw -= (e.clientX - look.x) * .0075; cam.pitch = clamp(cam.pitch + (e.clientY - look.y) * .005, .08, 1.15); cam.yawGoal = null; }
     look.x = e.clientX; look.y = e.clientY;
   });
   const lookEnd = (e) => { if (e.pointerId === look.id) look.id = null; };
@@ -14753,8 +16378,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function updateHowto() {
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
-      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
+      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['В дуэлях', ' свайп целится, «Прицел» — оптика.']]
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['На Дуэльной арене', ' клик — целиться мышью, левая кнопка — огонь, правая или C — прицел, 1–4 — оружие, R — перезарядка. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
@@ -14777,6 +16402,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnModeDragon').addEventListener('click', () => startGame('dragon', true));
   $('btnModeTanks').addEventListener('click', () => startGame('tanks', true));
   $('btnModeNights').addEventListener('click', () => startGame('forest', true));
+  $('btnModeDuels').addEventListener('click', () => startGame('duels', true));
   // a fresh start wipes the saved stars; it asks for a second tap first
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
@@ -14894,7 +16520,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 5, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 6, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
@@ -15126,12 +16752,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       });
     } catch (e) { net.code = ''; net.state = 'off'; net.note = 'Игра по сети не запустилась в этом браузере.'; renderNet(); return; }
     net.room = room; net.state = 'on'; net.openedAt = performance.now();
-    const hello = room.makeAction('hello'), pose = room.makeAction('pose'), emo = room.makeAction('emote'), dl = room.makeAction('duel');
-    net.act = { hello, pose, emo, duel: dl };
+    const hello = room.makeAction('hello'), pose = room.makeAction('pose'), emo = room.makeAction('emote'), dl = room.makeAction('duel'), gn = room.makeAction('gun');
+    net.act = { hello, pose, emo, duel: dl, gun: gn };
     hello.onMessage = (d, m) => netOnHello(d, m.peerId);
     pose.onMessage = (d, m) => netOnPose(d, m.peerId);
     emo.onMessage = (d, m) => netOnEmote(d, m.peerId);
     dl.onMessage = (d, m) => netOnDuel(d, m.peerId);
+    gn.onMessage = (d, m) => netOnGun(d, m.peerId);
     room.onPeerJoin = (id) => { net.err = ''; netPeer(id); netSend(hello, netHello(), { target: id }); netUi(); };
     room.onPeerLeave = (id) => netDrop(id);
     net.helloKey = ''; netLookChanged();
@@ -15208,6 +16835,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (let i = 0; i < NET_VIS.length; i++) g.visNodes[i].visible = !!(g.vis & (1 << i));
     const fire = !!(g.flags & NF_FIRE), suit = !!L.def.suit, key = g.look.skin + '|' + g.look.cap + '|' + g.look.hat + '|' + fire + '|' + suit;
     if (g.dress !== key) { g.dress = key; dressHero(h, g.look, fire, suit); }
+    if (h.guns && h.guns.id && !L.def.duels) { rigGun(h, ''); g.gun = ''; g.scope = false; } // the guns stay in the Duel Arena
     const shown = r.visible, dist = Math.hypot(g.px - P.pos.x, g.py - P.pos.y, g.pz - P.pos.z);
     r.visible = shown && dist < (scene.fog ? scene.fog.far + 20 : 260); // past the fog there is nothing to see
     netRide(g, g.rideNow);
@@ -15432,7 +17060,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('netName').addEventListener('change', () => { net.name = net.name.trim(); netSave(); netLookChanged(); });
   $('btnNetShare').addEventListener('click', netShare);
   // a game with friends from the card: the invites go out and the card gives way to the game
-  for (const [id, kind] of [['btnDuelRace', 'race'], ['btnDuelHide', 'hide'], ['btnDuelTank', 'tank']]) {
+  for (const [id, kind] of [['btnDuelRace', 'race'], ['btnDuelHide', 'hide'], ['btnDuelTank', 'tank'], ['btnDuelGun', 'gun'], ['btnDuelSnipe', 'snipe']]) {
     $(id).addEventListener('click', () => {
       Snd.init();
       const why = duelPropose(kind);
@@ -15459,12 +17087,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const DUEL_ASK = 12, DUEL_COUNT = 3, RACE_AFTER = 25, RACE_MAX = 300, RACE_LEN = 300, HIDE_T = 25, SEEK_T = 150, CUCKOO_T = 3, FIND_R = 1.9, DUEL_PAY = 20;
   // a tank battle with friends: how long it lasts, how long a tank just hit cannot be hit again
   const TANK_DUEL_T = 120, TANK_HIT_CD = 1500;
+  // a duel with guns: how long it lasts at most, the knock-outs that win it
+  const GUN_DUEL_T = 180, GUN_DUEL_KO = 5;
   // the ride for a race in each world: the kart on land, the snowboard down the ice slalom, the jet ski on the lagoon,
   // the rover on the moon
   const DUEL_RIDE = { island: 'kart', desert: 'kart', ice: 'board', candy: 'kart', factory: 'kart', sea: 'jetski', space: 'rover', dino: 'stonecar', tanks: 'tank' };
   // in Dragon Peaks everyone flies the dragon they picked there
   const duelRideFor = (key) => (HUBS[key] && HUBS[key].dragons ? SAVE.dragon || 'drRed' : DUEL_RIDE[key] || 'kart');
-  const DUEL_NAME = { race: 'Гонка по кольцам', hide: 'Прятки', tank: 'Танковый бой' };
+  const DUEL_NAME = { race: 'Гонка по кольцам', hide: 'Прятки', tank: 'Танковый бой', gun: 'Дуэль', snipe: 'Снайперская дуэль' };
   let duel = null, duelSeekerLast = '';
   const duelMe = () => (net.lib && net.lib.selfId) || 'me';
   const duelAct = () => net.act && net.act.duel;
@@ -15474,8 +17104,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const duelHiding = () => !!duel && duel.kind === 'hide' && (duel.phase === 'hide' || duel.phase === 'seek');
   // nobody moves during the race's countdown, the seeker not while the others hide
   const duelFrozen = () => !!duel && (duel.phase === 'count' || (duel.phase === 'hide' && duel.seeker === duelMe()));
-  const holdStill = () => duelFrozen() || cupFrozen(); // and the dragons' cup's countdown
+  const holdStill = () => duelFrozen() || cupFrozen() || ftFrozen() || P.koT > 0; // and the dragons' cup's countdown, a duel's, a knock-out
   const duelTanking = () => !!duel && duel.kind === 'tank' && (duel.phase === 'count' || duel.phase === 'run');
+  const duelGunning = () => !!duel && (duel.kind === 'gun' || duel.kind === 'snipe') && (duel.phase === 'count' || duel.phase === 'run');
+  const duelGunRun = () => duelGunning() && duel.phase === 'run';
+  const duelSniping = () => duelGunning() && duel.kind === 'snipe';
   const duelRide = () => (duelRacing() || duelTanking() ? duel.rideId : '');
   const duelTarget = () => (duelRacing() && !duel.fin.has(duelMe()) ? duel.rings[duel.seq[duel.next]] || null : null);
   const duelName = (id) => (id === duelMe() ? 'Ты' : (net.peers.get(id) || {}).name || 'Друг');
@@ -15489,7 +17122,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return out;
   }
   // the world a game we start is played in: ours if we are in an open world, Promo Island otherwise
-  const duelHomeKey = () => (L && L.def.hub && !L.def.nights && netLoc() ? L.def.key : 'island');
+  const duelHomeKey = () => (L && L.def.hub && !L.def.nights && !L.def.duels && netLoc() ? L.def.key : 'island');
   const duelKeyOf = (loc) => { const k = NET_LOCS[loc] || ''; return k[0] === 'h' && HUBS[k.slice(2)] ? k.slice(2) : ''; };
   // why a game cannot start right now, or '' when it can
   function duelWhyNot() {
@@ -15498,6 +17131,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (survOn()) return 'Сначала закончи выживание.';
     if (tbOn()) return 'Сначала закончи танковый бой.';
     if (cupOn()) return 'Сначала долети кубок драконов.';
+    if (FT) return 'Сначала закончи дуэль.';
     if (!duelFriends().length) return net.peers.size ? 'Друг ещё подключается, подожди пару секунд.' : 'В комнате пока никого. Нажми «Позвать друга».';
     return '';
   }
@@ -15510,7 +17144,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- inviting ----------
   function duelPropose(kind) {
     const why = duelWhyNot(); if (why) return why;
-    const ids = duelFriends().map((g) => g.id), key = kind === 'tank' ? 'tanks' : duelHomeKey();
+    const ids = duelFriends().map((g) => g.id), key = kind === 'tank' ? 'tanks' : kind === 'gun' || kind === 'snipe' ? 'duels' : duelHomeKey();
     duelStop('');
     duelGoTo(key); // the host waits for the answers in the game's world
     duel = { id: netNewCode() + netNewCode(), kind, host: duelMe(), loc: NET_LOCS.indexOf('h:' + key), phase: 'ask', t: DUEL_ASK, asked: new Map(ids.map((i) => [i, null])), players: [] };
@@ -15519,7 +17153,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return '';
   }
   function duelInvited(d, from) {
-    const kind = d.k === 'race' || d.k === 'hide' || d.k === 'tank' ? d.k : '';
+    const kind = ['race', 'hide', 'tank', 'gun', 'snipe'].includes(d.k) ? d.k : '';
     const no = () => netSend(duelAct(), { t: 'ans', id: d.id, yes: false }, { target: from });
     if (!kind || !duelKeyOf(d.loc)) { no(); return; }
     const inv = { id: d.id, kind, host: from, loc: d.loc, phase: 'invited', t: DUEL_ASK, players: [] };
@@ -15528,7 +17162,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       netSend(duelAct(), { t: 'cancel', id: duel.id }, { target: Array.from(duel.asked.keys()) });
       duel = inv; duelAnswer(true); return;
     }
-    if (duelOn() || duelPending() || survOn() || cupOn() || tbOn()) { no(); return; }
+    if (duelOn() || duelPending() || survOn() || cupOn() || tbOn() || FT) { no(); return; }
     duelStop(''); duel = inv;
     Snd.sfx.pop(); duelUi();
   }
@@ -15561,7 +17195,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function duelBegin(d) {
     const me = duelMe(), players = Array.isArray(d.p) ? d.p.map(String).filter((p, i, a) => a.indexOf(p) === i) : [], key = duelKeyOf(d.loc);
     if (players.includes(me) && key) duelGoTo(key);
-    if (!players.includes(me) || !key || netLoc() !== d.loc || (duel.kind === 'race' && !L.course) || (duel.kind === 'tank' && !ISL.tb)) {
+    if (!players.includes(me) || !key || netLoc() !== d.loc || (duel.kind === 'race' && !L.course) || (duel.kind === 'tank' && !ISL.tb)
+      || ((duel.kind === 'gun' || duel.kind === 'snipe') && !ISL.ft) || FT) {
       netSend(duelAct(), { t: 'quit', id: duel.id }, { target: players.filter((p) => p !== me) });
       duelStop('Игра не началась'); return;
     }
@@ -15593,6 +17228,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         left: TANK_DUEL_T });
       duelPlace(duelTankSpot(i, n)); duelMount();
       toast(DUEL_NAME.tank, 'Попадай в танки друзей. Кто больше?');
+    } else if (duel.kind === 'gun' || duel.kind === 'snipe') {
+      Object.assign(duel, { phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, score: new Map(players.map((p) => [p, 0])), left: GUN_DUEL_T });
+      duelPlace(duelGunSpot(i, n)); P.hp = 100; P.koT = 0; P.burn = 0; hero.root.visible = true; gunReset(); cam.aim = 0; gunNet('w');
+      toast(DUEL_NAME[duel.kind], duel.kind === 'snipe' ? 'У всех снайперки. Пять нокаутов, и победа!' : 'У каждого своё оружие. Пять нокаутов, и победа!');
     } else {
       const seeker = players.includes(String(d.s)) ? String(d.s) : players[0];
       Object.assign(duel, { phase: 'hide', t: HIDE_T, seeker, found: new Set(), foundAt: new Map(), cuT: 0, seekAt: 0 });
@@ -15853,6 +17492,93 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       rows.map((r) => [rows.filter((o) => o.n > r.n).length + 1 + '.', duelName(r.id), 'попаданий: ' + r.n, r.id === me]), won);
   }
 
+  // ---------- duels with guns: on the arena with everyone's own guns, or snipers across the canyon ----------
+  // Everyone starts at a spot of their own (in the canyon on the two ledges in turn). Whether a shot hit is for the
+  // shooter's screen to say, as in the tank battle: it tells the one it hit, who loses health; at none left that one is
+  // knocked out, tells everyone who did it, and is back at a free spot three seconds later. Five knock-outs win, or the
+  // most when the three minutes are up.
+  function duelGunSpot(i, n) {
+    const F = ISL.ft;
+    if (duel.kind === 'snipe') {
+      const side = i % 2 ? F.snipe.far : F.snipe.near, k = i >> 1, sp = side.spot;
+      return { x: sp[0] + (k ? (k % 2 ? 14 : -14) : 0), y: .05, z: sp[1], face: sp[2] };
+    }
+    const sp = F.arena.spots[i % F.arena.spots.length];
+    return { x: sp[0], y: .05, z: sp[1], face: sp[2] };
+  }
+  // after a knock-out: the arena's spot furthest from everyone (the canyon: our own ledge)
+  function duelGunRespawn() {
+    const d = duel, i = d.players.indexOf(duelMe());
+    if (d.kind === 'snipe') return duelGunSpot(i, d.players.length);
+    let best = null, bd = -1;
+    for (let k = 0; k < ISL.ft.arena.spots.length; k++) {
+      const s = duelGunSpot(k, 4);
+      let m = 1e9;
+      for (const id of d.players) { const g = id === duelMe() ? null : net.peers.get(id); if (g && g.rig && g.rig.root.visible) m = Math.min(m, Math.hypot(g.px - s.x, g.pz - s.z)); }
+      if (m > bd) { bd = m; best = s; }
+    }
+    return best;
+  }
+  // the place a player has to stay in: the arena, or their own ledge
+  function duelGunOut() {
+    const F = ISL.ft, d = duel;
+    if (d.kind === 'snipe') {
+      const side = d.players.indexOf(duelMe()) % 2 ? F.snipe.far : F.snipe.near, S = F.snipe;
+      return P.pos.x < S.x0 - .5 || P.pos.x > S.x1 + .5 || P.pos.z < side.z0 - .5 || P.pos.z > side.z1 + .5 || P.pos.y < S.top - 2;
+    }
+    const A = F.arena;
+    return P.pos.x < A.x0 - .5 || P.pos.x > A.x1 + .5 || P.pos.z < A.z0 - .5 || P.pos.z > A.z1 + .5;
+  }
+  function duelGun(dt) {
+    const d = duel;
+    if (d.phase === 'count') {
+      d.t -= dt;
+      const k = Math.ceil(d.t);
+      if (k < d.tick && k >= 1 && k <= DUEL_COUNT) { d.tick = k; toast(String(k), 'Приготовься!'); Snd.sfx.tock(false); }
+      if (d.t > 0) return;
+      d.phase = 'run'; toast('В бой!', 'Пять нокаутов, и победа!'); Snd.sfx.whistle(); Snd.startMusic('battle');
+      return;
+    }
+    gunBurns(dt);
+    if (P.koT > 0) {
+      P.koT -= dt;
+      if (P.koT <= 0) { P.koT = 0; duelPlace(duelGunRespawn()); P.hp = 100; P.burn = 0; P.inv = 1.6; hero.root.visible = true; gunReset(); Snd.sfx.bell(); }
+    } else if (G.state === 'playing' && duelGunOut()) { toast(d.kind === 'snipe' ? 'Упал с уступа!' : 'Вне арены!', 'Назад на своё место'); heroKO('', false); }
+    const before = d.left; d.left -= dt;
+    if (d.left < 5 && Math.ceil(d.left) !== Math.ceil(before)) Snd.sfx.tock(true);
+    if (d.left <= 0) duelGunOver('');
+  }
+  // we were knocked out: everyone hears who did it
+  function duelGunKO(by, head) {
+    const who = by && by !== 'me' && by !== 'fire' && duel.players.includes(by) ? by : '';
+    duelSay({ t: 'gk', by: who, h: head ? 1 : 0 });
+    duelGunScore(who, duelMe(), head);
+  }
+  function duelGunScore(by, who, head) {
+    const d = duel, me = duelMe();
+    if (by && by !== who && d.players.includes(by)) d.score.set(by, (d.score.get(by) || 0) + 1);
+    if (who !== me) { const g = net.peers.get(who); if (g && g.rig) { puff(g.px, g.py + .8, g.pz, 0xe8e6ee, 12, 2.5, .8, .8, 1.3); Snd.at(g.px, g.py, g.pz).poof(); } }
+    if (by === me) { toast(head ? 'Хедшот!' : 'Нокаут!', duelName(who) + ' · у тебя ' + (d.score.get(me) || 0)); Snd.sfx.ko(); P.happyT = 1.2; }
+    netNote(by ? duelName(by) + ' → ' + duelName(who) + (head ? ' 🎯' : '') : duelName(who) + ' выбывает');
+    if (by && (d.score.get(by) || 0) >= GUN_DUEL_KO) duelGunOver('');
+  }
+  // a friend's shot hit us: from their screen, with how much and whether in the head
+  function duelGunHit(from, dm) {
+    if (String(dm.who) !== duelMe()) return;
+    const g = net.peers.get(from), dx = g ? P.pos.x - g.px : 0, dz = g ? P.pos.z - g.pz : 0, l = Math.hypot(dx, dz) || 1;
+    heroHurt(clamp(Math.floor(+dm.d) || 0, 1, 200), !!dm.h, _gs.set(dx / l, 0, dz / l), from, dm.k ? GUNS.hammer : null);
+  }
+  function duelGunOver(why) {
+    const d = duel, me = duelMe();
+    if (!duelGunning()) return;
+    const rows = d.players.map((id) => ({ id, n: d.score.get(id) || 0 })).sort((a, b) => b.n - a.n);
+    const top = rows.length ? rows[0].n : 0, tops = rows.filter((r) => r.n === top).length, k = rows.findIndex((r) => r.id === me);
+    const won = !why && k === 0 && top > 0 && tops === 1 && rows.length > 1, mine = k < 0 ? 0 : rows[k].n;
+    if (won && d.kind === 'snipe' && ISL.ft && !questDone('du.snipe')) { const h = ISL.ft.snipe.host; revealStar('du.snipe', h.x, h.y + h.h, h.z); }
+    duelDone(why || (won ? 'Победа!' : !top ? 'Никого не нокаутировали' : mine === top ? 'Ничья!' : (rows.filter((r) => r.n > mine).length + 1) + '-е место'),
+      rows.map((r) => [rows.filter((o) => o.n > r.n).length + 1 + '.', duelName(r.id), 'нокаутов: ' + r.n, r.id === me]), won);
+  }
+
   // ---------- the end, leaving, a friend gone ----------
   function duelDone(big, rows, won) {
     duelTidy();
@@ -15865,6 +17591,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function duelTidy() {
     const d = duel; if (!d) return;
     if (d.kind === 'tank' && d.phase === 'run') Snd.startMusic(L.def.music); // the battle tune stops with the battle
+    if ((d.kind === 'gun' || d.kind === 'snipe') && (d.phase === 'count' || d.phase === 'run')) { // the guns' duel: everyone whole again, their own guns back
+      if (d.phase === 'run') Snd.startMusic(L.def.music);
+      P.koT = 0; P.hp = 100; P.burn = 0; hero.root.visible = true; if (gunOn()) gunReset(gunLoadOut(true));
+    }
     if (d.rings) {
       for (const r of d.rings) L.group.remove(r.m);
       d.rings = null;
@@ -15896,6 +17626,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     d.players = d.players.filter((p) => p !== id);
     if (d.kind === 'race') { d.prog.delete(id); d.fin.delete(id); if (d.players.length < 2) duelRaceOver('Соперники ушли'); return; }
     if (d.kind === 'tank') { if (d.players.length < 2) duelTankOver('Соперники ушли'); return; }
+    if (d.kind === 'gun' || d.kind === 'snipe') { if (d.players.length < 2) duelGunOver('Соперники ушли'); return; }
     if (id === d.seeker) duelStop('Водящий ушёл из игры');
     else if (d.players.every((p) => p === d.seeker)) duelStop('Все, кто прятался, ушли');
   }
@@ -15914,6 +17645,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       case 'end': if (duelHiding() && from === duel.seeker) duelHideOver(Array.isArray(d.f) ? d.f.map(String) : []); break;
       case 'shot': if (duelTanking() && pl) duelShot(from, d); break;
       case 'hit': if (duelTanking() && pl) duelTankHit(from, String(d.who)); break;
+      case 'gh': if (duelGunRun() && pl) duelGunHit(from, d); break;
+      case 'gk': if (duelGunning() && pl) duelGunScore(d.by && duel.players.includes(String(d.by)) ? String(d.by) : '', from, !!d.h); break;
       case 'quit': duelGone(from); break;
     }
   }
@@ -15929,6 +17662,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else if (d.phase === 'wait') { d.t -= dt; if (d.t <= 0) duelStop('Игра так и не началась'); }
     else if (duelRacing()) duelRace(dt);
     else if (duelTanking()) duelTank(dt);
+    else if (duelGunning()) duelGun(dt);
     else if (duelHiding()) duelHide(dt);
     else if (d.phase === 'done') { d.t -= dt; if (d.t <= 0) duelStop(''); }
     duelUi();
@@ -15951,6 +17685,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const mine = d.score.get(me) || 0, place = 1 + d.players.filter((p) => (d.score.get(p) || 0) > mine).length, top = Math.max(...d.players.map((p) => d.score.get(p) || 0));
       return ['Танковый бой · ' + place + '-е место', d.phase === 'count' ? 'Приготовься!' : 'Попаданий: ' + mine + (top > mine ? ', у лидера ' + top : '')];
     }
+    if (duelGunning()) return null; // the duel's panel at the top shows it
     if (duelHiding()) {
       const hiders = d.players.filter((p) => p !== d.seeker);
       if (d.seeker === me) return ['Прятки · ты водишь', d.phase === 'hide' ? 'Считаешь…' : 'Найдено ' + hiders.filter((p) => d.found.has(p)).length + ' из ' + hiders.length];
@@ -15962,7 +17697,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function duelClock() {
     if (duelRacing()) return duel.phase === 'run' ? (performance.now() - duel.runAt) / 1000 : null;
     if (duelHiding()) return Math.max(0, duel.t);
-    if (duelTanking()) return duel.phase === 'run' ? Math.max(0, duel.left) : null;
+    if (duelTanking() || duelGunning()) return duel.phase === 'run' ? Math.max(0, duel.left) : null;
     return null;
   }
 
@@ -15984,7 +17719,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const w = (HUBS[duelKeyOf(d.loc)] || HUBS.island).name, here = netLoc() === d.loc;
       const dk = duelKeyOf(d.loc), fly = HUBS[dk] && HUBS[dk].dragons;
       text = duelName(d.host) + (d.kind === 'race' ? ' зовёт на гонку по кольцам: ' + w + (fly ? '. Каждый на своём драконе.' : '. Транспорт у всех одинаковый.')
-        : d.kind === 'tank' ? ' зовёт на танковый бой: ' + w + '. Каждому дадут танк, кто больше попадёт, тот победил.' : ' зовёт играть в прятки: ' + w + '. Один водит, остальные прячутся.')
+        : d.kind === 'tank' ? ' зовёт на танковый бой: ' + w + '. Каждому дадут танк, кто больше попадёт, тот победил.'
+        : d.kind === 'gun' ? ' зовёт на дуэль: ' + w + '. У каждого своё оружие, пять нокаутов побеждают.'
+        : d.kind === 'snipe' ? ' зовёт на снайперскую дуэль в ущелье: ' + w + '. У всех снайперки, пять нокаутов побеждают.' : ' зовёт играть в прятки: ' + w + '. Один водит, остальные прячутся.')
         + (here ? '' : ' Скажешь «да», и перенесёшься туда.');
     } else if (d && d.phase === 'ask') {
       head = DUEL_NAME[d.kind]; yes = 'Начать'; no = 'Отмена';
@@ -16030,9 +17767,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const busy = duelOn() || duelPending(), why = busy ? '' : duelWhyNot();
     $('netGames').hidden = !net.code;
     $('netGameBtns').hidden = busy; $('btnDuelQuit').hidden = !busy;
-    $('btnDuelRace').disabled = $('btnDuelHide').disabled = $('btnDuelTank').disabled = !!why;
+    $('btnDuelRace').disabled = $('btnDuelHide').disabled = $('btnDuelTank').disabled = $('btnDuelGun').disabled = $('btnDuelSnipe').disabled = !!why;
     $('netGameHint').textContent = busy ? 'Сейчас идёт игра: ' + DUEL_NAME[duel.kind].toLowerCase() + '.'
-      : why || 'Играем в мире «' + HUBS[duelHomeKey()].name + '», друзей, кто согласится, перенесёт туда. Гонка: кто быстрее по кольцам на одинаковом транспорте. Прятки: один водит, остальные прячутся. Танки: бой на Танковом полигоне, кто больше попадёт за две минуты.';
+      : why || 'Играем в мире «' + HUBS[duelHomeKey()].name + '», друзей, кто согласится, перенесёт туда. Гонка: кто быстрее по кольцам на одинаковом транспорте. Прятки: один водит, остальные прячутся. Танки: бой на Танковом полигоне, кто больше попадёт за две минуты. Дуэль и Снайперы: на Дуэльной арене, до пяти нокаутов.';
   }
 
   // ================= resize & loop =================
@@ -16118,6 +17855,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateBalls(dt);
     updateFireballs(dt);
     updateTank(dt);
+    updateGun(dt);
     updateChain(dt);
     magnetCoins(dt);
     updateSprings(dt);
@@ -16190,6 +17928,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateFairy(dt);
     animateCoins();
     animateHero(dt);
+    ftAnimate(dt);
     netUpdate(dt);
     updateBlob();
     if (G.hitStop <= 0) { updateParticles(dt); updateWaves(dt); }
@@ -16198,8 +17937,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updatePops(dt);
     updateBubbles();
     updateHud();
+    gunHud(dt);
+    updateTracers(dt);
     updateUnderwater();
+    // through a scope the camera is at the hero's eyes: he is not drawn (friends still see him)
+    const heroVis = hero.root.visible;
+    if (gunScoped()) hero.root.visible = false;
     renderScene();
+    hero.root.visible = heroVis;
   }
 
   // ================= boot =================

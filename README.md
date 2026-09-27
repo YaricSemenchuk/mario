@@ -15,18 +15,19 @@ attenuated by where they happen, footsteps per surface, chiptune music with drum
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed
 per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a moon base, birds and distant calls in the
 jungle, a woodpecker by day and crickets and an owl by night in the Dark Forest). Every open world has a tune of its own (the
-survival game, the dragons' cup and the tank battle have their own too, Leviathan comes with the bosses' tune, and the Dark
-Forest's nights have a slow one over a heartbeat),
+survival game, the dragons' cup and the tank battle have their own too, Leviathan comes with the bosses' tune, the Dark
+Forest's nights have a slow one over a heartbeat, and the Duel Arena a showdown with a gallop in the drums),
 the kart, the jet ski and the moon rover hum louder and higher as they speed up, a tank's tracks clatter, the wind roars past
-a flying dragon, and under the water every sound is muffled.
+a flying dragon, every gun of the Duel Arena has a voice of its own (the sniper's crack, the shotgun's boom, a bow's twang,
+the minigun's rattle), and under the water every sound is muffled.
 
-- Eleven open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
+- Twelve open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
   Promo Island sits between them: a village with a fountain, houses and a windmill, a beach with a pier, a lake under
   a waterfall cliff (with a cave behind the water), a vegetable garden, a lighthouse on a plateau, a forest on terraces
   and a sky island above it. The hero swims (the action button is a stroke forward, a jump leaps out of the water) and
   walks up and down slopes
-- Behind the island's gates lie ten more worlds, each with its own folk and quests; the first four have ten stars and
-  doors to their levels, the next two are open worlds of ten quests each, and the last four are open from the start:
+- Behind the island's gates lie eleven more worlds, each with its own folk and quests; the first four have ten stars and
+  doors to their levels, the next two are open worlds of ten quests each, and the last five are open from the start:
   - the Desert: an oasis and a bazaar, the Sphinx, the Great Pyramid with a tomb inside, a mesa climbed by riding a
     wandering dust devil, a field of quicksand (the hero sinks and has to jump out), dunes and a melon patch
   - Ice Peaks: a penguin village of igloos, a skating rink, a steaming hot spring, the Ice Mountain with a crystal cave,
@@ -68,6 +69,13 @@ a flying dragon, and under the water every sound is muffled.
     and ranger Fyr the hedgehog; all round it the forest in rings behind a wall of fog, four wolves' dens out in the rings
     with a trail of ribboned posts to each, chests, berry bushes and bunnies. The whole world is the game of the 99 nights
     (below)
+  - the Duel Arena: a western plain of sand in a ring of red canyon rock, where the hero carries guns (below) and nothing
+    rides. A lobby with the gate home, the gun shop of Kurok the cat and a sniper tower climbed on platforms; the arena in
+    the middle (steel walls round a steel floor, a raised deck with two ramps, pillars, low walls, crates, sandbags and
+    barrels to hide behind, a barrier across the way in) where Sergeant Toptygin runs the duels against the bots; the sniper
+    canyon to the west, two walled ledges about seventy metres apart across a gorge with a dry creek, three blocks of cover
+    along each edge, where Меткий the hedgehog runs the sniper duels; and a shooting range to the east with eight targets
+    out to seventy metres, run by Zork the alien
 - The survival game (Dino Valley): a red pad in the middle of a clearing ringed with rock. A boulder closes the way in and
   the dinosaurs come in waves out of the ferns, more of them and more kinds each time: raptors, pterodactyls, a triceratops,
   and from the fourth wave a tyrannosaur that cannot be knocked over (its stamp sends a ring along the ground to jump
@@ -169,7 +177,43 @@ a flying dragon, and under the water every sound is muffled.
     and on the way out of the forest, and goes on from that morning; "Новый поход" in the pause card starts over
   - Eight stars: five nights, scaring the Deer, the fire at its fifth level, all four children home, 25, 50 and 99 nights, and
     the forest's red badges. "🌲 99 ночей" on the title goes straight to the camp
-- Stars: 103 in the worlds and one for every level cleared, 117 in all. They come from folk and secrets: lost ones to bring
+- The guns (the Duel Arena), as in the Roblox shooters: the camera comes in over the right shoulder with a crosshair in the
+  middle of the screen, the hero turns to where it points, and a shot goes where the crosshair is. A head takes about twice
+  as much as a body, and the crosshair opens up on the move and in the air. Four slots:
+  - the main gun: the sniper rifle (a scope that brings things about five times closer and sways with the breath; a body shot
+    takes 90 of 100, a head shot knocks out at once; wild without the scope), the assault rifle (automatic), the shotgun
+    (eight pellets, weaker further off), the minigun (spins up, then a hail of bullets; the hero walks slower), the bow (held
+    to draw, stronger the longer; the arrow drops), the crossbow (a fast straight bolt), the grenade launcher (a rocket that
+    bursts on whoever is near; its own blast throws the hero up, a rocket jump), the flamethrower (a jet of fire close up
+    that goes on burning) and the paintball gun (balls of paint in bursts)
+  - the spare gun: the revolver, the uzi, the slingshot (pebbles in an arc, never runs out)
+  - close combat: the katana (a lunge at whoever is ahead), the scythe (a wide swing), the hammer (throws the opponent up)
+  - the special thing, a few uses that come back with time: grenades that bounce and burst, a smoke can whose cloud nobody
+    can see through (the bots included), three shurikens in a fan, a first-aid kit (+50), a jetpack for a leap high up
+  Guns have rounds and reload by themselves when empty (R, or the reload button); a streak shows each bullet's path, a hit
+  shows a mark on the crosshair (red for a head) and the damage over the opponent. The sniper rifle, the assault rifle, the
+  shotgun, the revolver, the bow and the crossbow have a scope (the right mouse button, C, or the scope button). The sniper
+  rifle, the assault rifle, the revolver, the katana and the grenade are there from the start; the rest are bought in the
+  shops' "Оружие" tab, which also puts them in the set taken into a duel. On a phone the fire button also aims when the thumb
+  slides over it, the crosshair slows down over an opponent, and a shot that only just misses the middle goes in; on a
+  computer a click takes the mouse for aiming (Esc gives it back), the left button fires, 1–4 or the wheel pick a slot
+- Duels against the bots (the Duel Arena): a red pad starts one, a barrier closes the way in and the hero and the opponent
+  stand at their spots with 100 health each. A knock-out wins a round (a puff of smoke; so does more health left when the
+  round's minute and a half is up; leaving the arena loses it); three rounds win the duel. The opponents look like players
+  in costumes and fight with guns of their own, one after another, each stronger than the last: Нубик with an assault
+  rifle, Ковбой Джо with a shotgun and grenades, Лучница Ника with a bow and smoke, Ниндзя Кэн with a katana and shurikens,
+  Капитан Бах with a grenade launcher, and Чемпион Макс with a minigun and a scythe. They strafe, jump, look for the hero where
+  they saw him last, hide to reload when hurt, throw grenades behind cover and switch to a sword up close; a better one
+  sees sooner, turns faster and aims closer. After the champion any of them comes back for a rematch, sharper
+  - the sniper duel (the canyon): sniper rifles only, the hero on the near ledge, Снайпер Ястреб on the far one. He waits
+    behind a block, steps out beside one (the best of him jump out), takes aim with his scope glinting in the sun (the
+    warning to hide), fires and goes back behind cover; he gets sharper with every win against him. Falling off the ledge
+    loses the round
+  - a panel at the top shows both health bars, the score and the round; the results the score, the hits and the head
+    shots; a win pays badges (more for a stronger opponent), a loss a few. Eight stars: the first win on the arena, a win
+    3:0, beating the champion, a sniper duel won, a head shot in a sniper duel, all eight targets of the range in 40
+    seconds, the top of the sniper tower and the red badges. "🎯 Дуэли" on the title goes straight to the arena's gate
+- Stars: 111 in the worlds and one for every level cleared, 125 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a
@@ -183,7 +227,7 @@ a flying dragon, and under the water every sound is muffled.
   - runaways to catch: a froglet round the fountain, a penguin chick on the rink, the Gingerbread Man, a dolphin you only
     catch on a jet ski. They run off when the hero comes near and stop for breath now and then
   - beacons to light before the time runs out, in any order: caravan lanterns, signal lights, buoys at sea, solar panels,
-    dragon fires, and targets on the shooting range that only a shell lights
+    dragon fires, targets on the shooting range that only a shell lights, and the Duel Arena's range, lit by any shot
   Quests follow one another: some open only after another is done (the post after the garden is saved, the chase on
   the rink after the spiky shells are gone) or once the one who needs help has asked for it. Every finished quest also pays 20
   badges. A line under the buttons shows the quest in hand (what is carried and to whom, the rings or beacons so far, who
@@ -192,9 +236,10 @@ a flying dragon, and under the water every sound is muffled.
 - The World Gates open with stars: five on the island's square (the first leads to the Green levels, the others into the
   worlds at 3, 8, 15 and 24 stars), the Sea Gate at the end of the pier (30) and the Star Gate on a cloud islet above the
   forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley, the Dragon Gate, the Tank Gate and, at the
-  cape's end by the sea, the Forest Gate, open from the start.
+  cape by the sea, the Forest Gate and, at its very end, the Duel Gate, open from the start.
   Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front of its door
-- Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in three tabs:
+- Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in five tabs (the Tank
+  tab is under the tank, below, and the Guns tab under the guns, above):
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
     the hero's head, Iskra always along, a spare heart and a mushroom in the pocket for the levels, an hourglass with
     a minute more; and goods for right now (a shield, a mushroom, the fire pepper, one star on the island)
@@ -235,6 +280,12 @@ a flying dragon, and under the water every sound is muffled.
     closes, and for two minutes every hit on a friend's tank is a point. Shots travel to the others, who see the shell fly
     and burst; whether it hit is for the shooter's screen to say. A tank just hit cannot be hit again for a moment; most
     hits wins
+  - a duel, always on the Duel Arena: everyone with the guns of their own set, at a spot of their own on the arena. Whether
+    a shot hit is for the shooter's screen to say; it tells the one it hit, who loses health, and at none left is knocked
+    out, tells everyone who did it and is back at the spot furthest from the others three seconds later. Five knock-outs
+    win, or the most in three minutes. Friends see each other's guns, every shot's streak, arrows, rockets, grenades and
+    smoke, and a sniper's scope glinting
+  - a sniper duel, the same across the canyon: sniper rifles only, the players on the two ledges in turn
   - gates are shut until the game ends, rides are off in hide and seek, nobody gets out of a tank in a battle, and a
     winner gets 20 badges
 - Fourteen levels: Green Hills, Sky Trail, King Chestnut (Green world); Sunny Dunes (Desert); Ice Peaks, Lava Fortress,
@@ -273,7 +324,8 @@ a flying dragon, and under the water every sound is muffled.
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
   on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun; on a KV-44,
   a salvo, with C for its grenade launcher and R for its rockets), mouse drag or Q/E for the
-  camera, V for a ride, G to wave to friends
+  camera, V for a ride, G to wave to friends; on the Duel Arena a click to aim with the mouse, the left button to fire, the
+  right one or C for the scope, 1–4 or the wheel for a slot, R to reload
 
 ## Play
 
