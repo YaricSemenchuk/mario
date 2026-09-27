@@ -276,6 +276,11 @@ a flying dragon, and under the water every sound is muffled.
 Open the GitHub Pages site on a phone. On iPhone use Safari → Share → Add to Home Screen
 to launch it full screen like an app.
 
+A home-screen app keeps the page it loaded once, so it can miss a new version. The title screen looks for a newer one
+(on start, when the app comes back to the front and when a game returns to the title) and then lights up its
+"Обновить игру" button in gold; the button always downloads the page past every cache and restarts it. Progress stays,
+it lives in the browser's storage.
+
 ## Run locally
 
 ```bash
