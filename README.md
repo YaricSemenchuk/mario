@@ -127,14 +127,16 @@ a flying dragon, and under the water every sound is muffled.
   - Days and nights go by on a clock (a day of 75 seconds, the first one longer, dusk, a night of 55 seconds, dawn); the
     light fades, the sky turns to stars and a moon, the fog closes in and the edges of the screen darken, the music and the
     ambience change, fireflies come out. A panel under the HUD shows the day or night and its clock, hearts and hunger, the
-    fire's level and fuel, what is in the sack and the children brought home
+    fire's level and fuel, the skills' levels and the children brought home; a bar along the bottom of the screen has a
+    place for each thing the sack holds, filled with what is in it (it turns red when the sack is full)
   - The campfire burns down (faster at night) and goes out without fuel. Walking up to it throws in the logs, coal and cans
     of fuel from the sack; everything that goes in also grows it, through five levels, and every level pushes the wall of
-    fog further back (nobody gets through the fog: the hero, the wolves and the bunnies stay inside it). Its light makes a
-    circle round the camp, marked on the ground at night; resting in it with a full belly brings a heart back
+    fog further back. The fog can be walked into: out there the view closes in to a few metres (grey by day, black at
+    night) and the wolves roam. Its light makes a circle round the camp, marked on the ground at night; resting in it with
+    a full belly brings a heart back. Trees standing between the camera and the hero turn see-through
   - Trees are felled with the spin (three blows, two with a better axe, one with the strong one) and leave logs and a stump;
     everything lying about (logs, scrap, coal, cans of fuel, meat) goes in the sack by walking over it, five things at a time
-    (eight and twelve with bigger sacks). Chests open when walked up to
+    (three and seven more with bigger sacks, more with the gatherer's skill). Chests open when walked up to
   - Hunger runs down: berry bushes (they grow back every morning) and meat from bunnies and wolves, roasted by walking up to
     the fire with it; food in the sack is eaten by itself when the belly runs low, and an empty one costs a heart now and then
   - The workbench (its gold ring takes the logs and scrap from the sack) makes a bigger sack, better axes, a brighter
@@ -145,13 +147,20 @@ a flying dragon, and under the water every sound is muffled.
     hero faces (and finds the Deer when it is roughly ahead), and held on it makes it slow down, screech and run back into
     the fog for a while. The first night it only watches from the edge. Its touch costs a heart
   - Wolves come out of the fog at night, more every night (alphas from the seventh, bears from the fourteenth), and roam the
-    outer rings by day; a wolf takes two hits, an alpha three, a bear four, and each leaves meat, a pelt or a bunny foot and
-    a badge
+    fog and the rings beyond it by day; a wolf takes two hits, an alpha three, a bear four, and each leaves meat, a pelt or a
+    bunny foot and a badge
   - Four children are held in cages in the wolves' dens (Dino, Kraken, Squid and Koala, each in an animal hoodie), each den
-    further out behind the fog and more strongly guarded (wolves, then an alpha, then bears). With its guards gone the cage
+    further out in the fog and more strongly guarded (wolves, then an alpha, then bears). With its guards gone the cage
     opens and the child follows the hero home to the tent. Every child makes each night count for two more, a bed for one or
     two more: with all of them a night goes by as eleven
-  - Hearts: three (four with the spare heart, one more with the fur hat); one comes back every dawn. With the last one the run
+  - Skills grow with what the hero does and stay from one run to the next, five levels each: the lumberjack (trees felled:
+    stronger blows, a log more from each tree, a wider reach), the hunter (animals beaten: twice the meat, harder hits, more
+    pelts and feet), the gatherer (things picked up and chests opened: more places in the sack, and things fly to the hero)
+    and the brave (nights lived through and the Deer scared off: the flashlight works faster, two more hearts, slower
+    hunger). A new level is celebrated with what it brings; the pause card lists every skill, what it gives and what the
+    next level brings
+  - Hearts: three (four with the spare heart, one more with the fur hat, two more with the brave's skill); one comes back
+    every dawn. With the last one the run
     is over, its results (and the best run) are shown and a new one starts on the first morning. A run is kept at every dawn
     and on the way out of the forest, and goes on from that morning; "Новый поход" in the pause card starts over
   - Eight stars: five nights, scaring the Deer, the fire at its fifth level, all four children home, 25, 50 and 99 nights, and

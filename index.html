@@ -164,6 +164,25 @@
   #nights.night #ntClock { background: #8fa4ff; }
   #ntHearts { color: #ff6a5a; letter-spacing: .04em; }
   body.nights #combo { top: calc(env(safe-area-inset-top, 0px) + 196px); }
+  /* the sack: a place for each thing it can hold, along the bottom of the screen, filled with what is in it */
+  #sackBar {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); transform: translateX(-50%); z-index: 6;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; --slot: 34px; --slots: min(94vw, 560px);
+  }
+  #sackLbl { font: 800 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--white); text-shadow: var(--outline); }
+  #sackSlots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; width: max-content; max-width: var(--slots); }
+  .sack-slot {
+    flex: none; box-sizing: border-box; width: var(--slot); height: var(--slot); display: grid; place-items: center; font-style: normal; font-size: calc(var(--slot) * .6); line-height: 1;
+    border-radius: 9px; background: rgba(18, 20, 44, .5); border: 2px solid rgba(28, 30, 59, .85); box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .14);
+  }
+  .sack-slot.got { background: rgba(255, 244, 201, .92); border-color: var(--ink); }
+  .sack-slot.slot-in { animation: slotIn .3s ease-out; }
+  @keyframes slotIn { from { transform: scale(1.5); } }
+  #sackBar.full .sack-slot.got { background: #ffd1c4; }
+  #sackBar.full #sackLbl { color: #ffb4a6; }
+  /* on a phone it keeps clear of the thumb stick and the buttons: narrower, and above them when held upright */
+  body.touch #sackBar { --slot: 32px; --slots: min(56vw, 420px); }
+  @media (orientation: portrait) { body.touch #sackBar { bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); --slots: 92vw; --slot: 30px; } }
   @media (max-height: 420px) { #nights { gap: 2px; padding: 6px 8px 7px; font-size: 12px; } #ntDay { font-size: 15px; } }
 
   /* ---------- combo meter ---------- */
@@ -521,9 +540,10 @@
   <div class="nt-row"><span id="ntDay">День 1</span><span class="nt-bar"><i id="ntClock"></i></span></div>
   <div class="nt-row"><span id="ntHearts">❤❤❤</span><span aria-hidden="true">🍗</span><span class="nt-bar"><i id="ntFood"></i></span></div>
   <div class="nt-row"><span id="ntFire">🔥 1</span><span class="nt-bar"><i id="ntFuel"></i></span></div>
-  <div class="nt-row" id="ntSack">🎒 0/5</div>
+  <div class="nt-row" id="ntSkills">🪓1 🏹1 🎒1 🔦1</div>
   <div class="nt-row" id="ntKids">🧒 0/4</div>
 </div>
+<div id="sackBar" role="status" aria-label="Мешок" hidden><small id="sackLbl">Мешок 0/5</small><div id="sackSlots"></div></div>
 <div id="combo" aria-hidden="true"><div><b id="comboN">×2</b><small>комбо</small></div><span id="comboBar"><i></i></span></div>
 <div id="pops"></div>
 <div id="bubbles"></div>
@@ -571,6 +591,10 @@
 <section class="screen" id="scrPause" hidden>
   <div class="card">
     <h2>Пауза</h2>
+    <div id="skillBox" hidden>
+      <p class="quest-head"><span>Навыки</span> <b>растут навсегда</b></p>
+      <ul class="quests" id="skillList"></ul>
+    </div>
     <div id="questBox" hidden>
       <p class="quest-head"><span id="questTitle">Звёзды острова</span> <b id="questCount"></b></p>
       <ul class="quests" id="questList"></ul>
@@ -8120,7 +8144,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (e.type === 'balloon') { popBalloon(e, byHero); return; }
     if (e.tank && e.hp > 1) { tankFoeHit(e, dx, dz); return; }
     if (e.tank) tankFoeDown(e);
-    if (e.ai && e.hp > 1) { foeFlinch(e, dx, dz); if (byHero) chainAdd(); return; }
+    if (e.ai && e.hp > 1) { const dmg = e.nt && byHero ? ntDmg() : 1; if (e.hp > dmg) { foeFlinch(e, dx, dz, dmg); if (byHero) chainAdd(); return; } }
     e.alive = false; e.flip = true; e.vy = 9; e.dead = 1.6; addScore(pts);
     const l = Math.hypot(dx, dz); e.kick = l > .01; e.kvx = e.kick ? dx / l * 8 : 0; e.kvz = e.kick ? dz / l * 8 : 0;
     popup(String(pts), e.x, e.y + 1.4, e.z);
@@ -8129,8 +8153,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (byHero) { chainAdd(); G.hitStop = Math.max(G.hitStop, .035); }
   }
   // a wolf or a bear with hits left: a hit knocks it back and dazes it for a moment
-  function foeFlinch(e, dx, dz) {
-    e.hp--; e.stun = Math.max(e.stun, .75); e.state = 'rest'; e.st = 0; e.cool = Math.max(e.cool, 1.2);
+  function foeFlinch(e, dx, dz, dmg = 1) {
+    e.hp -= dmg; e.stun = Math.max(e.stun, .75); e.state = 'rest'; e.st = 0; e.cool = Math.max(e.cool, 1.2);
     const l = Math.hypot(dx, dz);
     if (l > .01 && e.solids) foeMove(e, dx / l * 9, dz / l * 9, .16);
     e.vy = 5; e.onG = false;
@@ -8140,8 +8164,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   const COMBO = [100, 200, 400, 800, 1000, 2000, 4000, 8000];
   function stomp(e) {
-    if (e.ai && e.hp > 1) { // a tough one only flinches: the hero bounces off its back
-      foeFlinch(e, e.x - P.pos.x, e.z - P.pos.z); P.pound = null;
+    const dmg = e.nt ? ntDmg() : 1;
+    if (e.ai && e.hp > dmg) { // a tough one only flinches: the hero bounces off its back
+      foeFlinch(e, e.x - P.pos.x, e.z - P.pos.z, dmg); P.pound = null;
       P.vel.y = jumpHeld() ? 16.5 : 12; P.onGround = false; P.noCut = true; Snd.sfx.stomp(); chainAdd();
       emit(e.x, e.y + e.h, e.z, 0xffffff, 8, 3, 1, 5, .4); return;
     }
@@ -9793,7 +9818,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // medals for victories in tank battles, and the tank's upgrades: levels of the gun, the shells, the armour, the engine
     medals: 0, tkMods: [0, 0, 0, 0],
     // the 99 nights in the Dark Forest: the run kept at its last dawn (or null), the most nights lived through, the runs won
-    nt: null, ntBest: 0, ntWins: 0 });
+    nt: null, ntBest: 0, ntWins: 0,
+    // the forest skills, kept from one run to the next: trees felled, animals beaten, things picked up, nights and the Deer
+    ntSkill: { wood: 0, hunt: 0, pack: 0, brave: 0 } });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
   // older saves: the island's red badges and froglets had lists of their own, and the turquoise cap was the default
   if (SAVE.red) { SAVE.sets.red = SAVE.red; delete SAVE.red; }
@@ -11696,8 +11723,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // what the workbench makes: an upgrade (a level of it) or a thing for right now; logs and scrap come off the bench, bunny
   // feet and wolf pelts out of the hero's pouch
   const NT_CRAFT = [
-    { up: ['sack', 1], name: 'Мешок побольше', sub: 'Носит 8 вещей вместо 5', cost: { log: 4, scrap: 2 } },
-    { up: ['sack', 2], name: 'Большой мешок', sub: 'Носит 12 вещей', cost: { log: 8, scrap: 5 } },
+    { up: ['sack', 1], name: 'Мешок побольше', sub: 'В мешке на три места больше', cost: { log: 4, scrap: 2 } },
+    { up: ['sack', 2], name: 'Большой мешок', sub: 'И ещё на четыре места больше', cost: { log: 8, scrap: 5 } },
     { up: ['axe', 1], name: 'Хороший топор', sub: 'Дерево падает с двух ударов', cost: { log: 4, scrap: 3 } },
     { up: ['axe', 2], name: 'Крепкий топор', sub: 'С одного удара, и бревна три', cost: { log: 8, scrap: 6 } },
     { up: ['lamp', 1], name: 'Яркий фонарик', sub: 'Светит дальше, Олень пугается вдвое быстрее', cost: { log: 2, scrap: 5 } },
@@ -11710,9 +11737,40 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   ];
   const NT_CHEST = [null, [['scrap', 'scrap', 'coal'], ['scrap', 'log', 'log'], ['coal', 'coal', 'scrap']], [['scrap', 'scrap', 'fuel'], ['scrap', 'scrap', 'scrap'], ['coal', 'coal', 'scrap']],
     [['fuel', 'scrap', 'scrap', 'scrap'], ['fuel', 'coal', 'scrap', 'steak'], ['scrap', 'scrap', 'scrap', 'heart']], [['fuel', 'fuel', 'scrap', 'scrap'], ['scrap', 'scrap', 'scrap', 'scrap', 'heart'], ['fuel', 'coal', 'scrap', 'scrap', 'steak']]];
+  // the skills: they grow with what the hero does and stay from one run to the next. Four of them with five levels each:
+  // the lumberjack (trees felled), the hunter (animals beaten), the gatherer (things picked up, chests opened) and the brave
+  // (nights lived through, the Deer scared off). `need` is the count for each level, `perk` what the level brings
+  const NT_SKILLS = [
+    { key: 'wood', icon: '🪓', name: 'Лесоруб', how: 'руби деревья', need: [0, 5, 15, 35, 70],
+      perk: ['', 'Удар сильнее: деревья падают быстрее', 'С каждого дерева на бревно больше', 'Удар ещё сильнее', 'Вихрь рубит деревья дальше'] },
+    { key: 'hunt', icon: '🏹', name: 'Охотник', how: 'побеждай зверей', need: [0, 4, 12, 28, 55],
+      perk: ['', 'Со зверя вдвое больше мяса', 'Удары вдвое сильнее', 'Со зверя больше шкур и лапок', 'Удары втрое сильнее'] },
+    { key: 'pack', icon: '🎒', name: 'Собиратель', how: 'подбирай вещи и открывай сундуки', need: [0, 15, 45, 100, 200],
+      perk: ['', 'В мешке на место больше', 'Ещё одно место в мешке', 'Вещи сами летят в руки', 'Ещё два места в мешке'] },
+    { key: 'brave', icon: '🔦', name: 'Храбрец', how: 'переживай ночи и пугай Оленя', need: [0, 3, 8, 16, 30],
+      perk: ['', 'Олень пугается фонарика быстрее', 'Ещё одно сердечко', 'Голод тише', 'И ещё одно сердечко'] },
+  ];
+  const ntSkillN = (key) => { const v = SAVE.ntSkill && SAVE.ntSkill[key]; return typeof v === 'number' && isFinite(v) ? Math.max(0, Math.floor(v)) : 0; };
+  const ntSkillLv = (key) => { const S = NT_SKILLS.find((q) => q.key === key), n = ntSkillN(key); let lv = 1; for (let i = 1; i < 5; i++) if (n >= S.need[i]) lv = i + 1; return lv; };
+  const ntBlow = () => { const lv = ntSkillLv('wood'); return lv >= 4 ? 3 : lv >= 2 ? 2 : 1; };
+  const ntDmg = () => { const lv = ntSkillLv('hunt'); return lv >= 5 ? 3 : lv >= 3 ? 2 : 1; };
+  const ntPackSlots = () => [0, 0, 1, 2, 2, 4][ntSkillLv('pack')];
   const ntOn = () => !!ISL.nt && ISL.nt.on;
-  const ntMax = (R = ISL.nt) => 3 + (perkOn('heart') ? 1 : 0) + R.up.hat;
-  const ntCap = (R = ISL.nt) => NT_SACK[R.up.sack];
+  const ntMax = (R = ISL.nt) => { const b = ntSkillLv('brave'); return 3 + (perkOn('heart') ? 1 : 0) + R.up.hat + (b >= 3 ? 1 : 0) + (b >= 5 ? 1 : 0); };
+  const ntCap = (R = ISL.nt) => NT_SACK[R.up.sack] + ntPackSlots();
+  // a skill grows by n; a new level is celebrated (and the brave's new hearts come filled)
+  function ntSkillUp(key, n = 1) {
+    if (!SAVE.ntSkill || typeof SAVE.ntSkill !== 'object') SAVE.ntSkill = {};
+    const S = NT_SKILLS.find((q) => q.key === key), was = ntSkillLv(key);
+    SAVE.ntSkill[key] = ntSkillN(key) + n; saveGame();
+    const lv = ntSkillLv(key);
+    if (lv <= was) return;
+    const R = ISL.nt;
+    if (R && key === 'brave' && (lv === 3 || lv === 5)) R.hearts = Math.min(ntMax(R), R.hearts + 1);
+    toast(S.icon + ' ' + S.name + ' · уровень ' + lv, S.perk[lv - 1]);
+    Snd.sfx.oneUp(); P.happyT = 1.6; P.cheerT = 1;
+    glow(P.pos.x, P.pos.y + 1.2, P.pos.z, 0xffe07a, 30, 5, 2, 1, .9, .35); wave(P.pos.x, P.pos.y, P.pos.z, 0xffe07a, 3, .6);
+  }
   const ntLoad = (R = ISL.nt) => NT_KINDS.reduce((n, k) => n + R.sack[k], 0);
   const ntHome = (R = ISL.nt) => R.kids.filter((k) => k === 2).length;
   const ntBonus = (R = ISL.nt) => ntHome(R) * 2 + R.up.bed;
@@ -11749,6 +11807,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   MAT.ntFlame = std({ color: 0x000000, emissive: 0xff8418, emissiveIntensity: 2.1, transparent: true, opacity: .88, depthWrite: false, roughness: 1 });
   MAT.ntCore = std({ color: 0x000000, emissive: 0xffe07a, emissiveIntensity: 2.6, transparent: true, opacity: .95, depthWrite: false, roughness: 1 });
   const NT_RING_GEO = (() => { const g = new T.RingGeometry(.965, 1, 96); g.rotateX(-Math.PI / 2); return shared(g); })();
+  MAT.ntGhost = std({ vertexColors: true, transparent: true, opacity: .22, depthWrite: false });
   MAT.ntRing = new T.MeshBasicMaterial({ color: 0xffa24a, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false });
 
   // ---------- the run: a fresh one, or the one kept at its last dawn ----------
@@ -11759,9 +11818,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       sack: { log: 0, coal: 0, fuel: 0, scrap: 0, meat: 0, steak: 0 }, store: { log: 0, scrap: 0 }, feet: 0, pelts: 0,
       up: { sack: 0, axe: 0, lamp: 0, torch: 0, bed: 0, map: 0, hat: 0 }, kids: [0, 0, 0, 0], scared: 0, chopped: 0, kills: 0, won: false,
       // what is going on right now
-      trees: [], treeMesh: [], stumps: null, stumpN: 0, shaking: [], falling: [], items: [], flying: [], chests: [], bushes: [], dens: [], kidsE: [], trail: [], tent: null,
+      trees: [], treeMesh: [], ghosts: [], ghosted: new Set(), stumps: null, stumpN: 0, shaking: [], falling: [], items: [], flying: [], chests: [], bushes: [], dens: [], kidsE: [], trail: [], tent: null,
       fire: null, lamp: null, deer: null, fogM: [], fogR: NT_FOG[1], lightR: 0, nightK: 0, skyNight: false, beamYaw: 0, lampOn: false, torches: [], bed: null,
-      feedT: 0, cookT: 0, eatT: 0, healT: 0, starveT: 0, fullT: 0, fogT: 0, hotT: 0, overT: 0, raidT: 0, raidN: 0, raidMax: 0, tip: {}, foeSolids: null, hud: {},
+      feedT: 0, cookT: 0, eatT: 0, healT: 0, starveT: 0, fullT: 0, outK: 0, hotT: 0, overT: 0, raidT: 0, raidN: 0, raidMax: 0, tip: {}, foeSolids: null, hud: {},
     };
     if (!sv) { R.hearts = ntMax(R); return R; }
     const num = (v, d, lo, hi) => (typeof v === 'number' && isFinite(v) ? clamp(v, lo, hi) : d);
@@ -11788,7 +11847,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const R = ISL.nt; if (!R) return;
     R.on = true; R.hearts = clamp(R.hearts, 1, ntMax(R));
     R.foeSolids = L.solids.filter((s) => s.kind !== 'tree');
-    ntEl.hidden = false; document.body.classList.add('nights'); R.hud = {};
+    ntEl.hidden = sackEl.hidden = false; document.body.classList.add('nights'); R.hud = {};
     for (const dn of R.dens) if (R.kids[dn.i] !== 2) ntGuard(R, dn);
     ntPopulate(R);
     if (R.up.torch) ntTorches(R);
@@ -11801,7 +11860,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function ntLeave() {
     const R = ISL.nt;
     if (R && R.on) { ntSave(R); R.on = false; }
-    ntEl.hidden = true; document.body.classList.remove('nights'); darkEl.style.opacity = 0;
+    ntEl.hidden = sackEl.hidden = true; document.body.classList.remove('nights'); darkEl.style.opacity = 0;
   }
   function ntRestart() { SAVE.nt = null; saveGame(); if (ISL.nt) ISL.nt.on = false; enterHub('forest', {}); }
 
@@ -11877,6 +11936,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     for (const m of R.treeMesh) { m.instanceMatrix.needsUpdate = true; m.computeBoundingSphere(); }
     R.stumps = new T.InstancedMesh(GEO.ntStump, MAT.vc, Math.max(1, list.length)); R.stumps.count = 0; R.stumps.castShadow = R.stumps.receiveShadow = true; R.stumps.frustumCulled = false;
+    // see-through copies of the trees that stand between the camera and the hero (ntOcclude)
+    R.ghosts = [0, 1].map((v) => { const m = new T.InstancedMesh(GEO.ntPine[v], MAT.ntGhost, 40); m.count = 0; m.frustumCulled = false; m.renderOrder = 1; L.group.add(m); return m; });
     L.group.add(R.stumps);
   }
   // the Deer: a tall dark shape on its hind legs, antlers, eyes that glow
@@ -11934,9 +11995,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function ntPopulate(R) {
     let bun = 0, wolf = 0;
     for (const e of L.enemies) if (e.nt && e.alive && e.den === undefined && !e.raid) { if (e.type === 'bunny') bun++; else wolf++; }
-    const want = R.lv > 1 ? Math.min(6, R.lv) : 0;
-    for (; bun < 8; bun++) ntSpawn(R, 'bunny', 11, R.fogR - 3, 10);
-    for (; wolf < want; wolf++) ntSpawn(R, R.lv >= 4 && wolf % 3 === 2 ? 'alpha' : 'wolf', 24, R.fogR - 3, 9);
+    const want = Math.min(7, 2 + R.lv);
+    for (; bun < 8; bun++) ntSpawn(R, 'bunny', 11, Math.min(NT_R, R.fogR + 8), 10);
+    for (; wolf < want; wolf++) ntSpawn(R, R.lv >= 4 && wolf % 3 === 2 ? 'alpha' : 'wolf', Math.max(24, R.fogR - 4), NT_R, 9);
   }
   // a spot among the trees at a distance from the fire (and away from the hero); null if none turns up
   function ntSpot(R, r0, r1, away = 0) {
@@ -11964,8 +12025,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       'Днём руби деревья: крутись вихрем у ствола. Бревна неси прямо в костёр, он сам их возьмёт.',
       'Ночью из тумана выходит Олень. В свет костра он не заходит, а фонарика боится: держи луч прямо на нём!',
       'Чем больше костёр, тем дальше отступает туман. Сейчас костёр ' + R.lv + '-го уровня.',
+      'В тумане темно и бродят волки, но пройти можно. Не заблудись: столбики с лентами ведут от костра к логовам.',
+      'Навыки растут сами: руби, охоться, собирай, переживай ночи. Загляни в паузу, там видно, что даст следующий уровень.',
     ];
-    if (next) lines.push('За туманом волчьи логова, а в них дети! Ближе всех ' + NT_KIDS[next.i].name + (R.fogR > Math.hypot(next.x, next.z) + 4 ? ': туман уже отступил, иди по лентам на столбиках.' : ': подкорми костёр, и туман откроет дорогу.'));
+    if (next) lines.push('В волчьих логовах дети! Ближе всех ' + NT_KIDS[next.i].name + (R.fogR > Math.hypot(next.x, next.z) + 4 ? ': туман уже отступил, иди по лентам на столбиках.' : ': логово в тумане, иди по лентам на столбиках и будь осторожен.'));
     lines.push('Каждый спасённый ребёнок и кровать с верстака делают ночи быстрее.', 'Голодно? Ягоды на кустах, а мясо от зайцев и волков жарь у костра.',
       'Железки, уголь и канистры лежат в лесу и в сундуках. Неси железки на верстак.');
     if (SAVE.ntBest) lines.push('Твой рекорд: ' + SAVE.ntBest + ' ' + plural(SAVE.ntBest, 'ночь', 'ночи', 'ночей') + '.');
@@ -11983,6 +12046,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     ntLampUpdate(R, dt);
     R.fogR = damp(R.fogR, NT_FOG[R.lv], 1.1, dt); ntFogSize(R); NT_FOG_TEX.offset.x = (time * .005) % 1;
     ntTreesAnim(R, dt);
+    ntOcclude(R);
     ntItemsUpdate(R, dt, playing);
     ntKidsUpdate(R, dt, playing);
     ntDeerUpdate(R, dt, playing);
@@ -11991,7 +12055,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!playing) return;
     ntCamp(R, dt);
     ntHunger(R, dt);
-    ntFogPush(R, dt);
+    ntFogOut(R, dt);
   }
   // the clock: day, dusk, night, dawn
   function ntClock(R, dt) {
@@ -12019,7 +12083,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function ntDawn(R) {
     const bonus = ntBonus(R), was = R.night, F = R.fire;
     R.phase = 'dawn'; R.t = NT_DAWN;
-    R.night += 1 + bonus;
+    R.night += 1 + bonus; ntSkillUp('brave');
     const passed = R.night - 1;
     ntDeerLeave(R);
     for (const e of L.enemies) if (e.nt && e.raid && e.alive) { e.alive = false; e.looted = true; e.mesh.visible = false; puff(e.x, e.y + .8, e.z, 0x9aa0b8, 6, 2, .6, .6, 1.2); }
@@ -12115,13 +12179,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const fog = scene.fog;
     fog.color.setHex(def.fog[0]).lerp(_ntC.setHex(0x070a14), k).lerp(_ntC.setHex(0x9a6a5a), warm * .5);
     fog.near = lerp(def.fog[1], 4, k); fog.far = lerp(def.fog[2], 46, k);
+    const o = R.outK; // in the fog: a few metres to see, grey by day and black at night
+    if (o > .001) { fog.near = lerp(fog.near, 1.5, o); fog.far = lerp(fog.far, 17 + 7 * k, o); fog.color.lerp(_ntC.setHex(k > .5 ? 0x080b16 : 0xaab4ae), o * .7); }
     RIM.value.setHex(def.hemi[0]).lerp(_ntC.setHex(0x6070b0), k);
     for (const m of MAT.ntFog) m.color.copy(fog.color);
     // halfway through the dusk the day's sky, dimmed to nothing, gives way to the night's (and back at dawn)
     const night = k > .5;
     if (night !== R.skyNight) { R.skyNight = night; const sk = skyTex(night ? NIGHT_SKY : def); scene.background = sk.tex; scene.environment = sk.env; }
     scene.backgroundIntensity = Math.abs(k - .5) * 2;
-    const dk = (k * .85).toFixed(2); if (R.hud.dark !== dk) { R.hud.dark = dk; darkEl.style.opacity = dk; }
+    const dk = Math.min(.95, k * .85 + R.outK * (.15 + k * .1)).toFixed(2); if (R.hud.dark !== dk) { R.hud.dark = dk; darkEl.style.opacity = dk; }
   }
   // the flashlight: on by itself after dark, along the way the hero faces (it finds the Deer when it is roughly ahead)
   function ntLampUpdate(R, dt) {
@@ -12148,6 +12214,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- the trees: a blow shakes one, the last blow fells it; it leaves logs and a stump ----------
   function ntChop(x, z, reach, once) {
     const R = ISL.nt; if (!R || !R.on) return;
+    if (ntSkillLv('wood') >= 5) reach += .9;
     for (const tr of R.trees) {
       if (tr.down) continue;
       const dx = tr.x - x, dz = tr.z - z, r = reach + .35 * tr.s;
@@ -12158,12 +12225,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function ntHitTree(R, tr, dx, dz) {
     if (!tr.hp) tr.hp = NT_AXE[R.up.axe];
-    tr.hp--;
+    tr.hp -= ntBlow();
     const l = Math.hypot(dx, dz) || 1, ax = dz / l, az = -dx / l; // a tilt about this axis leans the tree away from the hero
     Snd.at(tr.x, 1.2, tr.z).chop(); G.hitStop = Math.max(G.hitStop, .03);
     emit(tr.x - dx / l * .3, 1.1, tr.z - dz / l * .3, 0xd9b07a, 8, 3, 2, 12, .5, .14); puff(tr.x, 3 * tr.s, tr.z, 0x2c7042, 3, 1.5, -.5, .8, 1.2);
     if (tr.hp > 0) { R.shaking.push({ tr, t: .32, ax, az }); popup('Тук!', tr.x, 2.6, tr.z); return; }
-    tr.down = true; R.chopped++;
+    tr.down = true; R.chopped++; ntSkillUp('wood');
     const mesh = R.treeMesh[tr.v]; _ntM.makeScale(0, 0, 0); mesh.setMatrixAt(tr.i, _ntM); mesh.instanceMatrix.needsUpdate = true;
     const m = new T.Mesh(GEO.ntPine[tr.v], MAT.vc); m.castShadow = true; m.position.set(tr.x, 0, tr.z); m.scale.set(tr.s, tr.sy, tr.s); L.group.add(m);
     R.falling.push({ tr, m, t: 0, ax, az, dx: dx / l, dz: dz / l, landed: false, fade: 0 });
@@ -12172,11 +12239,39 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     _ntQ.setFromAxisAngle(UPV, tr.yaw); _ntM.compose(_ntV.set(tr.x, 0, tr.z), _ntQ, _ntS.set(tr.s, tr.s, tr.s));
     R.stumps.setMatrixAt(R.stumpN++, _ntM); R.stumps.count = R.stumpN; R.stumps.instanceMatrix.needsUpdate = true;
   }
+  // trees in the way between the camera and the hero turn see-through: while they are, their place in the forest is empty and
+  // a pale copy stands there instead
+  const NT_HIDE = new T.Matrix4().makeScale(0, 0, 0);
+  function ntOcclude(R) {
+    if (!R.ghosts.length) return;
+    const cx = camera.position.x, cz = camera.position.z, sx = P.pos.x - cx, sz = P.pos.z - cz, l2 = sx * sx + sz * sz || 1, reach = Math.sqrt(l2) + 2;
+    const now = new Set();
+    for (const tr of R.trees) {
+      if (tr.down) continue;
+      const tx = tr.x - cx, tz = tr.z - cz;
+      if (Math.abs(tx) > reach || Math.abs(tz) > reach) continue;
+      const k = clamp((tx * sx + tz * sz) / l2, 0, 1);
+      if (k > .96) continue; // at the hero or past him
+      const dx = tx - sx * k, dz = tz - sz * k;
+      if (dx * dx + dz * dz < (1.3 * tr.s) ** 2 && now.size < 40) now.add(tr);
+    }
+    let same = now.size === R.ghosted.size;
+    if (same) for (const tr of now) if (!R.ghosted.has(tr)) { same = false; break; }
+    if (same) return;
+    for (const tr of R.ghosted) if (!now.has(tr) && !tr.down) { R.treeMesh[tr.v].setMatrixAt(tr.i, tr.base); R.treeMesh[tr.v].instanceMatrix.needsUpdate = true; }
+    const n = [0, 0];
+    for (const tr of now) {
+      R.treeMesh[tr.v].setMatrixAt(tr.i, NT_HIDE); R.treeMesh[tr.v].instanceMatrix.needsUpdate = true;
+      R.ghosts[tr.v].setMatrixAt(n[tr.v]++, tr.base);
+    }
+    R.ghosts.forEach((m, v) => { m.count = n[v]; m.instanceMatrix.needsUpdate = true; });
+    R.ghosted = now;
+  }
   function ntTreesAnim(R, dt) {
     for (let i = R.shaking.length - 1; i >= 0; i--) {
       const s = R.shaking[i], tr = s.tr, mesh = R.treeMesh[tr.v];
       s.t -= dt;
-      if (tr.down) { R.shaking.splice(i, 1); continue; }
+      if (tr.down || R.ghosted.has(tr)) { R.shaking.splice(i, 1); continue; }
       if (s.t <= 0) { mesh.setMatrixAt(tr.i, tr.base); R.shaking.splice(i, 1); }
       else {
         _ntQ.setFromAxisAngle(_ntV.set(s.ax, 0, s.az), Math.sin(s.t * 38) * s.t * .3); _ntQ2.setFromAxisAngle(UPV, tr.yaw); _ntQ.multiply(_ntQ2);
@@ -12191,7 +12286,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       _ntQ.setFromAxisAngle(_ntV.set(f.ax, 0, f.az), k * k * Math.PI / 2 * .96); _ntQ2.setFromAxisAngle(UPV, tr.yaw); f.m.quaternion.copy(_ntQ).multiply(_ntQ2);
       if (k >= 1 && !f.landed) { // down with a thump: dust and needles along the trunk, and the logs roll out
         f.landed = true;
-        const n = R.up.axe >= 2 ? 3 : 2, near = Math.hypot(P.pos.x - tr.x, P.pos.z - tr.z);
+        const n = (R.up.axe >= 2 ? 3 : 2) + (ntSkillLv('wood') >= 3 ? 1 : 0), near = Math.hypot(P.pos.x - tr.x, P.pos.z - tr.z);
         for (let j = 0; j < 5; j++) { const o = (j + .5) * tr.s; puff(tr.x + f.dx * o, .5, tr.z + f.dz * o, j % 2 ? 0x2c7042 : dustColor(), 2, 1.6, .6, .8, 1.6); }
         for (let j = 0; j < n; j++) { const o = (1.2 + j * 1.2) * tr.s; ntItem('log', tr.x + f.dx * o, tr.z + f.dz * o, .6, true); }
         if (near < 20) G.shake = Math.max(G.shake, .3 * (1 - near / 20));
@@ -12205,6 +12300,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- what lies about: it glints; walking over it puts it in the sack (a heart heals) ----------
   function ntItemsUpdate(R, dt, playing) {
+    const magnet = ntSkillLv('pack') >= 4;
+    let room = ntLoad(R) < ntCap(R);
     for (let i = R.items.length - 1; i >= 0; i--) {
       const it = R.items[i];
       it.t += dt;
@@ -12216,7 +12313,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       it.spin += dt * (it.rest ? 1.2 : 6);
       it.m.position.set(it.x, it.y + (it.rest ? .12 + Math.sin(time * 2.6 + it.ph) * .08 : 0), it.z); it.m.rotation.y = it.spin;
       if (it.rest && Math.random() < dt * .7) glow(it.x, it.y + .5, it.z, 0xfff3b0, 1, .2, .6, 0, .7, .2);
-      if (!playing || it.t < .35 || Math.hypot(P.pos.x - it.x, P.pos.z - it.z) > 1.3 + (P.veh ? .7 : 0) || Math.abs(P.pos.y + .6 - it.y) > 1.9) continue;
+      if (!playing || it.t < .35) continue;
+      const far = Math.hypot(P.pos.x - it.x, P.pos.z - it.z);
+      if (it.rest && far < 4.5 && far > .6 && magnet && (it.kind === 'heart' ? R.hearts < ntMax(R) : room)) { // the gatherer's pull
+        it.x = damp(it.x, P.pos.x, 5, dt); it.z = damp(it.z, P.pos.z, 5, dt); it.y = damp(it.y, P.pos.y + .3, 5, dt);
+      }
+      if (far > 1.3 + (P.veh ? .7 : 0) || Math.abs(P.pos.y + .6 - it.y) > 1.9) continue;
       if (it.kind === 'heart') {
         if (R.hearts >= ntMax(R)) continue;
         R.hearts++; Snd.sfx.heart(); popup('+❤', it.x, it.y + 1, it.z, 'gold');
@@ -12225,7 +12327,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           if (R.fullT <= 0) { R.fullT = 2.5; popup('Мешок полон!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold'); Snd.sfx.locked(); if (!R.tip.full) { R.tip.full = true; toast('Мешок полон!', 'Дрова неси в костёр, железки на верстак'); } }
           continue;
         }
-        R.sack[it.kind]++; Snd.sfx.pop(); popup('+' + NT_ICON[it.kind], it.x, it.y + 1, it.z, 'gold');
+        R.sack[it.kind]++; Snd.sfx.pop(); popup('+' + NT_ICON[it.kind], it.x, it.y + 1, it.z, 'gold'); ntSkillUp('pack');
+        room = ntLoad(R) < ntCap(R);
         if (it.kind === 'log' && !R.tip.log) { R.tip.log = true; toast('Бревно!', 'Неси дрова в костёр: просто подойди к нему'); }
         if (it.kind === 'scrap' && !R.tip.scrap) { R.tip.scrap = true; toast('Железка!', 'Железки и бревна нужны верстаку у костра'); }
         if (it.kind === 'meat' && !R.tip.meat) { R.tip.meat = true; toast('Мясо!', 'Подойди с ним к костру: оно поджарится'); }
@@ -12282,7 +12385,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // hunger runs down; food in the sack is eaten when it gets low (roasted first); an empty belly costs a heart now and then
   function ntHunger(R, dt) {
-    R.food = Math.max(0, R.food - dt * (R.phase === 'night' ? .3 : .24));
+    R.food = Math.max(0, R.food - dt * (R.phase === 'night' ? .3 : .24) * (ntSkillLv('brave') >= 4 ? .7 : 1));
     R.eatT -= dt;
     if (R.food < 40 && R.eatT <= 0 && (R.sack.steak || R.sack.meat)) {
       R.eatT = 1.2; Snd.sfx.munch(); P.happyT = .8;
@@ -12296,27 +12399,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (R.starveT > 14) { R.starveT = 0; popup('Голодно!', P.pos.x, P.pos.y + PH + 1.2, P.pos.z, 'gold'); Snd.sfx.yelp(); G.flash = .35; G.flashCol = '#ff9a3c'; ntHit(); }
   }
   // the wall of fog: nobody gets through it (the wolves and bunnies stay inside too; the dens' guards are at home out there)
-  function ntFogPush(R, dt) {
-    const F = R.fire, lim = R.fogR - .9, dx = P.pos.x - F.x, dz = P.pos.z - F.z, d = Math.hypot(dx, dz);
-    if (d > lim) {
-      const nx = dx / d, nz = dz / d, out = P.vel.x * nx + P.vel.z * nz;
-      P.pos.x = F.x + nx * lim; P.pos.z = F.z + nz * lim;
-      if (out > 0) { P.vel.x -= nx * out * 1.6; P.vel.z -= nz * out * 1.6; }
-      if (R.fogT <= 0) { R.fogT = 3; popup(R.lv < 5 ? 'Туман! Подкорми костёр, и он отступит' : 'Дальше только туман', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold'); Snd.sfx.locked(); }
-    }
-    R.fogT -= dt;
-    for (const e of L.enemies) {
-      if (!e.nt || !e.alive || e.den !== undefined) continue;
-      const ex = e.x - F.x, ez = e.z - F.z, ed = Math.hypot(ex, ez);
-      if (ed > lim) { e.x = F.x + ex / ed * lim; e.z = F.z + ez / ed * lim; }
-    }
+  // out in the fog: the view closes in (ntLight), and the first time the hero is told what is out there
+  function ntFogOut(R, dt) {
+    const out = Math.hypot(P.pos.x - R.fire.x, P.pos.z - R.fire.z) > R.fogR - .5;
+    R.outK = damp(R.outK, out ? 1 : 0, 2.2, dt);
+    if (out && !R.tip.fog) { R.tip.fog = true; toast('В тумане', 'Тут темно и бродят волки. Чем больше костёр, тем дальше отступит туман'); Snd.sfx.warn(); }
   }
   // chests: walk up to one and it opens, throwing out what is in it
   function ntChestsUpdate(R, dt, playing) {
     for (const c of R.chests) {
       if (c.open) { if (c.t < 1) { c.t += dt; c.lid.rotation.x = -Math.min(1.9, c.t * 5); } continue; }
       if (!playing || Math.hypot(P.pos.x - c.x, P.pos.z - c.z) > 1.8 + (P.veh ? .6 : 0) || Math.abs(P.pos.y) > 2.2) continue;
-      c.open = true; c.t = 0; Snd.at(c.x, .5, c.z).chest();
+      c.open = true; c.t = 0; Snd.at(c.x, .5, c.z).chest(); ntSkillUp('pack', 2);
       const table = NT_CHEST[c.tier];
       for (const k of table[(Math.random() * table.length) | 0]) ntItem(k, c.x, c.z, 1, true);
       SAVE.bank += 5; saveGame(); popup('+5 значков', c.x, 2.2, c.z, 'gold'); glow(c.x, 1, c.z, 0xffe07a, 24, 4, 2, 2, .8, .3);
@@ -12414,7 +12508,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function ntScare(R) {
     const D = R.deer;
     D.state = 'stun'; D.t = 0; D.lit = 0; D.back = D.once ? 0 : 9 + Math.random() * 6;
-    R.scared++;
+    R.scared++; ntSkillUp('brave');
     Snd.at(D.x, 2.5, D.z).scare(); Snd.sfx.flare(); G.flash = Math.max(G.flash, .25); G.flashCol = '#fff6d0'; P.happyT = 1.2;
     glow(D.x, 2.9, D.z, 0xfff6d0, 30, 5, 1, 1, .7, .35); popup('Олень испугался!', D.x, 4.3, D.z, 'gold');
     if (R.scared === 1) revealStar('nf.deer', D.x, 3, D.z);
@@ -12432,7 +12526,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     let pace = 0;
     const bright = R.up.lamp > 0, range = bright ? 21 : 14, half = (bright ? .46 : .38) + .1;
     const lit = R.lampOn && (D.state === 'stalk' || D.state === 'lurk') && d < range && Math.abs(P.pos.y - D.y) < 5 && Math.abs(wrapPi(Math.atan2(-dx, -dz) - R.beamYaw)) < half;
-    D.lit = lit ? Math.min(1, D.lit + dt / (bright ? .55 : 1.1)) : Math.max(0, D.lit - dt * .7);
+    D.lit = lit ? Math.min(1, D.lit + dt / ((bright ? .55 : 1.1) * (ntSkillLv('brave') >= 2 ? .65 : 1))) : Math.max(0, D.lit - dt * .7);
     if (lit && Math.random() < dt * 20) glow(D.x + (Math.random() - .5) * .8, 2.4 + Math.random(), D.z + (Math.random() - .5) * .8, 0xfff6d0, 1, .6, .5, 0, .4, .25);
     if (D.lit >= 1) ntScare(R);
     if (D.state === 'lurk') {
@@ -12476,11 +12570,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       e.looted = true; R.kills++;
       const F = FOES[e.type]; if (!F) continue;
       fxCoin(e.x, e.y + 1.4, e.z); addCoin();
-      for (const it of F.loot || []) {
+      const lv = ntSkillLv('hunt'), more = (k) => (k === 'meat' ? lv >= 2 : k !== 'meat' && lv >= 4);
+      for (const it of F.loot || []) for (let j = more(it) ? 2 : 1; j > 0; j--) {
         if (it === 'meat') ntItem('meat', e.x, e.z, e.y + .6, true);
         else if (it === 'pelt') { R.pelts++; popup('+' + NT_ICON.pelts, e.x, e.y + 2, e.z, 'gold'); }
         else if (it === 'foot') { R.feet++; popup('+' + NT_ICON.feet, e.x, e.y + 1.4, e.z, 'gold'); }
       }
+      ntSkillUp('hunt');
     }
     if (L.enemies.length > 70) {
       const gone = new Set(L.enemies.filter((e) => e.nt && !e.alive && e.dead <= 0));
@@ -12492,9 +12588,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (R.raidT > 0 || R.raidN >= R.raidMax) return;
     R.raidT = 11 + Math.random() * 7;
     const F = R.fire, ha = Math.atan2(P.pos.x - F.x, P.pos.z - F.z), n = Math.min(R.raidMax - R.raidN, R.raidN ? 1 + (Math.random() < .5 ? 1 : 0) : 2);
+    const r = Math.min(NT_R, Math.max(R.fogR - 1.5, Math.hypot(P.pos.x - F.x, P.pos.z - F.z) + 10));
     let x = 0, z = 0;
     for (let i = 0; i < n; i++) {
-      const a = ha + (Math.random() - .5) * 1.6, r = R.fogR - 1.5;
+      const a = ha + (Math.random() - .5) * 1.6;
       x = F.x + Math.sin(a) * r; z = F.z + Math.cos(a) * r;
       const type = R.night >= 14 && R.raidN % 4 === 3 ? 'bear' : R.night >= 7 && R.raidN % 3 === 2 ? 'alpha' : 'wolf';
       const e = spawnEnemy(type, x, 0, z, 'x', 8);
@@ -12505,7 +12602,21 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ---------- the HUD panel: the day or the night and its clock, hearts and hunger, the fire, the sack, the children ----------
-  const NT_HUD = { day: $('ntDay'), clock: $('ntClock'), hearts: $('ntHearts'), food: $('ntFood'), fire: $('ntFire'), fuel: $('ntFuel'), sack: $('ntSack'), kids: $('ntKids') };
+  const NT_HUD = { day: $('ntDay'), clock: $('ntClock'), hearts: $('ntHearts'), food: $('ntFood'), fire: $('ntFire'), fuel: $('ntFuel'), skills: $('ntSkills'), kids: $('ntKids') };
+  const sackEl = $('sackBar'), sackSlots = $('sackSlots'), sackLbl = $('sackLbl');
+  // the sack's bar: a place for each thing it holds; the newest one pops, and a full sack turns red
+  function ntSackBar(R) {
+    const cap = ntCap(R), items = [];
+    for (const k of NT_KINDS) for (let i = 0; i < R.sack[k]; i++) items.push(k);
+    const key = cap + ':' + items.join(',');
+    if (R.hud.sack === key) return;
+    const before = R.hud.sackN || 0; R.hud.sack = key; R.hud.sackN = items.length;
+    if (sackSlots.children.length !== cap) { sackSlots.textContent = ''; for (let i = 0; i < cap; i++) { const d = document.createElement('i'); d.className = 'sack-slot'; sackSlots.append(d); } }
+    Array.from(sackSlots.children).forEach((d, i) => { const k = items[i]; d.textContent = k ? NT_ICON[k] : ''; d.classList.toggle('got', !!k); });
+    if (items.length > before && items.length) { const d = sackSlots.children[items.length - 1]; d.classList.remove('slot-in'); void d.offsetWidth; d.classList.add('slot-in'); }
+    sackLbl.textContent = 'Мешок ' + items.length + '/' + cap;
+    sackEl.classList.toggle('full', items.length >= cap);
+  }
   function ntHud(R) {
     const h = R.hud, text = (k, v) => { if (h[k] !== v) { h[k] = v; NT_HUD[k].textContent = v; } };
     const bar = (k, v) => { const s = clamp(v, 0, 1).toFixed(3); if (h[k] !== s) { h[k] = s; NT_HUD[k].style.transform = 'scaleX(' + s + ')'; } };
@@ -12517,8 +12628,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     bar('food', R.food / 100); cls('low-food', R.food < 25);
     text('fire', '🔥 ' + R.lv + (R.fuel <= 0 ? ' погас' : ''));
     bar('fuel', R.fuel / ntFuelCap(R)); cls('low-fuel', R.fuel < 20);
-    const got = NT_KINDS.filter((k) => R.sack[k]).map((k) => NT_ICON[k] + R.sack[k]).join(' ');
-    text('sack', '🎒 ' + (got || 'пусто') + ' · ' + ntLoad(R) + '/' + ntCap(R));
+    text('skills', NT_SKILLS.map((S) => S.icon + ntSkillLv(S.key)).join(' '));
+    ntSackBar(R);
     const fk = R.kidsE.find((k) => k.state === 'follow');
     text('kids', '🧒 ' + ntHome(R) + '/4' + (fk ? ' · ' + NT_KIDS[fk.i].name + ' с тобой' : '') + (R.feet || R.pelts ? ' · ' + NT_ICON.feet + R.feet + ' ' + NT_ICON.pelts + R.pelts : ''));
   }
@@ -14312,6 +14423,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const hub = !!L.def.hub, key = L.def.key;
     $('questBox').hidden = !hub; $('btnRestart').hidden = hub && !L.def.nights; $('btnToFlag').hidden = !hub;
     const rs = $('btnRestart'); rs.textContent = L.def.nights ? 'Новый поход' : 'Начать уровень заново'; rs.dataset.armed = '';
+    $('skillBox').hidden = !L.def.nights;
+    if (L.def.nights) {
+      const sl = $('skillList'); sl.textContent = '';
+      for (const S of NT_SKILLS) {
+        const lv = ntSkillLv(S.key), n = ntSkillN(S.key), li = document.createElement('li');
+        const i = document.createElement('i'); i.textContent = S.icon;
+        const t = document.createElement('span'); t.textContent = S.name + ' · уровень ' + lv + (lv < 5 ? '' : ' ★');
+        const sm = document.createElement('small');
+        sm.textContent = (lv > 1 ? 'Уже: ' + S.perk.slice(1, lv).join('; ').toLowerCase() + '. ' : '') + (lv < 5 ? 'Дальше: ' + S.perk[lv].toLowerCase() + ' (' + S.how + ', ещё ' + (S.need[lv] - n) + ')' : 'Всё открыто!');
+        li.append(i, t, sm); sl.append(li);
+      }
+    }
     const back = $('btnToIsland');
     back.hidden = hub && key === 'island';
     back.textContent = hub ? 'На Промо-остров' : HUBS[hubOfLevel(G.li)].to;
