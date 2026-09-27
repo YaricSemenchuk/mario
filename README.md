@@ -10,6 +10,14 @@ impact flashes, a short hit-stop and screen shake; every world has its own weath
 drifting sand, snow, sprinkles, ash). Quality drops automatically (AO, then bloom, then resolution) when
 the frame rate falls, so older phones stay playable. Needs Safari 16.4+ or a current Chrome/Firefox.
 
+The graphics come in two looks, switched by the "🎨 Графика" button on the title (the page reloads, the progress
+stays). The realistic one is the default: every texture is drawn at 256 px instead of 32 px (smoothly scaled, broken up
+with tileable noise, blades of grass drawn over the lawns) with a normal map made from it, so stones, mortar, planks and
+grass catch the light; big soft patches in world space keep the ground from repeating; the sun is lower and stronger and
+the flat sky fill weaker, so things get a lit side and long shadows; AgX tone mapping, a colour grade with a vignette and
+a faint grain; water is a smooth mirror whose drifting ripples show the sky and the sun's glints; the day skies have
+clouds seen in perspective. The cartoon one is the flat look of the first versions.
+
 Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound effects panned and
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed

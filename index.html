@@ -690,6 +690,7 @@
     <div class="title-modes">
       <button class="btn btn-ghost btn-mode" id="btnReset" type="button" hidden>Новая игра</button>
       <button class="btn btn-ghost btn-mode" id="btnUpdate" type="button">🔄 Обновить игру</button>
+      <button class="btn btn-ghost btn-mode" id="btnGfx" type="button">🎨 Графика</button>
     </div>
     <p class="howto" id="howto"></p>
     <p class="rotate-hint">Поверни телефон горизонтально, так удобнее</p>
@@ -893,6 +894,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 (function () {
   'use strict';
   const $ = (id) => document.getElementById(id);
@@ -925,6 +927,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   };
 
   // ================= renderer =================
+  // the realistic look (the default) or the flat cartoon one of the first versions; a button on the title switches them
+  const REAL = store.get('real', true);
   const canvas = $('game');
   let renderer;
   try {
@@ -938,11 +942,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = T.PCFShadowMap;
   renderer.outputColorSpace = T.SRGBColorSpace;
-  renderer.toneMapping = T.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  // the realistic look rolls the highlights off like film instead of clipping them
+  renderer.toneMapping = REAL ? T.ACESFilmicToneMapping : T.NeutralToneMapping;
+  renderer.toneMappingExposure = REAL ? .92 : 1.0;
   const pmrem = new T.PMREMGenerator(renderer);
-  // PBR material with sensible defaults for everything that used Lambert/Phong before
-  const std = (o) => new T.MeshStandardMaterial(Object.assign({ roughness: .86, metalness: 0 }, o));
+  const NORMALS = new WeakMap(); // a colour texture -> the normal map drawn from it (the realistic look)
+  // PBR material with sensible defaults for everything that used Lambert/Phong before; a texture with a normal map
+  // brings it along
+  const std = (o) => {
+    if (o.map && NORMALS.has(o.map) && !o.normalMap) o = Object.assign({ normalMap: NORMALS.get(o.map) }, o);
+    return new T.MeshStandardMaterial(Object.assign({ roughness: .86, metalness: 0 }, o));
+  };
   const glossToRough = (shininess) => clamp(1 - shininess / 150, .12, .9);
   // soft fresnel rim on characters and pickups, tinted by each level's sky light so they stand out from the scenery
   const RIM = { value: new T.Color(0xeaf7ff) };
@@ -956,10 +966,41 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     mat.customProgramCacheKey = () => 'rim';
     return mat;
   }
+  // The realistic look breaks up the tiling of the ground with big soft patches in world space, lighter and darker,
+  // greener and drier, so a meadow stops repeating every two metres (amp: how strong, freq: how big the patches are)
+  const MACRO_GLSL = `
+    uniform float macroA, macroF;
+    varying vec3 vMacroW;
+    float mcHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float mcNoise(vec2 p) {
+      vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mcHash(i), mcHash(i + vec2(1.0, 0.0)), f.x), mix(mcHash(i + vec2(0.0, 1.0)), mcHash(i + vec2(1.0, 1.0)), f.x), f.y);
+    }
+    vec3 macroTint(vec3 w) {
+      vec2 p = w.xz + w.y * vec2(.63, -.41);
+      float n = mcNoise(p * macroF) * .6 + mcNoise(p * macroF * 3.7 + 17.0) * .4 - .5;
+      float h = mcNoise(p * macroF * .45 + 41.0) - .5;
+      return (1.0 + n * 2.0 * macroA) * vec3(1.0 + h * macroA * .5, 1.0, 1.0 - h * macroA);
+    }
+  `;
+  function addMacro(mat, amp = .2, freq = .12) {
+    if (!REAL) return mat;
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.macroA = { value: amp }; sh.uniforms.macroF = { value: freq };
+      sh.vertexShader = 'varying vec3 vMacroW;\n' + sh.vertexShader.replace('#include <project_vertex>',
+        '#include <project_vertex>\n  vec4 mcW = vec4(transformed, 1.0);\n#ifdef USE_INSTANCING\n  mcW = instanceMatrix * mcW;\n#endif\n  vMacroW = (modelMatrix * mcW).xyz;');
+      sh.fragmentShader = MACRO_GLSL + sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  diffuseColor.rgb *= macroTint(vMacroW);');
+    };
+    mat.customProgramCacheKey = () => 'macro';
+    return mat;
+  }
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); fail('Телефон сбросил графику, так бывает при нехватке памяти. Обнови страницу.'); });
 
   const scene = new T.Scene();
   const camera = new T.PerspectiveCamera(55, 1, 0.1, 240);
+  // how strong the sky's flat fill, the sun and the light of the sky's picture are: in the realistic look the sun does
+  // more of the work, so everything gets a lit side, a shaded side and a proper shadow
+  const LIT = REAL ? { hemi: .45, sun: 4.4, env: .85, envLava: .55 } : { hemi: 1.15, sun: 3.6, env: .55, envLava: .35 };
   const hemi = new T.HemisphereLight(0xeaf7ff, 0x6b8f4a, 0.78);
   scene.add(hemi);
   const sun = new T.DirectionalLight(0xfff3dc, 0.8);
@@ -970,21 +1011,139 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   sun.shadow.normalBias = .02;
   sun.shadow.radius = 3;
   scene.add(sun, sun.target);
-  const SUN_OFF = new T.Vector3(-9, 28, 11);
+  // a lower sun in the realistic look, off to the side ahead (where the sky glows): longer shadows that show the shape
+  // of things
+  const SUN_OFF = REAL ? new T.Vector3(-19, 20, -7) : new T.Vector3(-9, 28, 11);
 
   // ================= textures =================
-  const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-  function makeTex(size, draw) {
-    const c = document.createElement('canvas'); c.width = c.height = size;
+  const maxAniso = Math.min(REAL ? 8 : 4, renderer.capabilities.getMaxAnisotropy());
+  // The realistic look draws every texture as the cartoon one does, then scales it up to TEX_RES, smooth (or crisp, for
+  // bricks, blocks and planks), breaks it up with tileable noise and draws a normal map from it, so the light picks out
+  // stones, mortar, planks and grass. Grass gets blades drawn over it, water gets ripples instead of painted crests.
+  const TEX_RES = navigator.deviceMemory && navigator.deviceMemory < 4 ? 128 : 256;
+  // tileable value noise on an n×n canvas, cx×cy cells for the first octave, each octave twice as fine and half as strong
+  function noiseField(n, cx, cy, oct, seed) {
+    const r = rng(seed), out = new Float32Array(n * n);
+    let amp = 1, tot = 0;
+    for (let o = 0; o < oct; o++, cx *= 2, cy *= 2, amp *= .5) {
+      const lat = new Float32Array(cx * cy);
+      for (let i = 0; i < lat.length; i++) lat[i] = r();
+      for (let y = 0; y < n; y++) {
+        const fy = y * cy / n, y0 = fy | 0, ty = fy - y0, sy = ty * ty * (3 - 2 * ty), r0 = y0 * cx, r1 = ((y0 + 1) % cy) * cx;
+        for (let x = 0; x < n; x++) {
+          const fx = x * cx / n, x0 = fx | 0, tx = fx - x0, sx = tx * tx * (3 - 2 * tx), x1 = (x0 + 1) % cx;
+          const a = lat[r0 + x0], b = lat[r0 + x1], c = lat[r1 + x0], d = lat[r1 + x1];
+          out[y * n + x] += amp * (a + (b - a) * sx + (c - a + (a - b - c + d) * sx) * sy);
+        }
+      }
+      tot += amp;
+    }
+    for (let i = 0; i < out.length; i++) out[i] /= tot;
+    return out;
+  }
+  // the noise every realistic texture shares (each reads it from its own offset): big blotches, a finer mottle, grain,
+  // long fibres for wood, and ripples for liquids (waves whose crests fit the tile a whole number of times)
+  const NF = REAL ? (() => {
+    const n = TEX_RES, r = rng(907), grain = new Float32Array(n * n), waves = new Float32Array(n * n);
+    for (let i = 0; i < grain.length; i++) grain[i] = r();
+    const mid = noiseField(n, 16, 16, 3, 902);
+    const W = [[3, 1, 1], [-2, 3, .8], [5, -2, .55], [1, 6, .45], [-7, -3, .3], [9, 5, .22], [-4, 11, .16]];
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      let h = (mid[y * n + x] - .5) * .9;
+      for (const [kx, ky, a] of W) h += a * Math.sin((kx * x + ky * y) / n * Math.PI * 2 + kx * 1.7);
+      waves[y * n + x] = h * .25;
+    }
+    return { low: noiseField(n, 4, 4, 4, 901), mid, grain, fiber: noiseField(n, 2, 40, 3, 904), waves };
+  })() : null;
+  // a box blur that wraps round the edges, so the tile still tiles
+  function blurWrap(h, n, r) {
+    const m = n - 1, a = new Float32Array(n * n), b = new Float32Array(n * n), w = 1 / (2 * r + 1);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let s = 0; for (let k = -r; k <= r; k++) s += h[y * n + ((x + k) & m)]; a[y * n + x] = s * w; }
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let s = 0; for (let k = -r; k <= r; k++) s += a[((y + k) & m) * n + x]; b[y * n + x] = s * w; }
+    return b;
+  }
+  // a tangent-space normal map from a height field (the canvas is flipped on upload, so up the canvas is +v)
+  function normalCanvas(h, n, bump) {
+    const m = n - 1, s = bump * n / 32;
+    const c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d'), img = g.createImageData(n, n), d = img.data;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const dx = h[y * n + ((x + 1) & m)] - h[y * n + ((x - 1) & m)], dy = h[((y - 1) & m) * n + x] - h[((y + 1) & m) * n + x];
+      const nx = -dx * s, ny = -dy * s, l = 1 / Math.sqrt(nx * nx + ny * ny + 1), p = (y * n + x) * 4;
+      d[p] = (nx * l * .5 + .5) * 255; d[p + 1] = (ny * l * .5 + .5) * 255; d[p + 2] = (l * .5 + .5) * 255; d[p + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  }
+  // blades of grass seen from above: short strokes every which way, drawn again across an edge so the tile wraps
+  function grassBlades(g, n, cols, r) {
+    const len = n / 36;
+    g.lineCap = 'round';
+    for (let i = 0; i < n * 9; i++) {
+      const x = r() * n, y = r() * n, a = r() * Math.PI * 2, l = len * (.4 + r()), dx = Math.cos(a) * l, dy = Math.sin(a) * l;
+      g.strokeStyle = cols[(r() * cols.length) | 0]; g.globalAlpha = .45 + r() * .55; g.lineWidth = n / 256 * (.8 + r() * 1.2);
+      const ex = x < len * 1.5 ? n : x > n - len * 1.5 ? -n : 0, ey = y < len * 1.5 ? n : y > n - len * 1.5 ? -n : 0;
+      const at = [[0, 0]];
+      if (ex) at.push([ex, 0]);
+      if (ey) at.push([0, ey]);
+      if (ex && ey) at.push([ex, ey]);
+      for (const [ox, oy] of at) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(x + ox + dx, y + oy + dy); g.stroke(); }
+    }
+    g.globalAlpha = 1;
+  }
+  // o: crisp (keep hard edges), blotch / mottle / grain / fiber (how much of each noise), relief (how much the
+  // brightness raises the surface), bump (normal map strength), soft (blur of the height, bevels hard edges),
+  // blades (grass colours), waves (liquid ripples), flat (no normal map), sat / val (saturation and brightness, to
+  // calm the cartoon colours down to natural ones)
+  function realify(src, o, seed) {
+    const n = TEX_RES, s = src.width, m = n - 1, r = rng(seed);
+    const c = document.createElement('canvas'); c.width = c.height = n;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    // the source tiled 3×3 and scaled so its middle tile fills the canvas: smoothing wraps round the edges
+    const t = document.createElement('canvas'); t.width = t.height = s * 3;
+    const tg = t.getContext('2d');
+    for (let i = 0; i < 9; i++) tg.drawImage(src, (i % 3) * s, ((i / 3) | 0) * s);
+    g.imageSmoothingEnabled = !o.crisp; g.imageSmoothingQuality = 'high';
+    g.drawImage(t, -n, -n, n * 3, n * 3);
+    if (o.blades) grassBlades(g, n, o.blades, r);
+    const img = g.getImageData(0, 0, n, n), d = img.data, h = new Float32Array(n * n);
+    const ax = (r() * n) | 0, ay = (r() * n) | 0, bx = (r() * n) | 0, by = (r() * n) | 0;
+    const blotch = o.blotch ?? .18, mottle = o.mottle ?? .14, grain = o.grain ?? .12, fiber = o.fiber || 0, relief = o.relief ?? 1;
+    const sat = o.sat ?? 1, val = o.val ?? 1;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const i = y * n + x, a = ((y + ay) & m) * n + ((x + ax) & m), b = ((y + by) & m) * n + ((x + bx) & m), p = i * 4;
+      const lo = NF.low[a] - .5, mi = NF.mid[b] - .5, gr = NF.grain[b] - .5, fb = NF.fiber[a] - .5;
+      const k = 1 + lo * blotch + mi * mottle + gr * grain + fb * fiber;
+      const lum = (d[p] * .3 + d[p + 1] * .59 + d[p + 2] * .11) / 255;
+      const l = lum * 255 * (1 - sat), kv = k * val;
+      d[p] = Math.min(255, (l + d[p] * sat) * kv); d[p + 1] = Math.min(255, (l + d[p + 1] * sat) * kv); d[p + 2] = Math.min(255, (l + d[p + 2] * sat) * kv);
+      h[i] = o.waves ? NF.waves[a] : lum * relief + lo * .3 + mi * .35 + gr * .1 + fb * fiber * 2;
+    }
+    g.putImageData(img, 0, 0);
+    if (o.flat) return { map: c, normal: null };
+    const soft = o.soft ?? (o.crisp ? Math.max(1, n >> 7) : 0);
+    return { map: c, normal: normalCanvas(soft ? blurWrap(h, n, soft) : h, n, o.bump ?? 1) };
+  }
+  let texSeed = 0;
+  function makeTex(size, draw, o = {}) {
+    let c = document.createElement('canvas'); c.width = c.height = size;
     const g = c.getContext('2d'); draw(g, size);
-    const t = new T.CanvasTexture(c);
-    t.wrapS = t.wrapT = T.RepeatWrapping;
-    t.magFilter = T.NearestFilter;
-    t.minFilter = T.LinearMipmapLinearFilter;
-    t.anisotropy = maxAniso;
+    const real = REAL ? realify(c, o, 977 * ++texSeed) : null;
+    if (real) c = real.map;
+    const conf = (t) => {
+      t.wrapS = t.wrapT = T.RepeatWrapping;
+      t.magFilter = REAL ? T.LinearFilter : T.NearestFilter;
+      t.minFilter = T.LinearMipmapLinearFilter;
+      t.anisotropy = maxAniso;
+      return t;
+    };
+    const t = conf(new T.CanvasTexture(c));
     t.colorSpace = T.SRGBColorSpace;
+    if (real && real.normal) NORMALS.set(t, conf(new T.CanvasTexture(real.normal)));
     return t;
   }
+  // a liquid's ripples drift on their own, a conveyor belt's ridges move with it
+  function flowNormal(t, x, y) { const nt = NORMALS.get(t); if (nt) nt.offset.set(x % 1, y % 1); }
   function speckle(g, size, base, cols, count, r, y0 = 0, y1 = size) {
     if (base) { g.fillStyle = base; g.fillRect(0, y0, size, y1 - y0); }
     for (let i = 0; i < count; i++) {
@@ -993,18 +1152,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
   }
   const TX = {};
-  TX.grassTop = makeTex(32, (g, s) => { const r = rng(1); speckle(g, s, '#5cbf45', ['#4eaa3a', '#6fd257', '#52b33f', '#7ad962'], 190, r); });
+  TX.grassTop = makeTex(32, (g, s) => { const r = rng(1); speckle(g, s, '#5cbf45', ['#4eaa3a', '#6fd257', '#52b33f', '#7ad962'], 190, r); },
+    { blades: ['#3f9a33', '#4eaa3a', '#6fd257', '#52b33f', '#7ad962', '#8fe070', '#357f2c', '#9aa84a'], bump: 1.3, sat: .72, val: .8 });
   TX.grassSide = makeTex(32, (g, s) => {
     const r = rng(2);
     speckle(g, s, '#5cbf45', ['#4eaa3a', '#6fd257'], 60, r, 0, 18);
     speckle(g, s, '#a86a3c', ['#935a31', '#bd7c48'], 40, r, 18, 32);
     for (let x = 0; x < s; x += 2) { g.fillStyle = r() < .5 ? '#4eaa3a' : '#5cbf45'; g.fillRect(x, 17, 2, 1 + ((r() * 9) | 0)); }
-  });
+  }, { bump: 1.2, sat: .75, val: .82 });
   TX.dirt = makeTex(32, (g, s) => {
     const r = rng(3);
     speckle(g, s, '#a86a3c', ['#935a31', '#bd7c48', '#8a5230'], 130, r);
     for (let i = 0; i < 9; i++) { const x = (r() * s) | 0, y = (r() * s) | 0; g.fillStyle = '#7a4829'; g.fillRect(x, y, 3, 2); g.fillStyle = '#c99060'; g.fillRect(x, y, 2, 1); }
-  });
+  }, { grain: .16, bump: 1.4, sat: .75, val: .85 });
   TX.hard = makeTex(32, (g) => {
     for (let by = 0; by < 2; by++) for (let bx = 0; bx < 2; bx++) {
       const x = bx * 16, y = by * 16;
@@ -1013,7 +1173,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       g.fillStyle = '#82562e'; g.fillRect(x, y + 14, 16, 2); g.fillRect(x + 14, y, 2, 16);
       g.fillStyle = '#ab7c48'; g.fillRect(x + 5, y + 5, 6, 6);
     }
-  });
+  }, { crisp: true, bump: 1.6 });
   TX.brick = makeTex(32, (g, s) => {
     g.fillStyle = '#3b1a0b'; g.fillRect(0, 0, s, s);
     for (let row = 0; row < 4; row++) {
@@ -1025,7 +1185,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         g.fillStyle = '#9c421d'; g.fillRect(x + 1, y + 6, 14, 1);
       }
     }
-  });
+  }, { crisp: true, bump: 1.8, grain: .14 });
   function qFace(used) {
     return makeTex(32, (g, s) => {
       g.fillStyle = '#4e2c10'; g.fillRect(0, 0, s, s);
@@ -1040,7 +1200,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         g.fillStyle = col;
         Q.forEach((row, j) => { for (let i = 0; i < row.length; i++) if (row[i] === '#') g.fillRect(ox + i * 2 + d, oy + j * 2 + d, 2, 2); });
       }
-    });
+    }, { crisp: true, grain: .05, blotch: .08, bump: 1.2 });
   }
   TX.q = qFace(false);
   TX.used = qFace(true);
@@ -1052,13 +1212,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       for (let k = 0; k < 5; k++) { g.fillStyle = '#a36d3b'; g.fillRect((r() * s) | 0, i * 8 + 1 + ((r() * 5) | 0), 4 + ((r() * 6) | 0), 1); }
       g.fillStyle = '#4a3020'; g.fillRect(2, i * 8 + 3, 1, 1); g.fillRect(s - 3, i * 8 + 3, 1, 1);
     }
-  });
+  }, { crisp: true, fiber: .22, mottle: .06, bump: 1.3 });
   TX.ice = makeTex(32, (g, s) => {
     const r = rng(9);
     speckle(g, s, '#bfe9ff', ['#d8f3ff', '#a9ddf7', '#e9faff'], 90, r);
     g.fillStyle = 'rgba(255,255,255,.8)';
     for (let i = 0; i < 4; i++) { const x = (r() * s) | 0, y = (r() * s) | 0; for (let k = 0; k < 7; k++) g.fillRect((x + k) % s, (y + k) % s, 2, 1); }
-  });
+  }, { grain: .04, blotch: .1, bump: .5 });
   TX.lava = makeTex(32, (g, s) => {
     const r = rng(13);
     speckle(g, s, '#ff5a1f', ['#ff7a2a', '#ff4414'], 120, r);
@@ -1067,30 +1227,31 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       g.fillStyle = r() < .5 ? '#ffb03a' : '#ffd35a'; g.fillRect(x, y, w, 2);
     }
     for (let i = 0; i < 8; i++) { g.fillStyle = '#a8230c'; g.fillRect((r() * s) | 0, (r() * s) | 0, 3 + ((r() * 4) | 0), 1); }
-  });
+  }, { flat: true, grain: .06 });
   TX.belt = makeTex(32, (g, s) => {
     g.fillStyle = '#3a3e52'; g.fillRect(0, 0, s, s);
     g.fillStyle = '#2c3042'; g.fillRect(0, 0, 3, s); g.fillRect(s - 3, 0, 3, s);
     g.fillStyle = '#ffc53d';
     for (let i = 0; i < 9; i++) { g.fillRect(6 + i, 8 + i, 3, 3); g.fillRect(s - 9 - i, 8 + i, 3, 3); }
     g.fillStyle = '#4a4f66'; for (let y = 1; y < s; y += 8) g.fillRect(3, y, s - 6, 1);
-  });
+  }, { crisp: true, grain: .08, bump: 1.4 });
   // the island: water with little wave crests, a waterfall of falling streaks, cobbled paths
+  // (the realistic water is deeper and plain: its ripples are in the normal map and the sky shows in them)
   TX.water = makeTex(64, (g, s) => {
     const r = rng(17);
-    g.fillStyle = '#3fb4e8'; g.fillRect(0, 0, s, s);
-    speckle(g, s, null, ['#48bdef', '#37a9de', '#52c4f2'], 260, r);
-    for (let i = 0; i < 22; i++) {
+    g.fillStyle = REAL ? '#2385b3' : '#3fb4e8'; g.fillRect(0, 0, s, s);
+    speckle(g, s, null, REAL ? ['#2a8fbf', '#1f7aa6', '#2b93c2'] : ['#48bdef', '#37a9de', '#52c4f2'], 260, r);
+    for (let i = 0; i < (REAL ? 0 : 22); i++) {
       const x = (r() * s) | 0, y = (r() * s) | 0, w = 4 + ((r() * 7) | 0);
       g.fillStyle = r() < .6 ? '#b8ecff' : '#e6f8ff';
       g.fillRect(x, y, w, 1); g.fillRect(x + 1, y - 1, w - 2, 1);
     }
-  });
+  }, { waves: true, grain: .02, mottle: .08, blotch: .14, bump: 1.1 });
   TX.fall = makeTex(32, (g, s) => {
     const r = rng(19);
     g.fillStyle = '#8fdcff'; g.fillRect(0, 0, s, s);
     for (let i = 0; i < 26; i++) { g.fillStyle = r() < .5 ? '#ffffff' : '#c9f0ff'; g.fillRect((r() * s) | 0, (r() * s) | 0, 1 + ((r() * 2) | 0), 4 + ((r() * 10) | 0)); }
-  });
+  }, { flat: true, grain: .04 });
   TX.path = makeTex(32, (g, s) => {
     const r = rng(23);
     g.fillStyle = '#b9a88c'; g.fillRect(0, 0, s, s);
@@ -1098,19 +1259,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       g.fillStyle = ['#e2d5bb', '#d6c7aa', '#eadfc8'][(r() * 3) | 0]; g.fillRect(x + 1, y + 1, 6, 6);
       g.fillStyle = '#f4ecdb'; g.fillRect(x + 1, y + 1, 6, 1);
     }
-  });
+  }, { crisp: true, bump: 2, grain: .14 });
   // the other open worlds: a chocolate river, a sea of strawberry milk, quicksand with a slow swirl
   function liquidTex(seed, base, dots, crest) {
     return makeTex(64, (g, s) => {
       const r = rng(seed);
       g.fillStyle = base; g.fillRect(0, 0, s, s);
       speckle(g, s, null, dots, 260, r);
-      for (let i = 0; i < 22; i++) {
+      for (let i = 0; i < (REAL ? 0 : 22); i++) {
         const x = (r() * s) | 0, y = (r() * s) | 0, w = 4 + ((r() * 7) | 0);
         g.fillStyle = crest[(r() * crest.length) | 0];
         g.fillRect(x, y, w, 1); g.fillRect(x + 1, y - 1, w - 2, 1);
       }
-    });
+    }, { waves: true, grain: .02, mottle: .08, bump: .8 });
   }
   TX.choco = liquidTex(27, '#7a4526', ['#6d3c20', '#86502d', '#5f341b'], ['#b07a52', '#9a6440']);
   TX.milk = liquidTex(29, '#ffb3cf', ['#ffa8c8', '#ffbfd8', '#ff9fc2'], ['#fff0f6', '#ffe0ec']);
@@ -1118,15 +1279,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const r = rng(31);
     g.fillStyle = '#6d3c20'; g.fillRect(0, 0, s, s);
     for (let i = 0; i < 26; i++) { g.fillStyle = r() < .5 ? '#9a6440' : '#86502d'; g.fillRect((r() * s) | 0, (r() * s) | 0, 1 + ((r() * 2) | 0), 4 + ((r() * 10) | 0)); }
-  });
+  }, { flat: true, grain: .04 });
   TX.quick = makeTex(64, (g, s) => {
     const r = rng(33);
     g.fillStyle = '#d9ae66'; g.fillRect(0, 0, s, s);
     speckle(g, s, null, ['#caa05a', '#e4bd78', '#c29450'], 300, r);
     g.strokeStyle = 'rgba(150, 105, 50, .5)'; g.lineWidth = 1.5;
     for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(32, 32, 5 + k * 6, k, k + 4.2); g.stroke(); }
-  });
+  }, { grain: .1, bump: 1.2 });
   TX.quick.center.set(.5, .5);
+  if (NORMALS.has(TX.quick)) NORMALS.get(TX.quick).center.set(.5, .5);
   TX.lavaPool = TX.lava.clone();
   // text on a wooden board: signposts and the plates over the world gates
   function signTex(lines, w = 256, h = 96) {
@@ -1164,18 +1326,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
   })();
   // themed ground: grass lip on top of a body block, same layout for every theme
+  // (grass: blades of grass on top in the realistic look, macro: how strongly its ground is patched)
   function groundSet(seed, p) {
     const r = rng(seed);
     const top = makeTex(32, (g, s) => {
       speckle(g, s, p.top, p.topDots, 190, r);
       if (p.grout) { g.fillStyle = p.grout; for (let i = 0; i < s; i += 16) { g.fillRect(i, 0, 1, s); g.fillRect(0, i, s, 1); } }
-    });
+    }, { crisp: !!p.grout, blades: p.grass ? [p.top, ...p.topDots] : null, bump: p.grout ? 1.4 : 1.1, sat: p.sat, val: p.val });
     const side = makeTex(32, (g, s) => {
       speckle(g, s, p.top, p.topDots, 60, r, 0, 18);
       speckle(g, s, p.body, p.bodyDots, 40, r, 18, 32);
       if (p.stripes) { for (let y = 12; y < 20; y++) for (let x = 0; x < s; x++) { g.fillStyle = ((x + y) >> 2) % 2 ? p.stripes[0] : p.stripes[1]; g.fillRect(x, y, 1, 1); } }
       else for (let x = 0; x < s; x += 2) { g.fillStyle = r() < .5 ? p.drip[0] : p.drip[1]; g.fillRect(x, 17, 2, 1 + ((r() * 9) | 0)); }
-    });
+    }, { bump: 1.2, sat: p.sat, val: p.val });
     const body = makeTex(32, (g, s) => {
       speckle(g, s, p.body, p.bodyDots, 130, r);
       if (p.strata) { g.fillStyle = p.strata; for (let y = 5; y < s; y += 11) g.fillRect(0, y, s, 1); }
@@ -1183,8 +1346,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         g.fillStyle = p.bricks;
         for (let y = 0; y < s; y += 8) { g.fillRect(0, y, s, 1); for (let x = (y / 8) % 2 ? 8 : 0; x < s; x += 16) g.fillRect(x, y, 1, 8); }
       }
-    });
-    const mTop = std({ map: top }), mSide = std({ map: side }), mBody = std({ map: body });
+    }, { crisp: !!p.bricks, bump: p.bricks ? 1.6 : 1.4, sat: p.sat, val: p.val });
+    const mac = p.macro ?? .18;
+    const mTop = addMacro(std({ map: top }), mac), mSide = addMacro(std({ map: side }), mac), mBody = addMacro(std({ map: body }), mac * .8);
     return { lip: [mSide, mSide, mTop, mBody, mSide, mSide], body: mBody };
   }
   const dotTex = (() => {
@@ -1198,6 +1362,31 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // Equirectangular sky: the level gradient, a soft glow on the horizon ahead (the way the level runs, -z)
   // with an optional low sun, and stars in the dark skies. It also lights the scene as the environment map.
   const SKY_W = 512, SKY_H = 256, AHEAD_U = .25;
+  // the realistic sky's clouds: a layer of noise seen in perspective, so they shrink and thin out towards the horizon,
+  // with greyer bellies where they are thick, tinted by the level's light
+  function skyClouds(g, def) {
+    const y1 = 124, img = g.getImageData(0, 0, SKY_W, y1), d = img.data, n = TEX_RES, m = n - 1, r = rng(def.seed + 11);
+    const ox = r() * n, oy = r() * n, cover = .56, tint = new T.Color(def.glow ? def.glow[0] : def.sun);
+    const at = (f, x, y) => {
+      const x0 = Math.floor(x), y0 = Math.floor(y), tx = x - x0, ty = y - y0, i0 = (y0 & m) * n, i1 = ((y0 + 1) & m) * n;
+      const a = f[i0 + (x0 & m)], b = f[i0 + ((x0 + 1) & m)], c = f[i1 + (x0 & m)], e = f[i1 + ((x0 + 1) & m)];
+      return lerp(lerp(a, b, tx), lerp(c, e, tx), ty);
+    };
+    for (let y = 0; y < y1; y++) {
+      const dist = 1 / Math.tan((.5 - (y + .5) / SKY_H) * Math.PI), fade = 1 - clamp((dist - 3) / 9, 0, 1), low = clamp(dist / 8, 0, 1);
+      if (fade <= 0) continue;
+      const tk = .1 + low * .3, cr = lerp(255, tint.r * 255, tk), cg = lerp(255, tint.g * 255, tk), cb = lerp(255, tint.b * 255, tk);
+      for (let x = 0; x < SKY_W; x++) {
+        const az = x / SKY_W * Math.PI * 2, px = Math.sin(az) * dist * 70 + ox, pz = Math.cos(az) * dist * 70 + oy;
+        const v = at(NF.low, px, pz) * .7 + at(NF.mid, px * 1.9, pz * 1.9) * .3 - cover;
+        const a = clamp(v / .1, 0, 1) * fade * .95;
+        if (a <= 0) continue;
+        const shade = 1 - clamp(v / .25, 0, 1) * .16, p = (y * SKY_W + x) * 4;
+        d[p] = lerp(d[p], cr * shade, a); d[p + 1] = lerp(d[p + 1], cg * shade, a); d[p + 2] = lerp(d[p + 2], cb * shade, a);
+      }
+    }
+    g.putImageData(img, 0, 0);
+  }
   function skyTex(def) {
     const key = def.id;
     if (skyCache[key]) return skyCache[key];
@@ -1205,6 +1394,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 96, 0, 132);
     def.sky.forEach(([o, col]) => gr.addColorStop(o, col));
     g.fillStyle = gr; g.fillRect(0, 0, SKY_W, SKY_H);
+    if (REAL && !def.stars) skyClouds(g, def);
     if (def.stars) {
       const r = rng(def.seed + 5);
       for (let i = 0; i < (def.starN || 320); i++) {
@@ -1252,12 +1442,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ================= materials & shared geometry =================
   const lam = std;
   const MAT = {
-    grassTop: lam({ map: TX.grassTop }), grassSide: lam({ map: TX.grassSide }), dirt: lam({ map: TX.dirt }),
+    grassTop: addMacro(lam({ map: TX.grassTop })), grassSide: addMacro(lam({ map: TX.grassSide })), dirt: addMacro(lam({ map: TX.dirt }), .14),
     hard: lam({ map: TX.hard }), brick: lam({ map: TX.brick }), q: lam({ map: TX.q, emissive: 0x3a2200 }), used: lam({ map: TX.used }),
     plank: lam({ map: TX.plank }), plankFall: lam({ map: TX.plank, color: 0xff9f86 }),
     castle: lam({ map: TX.hard, color: 0xdcd6ec }),
     pipe: lam({ color: 0x2fb84b }), pipeRim: lam({ color: 0x45d465 }), pipeHole: new T.MeshBasicMaterial({ color: 0x0c3314 }),
-    vc: lam({ vertexColors: true }), vcFar: lam({ vertexColors: true }), cloud: new T.MeshBasicMaterial({ vertexColors: true }),
+    // (the scenery gets a faint weathering in the realistic look, so walls and rocks are not one flat colour)
+    vc: addMacro(lam({ vertexColors: true }), .07, .7), vcFar: addMacro(lam({ vertexColors: true }), .07, .7), cloud: new T.MeshBasicMaterial({ vertexColors: true }),
     pole: lam({ color: 0xe9f2e2 }), gold: lam({ color: 0xffd23f, emissive: 0x6a4400 }),
     flag: lam({ color: 0xff5a3d, side: T.DoubleSide }), white: lam({ color: 0xffffff, side: T.DoubleSide }),
     springBase: lam({ color: 0x3b3f63 }), springCoil: lam({ color: 0xcfd5e6 }), springPad: lam({ color: 0xf0503a }),
@@ -1287,9 +1478,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   MAT.fire = std({ color: 0xff8a2a, emissive: 0xff4a00, emissiveIntensity: 1.3, roughness: 1 });
   TX.lava.repeat.set(150, 150);
   // the island
-  MAT.water = std({ map: TX.water, transparent: true, opacity: .8, roughness: .12, metalness: .05 });
+  // the realistic water is a smooth mirror: the sky and the sun's glints show in its ripples
+  MAT.water = std(REAL ? { map: TX.water, transparent: true, opacity: .86, roughness: .04, metalness: 0, normalScale: new T.Vector2(.55, .55) }
+    : { map: TX.water, transparent: true, opacity: .8, roughness: .12, metalness: .05 });
   MAT.fall = std({ map: TX.fall, transparent: true, opacity: .82, roughness: .3, emissive: 0x5fb8e0, emissiveIntensity: .35, side: T.DoubleSide, depthWrite: false });
-  MAT.path = std({ map: TX.path, roughness: .92 });
+  MAT.path = addMacro(std({ map: TX.path, roughness: .92 }), .14);
   MAT.crystal = std({ color: 0x8ff3ff, emissive: 0x3fd4ff, emissiveIntensity: 1.8, roughness: .2 });
   MAT.redCoin = addRim(std({ color: 0xf0503a, emissive: 0xc0201a, emissiveIntensity: .45, roughness: .28, metalness: .15 }), .6);
   MAT.star = addRim(std({ color: 0xffd23f, emissive: 0xffa800, emissiveIntensity: 1.5, roughness: .22, metalness: .3 }), .7);
@@ -1307,7 +1500,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the colour of splashes and droplets for each liquid
   const LIQUID = { water: 0xe6f8ff, choco: 0xb07a52, milk: 0xffe0ec, sea: 0xe6f8ff };
   // the sea world's water, seen from below as well as from above
-  MAT.sea = std({ map: TX.water, transparent: true, opacity: .74, roughness: .12, metalness: .05, side: T.DoubleSide });
+  MAT.sea = std(REAL ? { map: TX.water, transparent: true, opacity: .8, roughness: .04, metalness: 0, side: T.DoubleSide, normalScale: new T.Vector2(.55, .55) }
+    : { map: TX.water, transparent: true, opacity: .74, roughness: .12, metalness: .05, side: T.DoubleSide });
   MAT.quick = std({ map: TX.quick, roughness: 1 });
   MAT.lavaPool = std({ color: 0x000000, emissive: 0xffffff, emissiveMap: TX.lavaPool, emissiveIntensity: 1.25, roughness: 1 });
   MAT.tornado = std({ color: 0xf3d99a, emissive: 0x8a6a30, emissiveIntensity: .25, transparent: true, opacity: .34, depthWrite: false, side: T.DoubleSide, roughness: 1 });
@@ -1325,21 +1519,21 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   const GROUND = {
     grass: { lip: MAT.groundLip, body: MAT.dirt },
-    sand: groundSet(31, { top: '#f0d08a', topDots: ['#e3be72', '#f8e0a4', '#d9b163', '#fbe7b5'], body: '#d39a5c', bodyDots: ['#c2884b', '#e0ad70', '#b97c42'], drip: ['#e3be72', '#f0d08a'], strata: '#b8793f' }),
-    snow: groundSet(41, { top: '#f4f8ff', topDots: ['#e1ebf8', '#ffffff', '#d3e1f3'], body: '#6f7b93', bodyDots: ['#5f6a80', '#8591a8', '#56617a'], drip: ['#ffffff', '#e6eefa'] }),
-    candy: groundSet(61, { top: '#ffb3d1', topDots: ['#ff5a8a', '#ffe45c', '#7de0ff', '#9dff7a', '#ffffff', '#c49bff'], body: '#c98a58', bodyDots: ['#b77a4a', '#d99c68'], drip: ['#ffd1e3', '#ffb3d1'], strata: '#fff1e0' }),
-    metal: groundSet(81, { top: '#9aa3b5', topDots: ['#8c95a8', '#a8b1c2', '#b5bdcc', '#7f889b'], grout: '#6b7385', body: '#4a5165', bodyDots: ['#3f4658', '#565d72'], drip: ['#ffc53d', '#2b2f4a'], stripes: ['#ffc53d', '#2b2f4a'], bricks: '#383e50' }),
-    cloud: groundSet(91, { top: '#ffffff', topDots: ['#f1f5ff', '#e6edfb', '#ffffff', '#dfe8fa'], body: '#c9d4f2', bodyDots: ['#bcc8ea', '#d6dff6', '#e4c8f0'], drip: ['#ffffff', '#f1f5ff'] }),
+    sand: groundSet(31, { sat: .82, val: .92, top: '#f0d08a', topDots: ['#e3be72', '#f8e0a4', '#d9b163', '#fbe7b5'], body: '#d39a5c', bodyDots: ['#c2884b', '#e0ad70', '#b97c42'], drip: ['#e3be72', '#f0d08a'], strata: '#b8793f' }),
+    snow: groundSet(41, { macro: .06, top: '#f4f8ff', topDots: ['#e1ebf8', '#ffffff', '#d3e1f3'], body: '#6f7b93', bodyDots: ['#5f6a80', '#8591a8', '#56617a'], drip: ['#ffffff', '#e6eefa'] }),
+    candy: groundSet(61, { macro: .08, top: '#ffb3d1', topDots: ['#ff5a8a', '#ffe45c', '#7de0ff', '#9dff7a', '#ffffff', '#c49bff'], body: '#c98a58', bodyDots: ['#b77a4a', '#d99c68'], drip: ['#ffd1e3', '#ffb3d1'], strata: '#fff1e0' }),
+    metal: groundSet(81, { macro: .08, top: '#9aa3b5', topDots: ['#8c95a8', '#a8b1c2', '#b5bdcc', '#7f889b'], grout: '#6b7385', body: '#4a5165', bodyDots: ['#3f4658', '#565d72'], drip: ['#ffc53d', '#2b2f4a'], stripes: ['#ffc53d', '#2b2f4a'], bricks: '#383e50' }),
+    cloud: groundSet(91, { macro: .05, top: '#ffffff', topDots: ['#f1f5ff', '#e6edfb', '#ffffff', '#dfe8fa'], body: '#c9d4f2', bodyDots: ['#bcc8ea', '#d6dff6', '#e4c8f0'], drip: ['#ffffff', '#f1f5ff'] }),
     stone: groundSet(51, { top: '#8e8aa0', topDots: ['#7f7b92', '#a19db2', '#8a869c'], grout: '#5f5b70', body: '#534f63', bodyDots: ['#47435a', '#615d74'], drip: ['#8e8aa0', '#7f7b92'], bricks: '#3d394d' }),
     // the island's cliffs: grass on top of grey rock with layers
-    cliff: groundSet(71, { top: '#5cbf45', topDots: ['#4eaa3a', '#6fd257', '#52b33f', '#7ad962'], body: '#8f8a9e', bodyDots: ['#7f7a90', '#a29db0', '#868199', '#9b96aa'], drip: ['#4eaa3a', '#5cbf45'], strata: '#737087' }),
+    cliff: groundSet(71, { grass: true, sat: .75, val: .82, top: '#5cbf45', topDots: ['#4eaa3a', '#6fd257', '#52b33f', '#7ad962'], body: '#8f8a9e', bodyDots: ['#7f7a90', '#a29db0', '#868199', '#9b96aa'], drip: ['#4eaa3a', '#5cbf45'], strata: '#737087' }),
     // the desert's canyon walls and mesas: sand on top of red rock in layers; the pyramid's sandstone blocks
-    canyon: groundSet(73, { top: '#f0d08a', topDots: ['#e3be72', '#f8e0a4', '#d9b163'], body: '#c9744a', bodyDots: ['#b8643c', '#d9875a', '#a9583a', '#e0946a'], drip: ['#e3be72', '#f0d08a'], strata: '#9e4f32' }),
-    sandstone: groundSet(75, { top: '#ecc987', topDots: ['#e0ba74', '#f4d89c', '#d8b06a'], body: '#e2bb78', bodyDots: ['#d6ad6a', '#ecc98a', '#caa060'], drip: ['#e0ba74', '#ecc987'], bricks: '#b88f4f' }),
+    canyon: groundSet(73, { sat: .82, val: .92, top: '#f0d08a', topDots: ['#e3be72', '#f8e0a4', '#d9b163'], body: '#c9744a', bodyDots: ['#b8643c', '#d9875a', '#a9583a', '#e0946a'], drip: ['#e3be72', '#f0d08a'], strata: '#9e4f32' }),
+    sandstone: groundSet(75, { sat: .82, val: .92, top: '#ecc987', topDots: ['#e0ba74', '#f4d89c', '#d8b06a'], body: '#e2bb78', bodyDots: ['#d6ad6a', '#ecc98a', '#caa060'], drip: ['#e0ba74', '#ecc987'], bricks: '#b88f4f' }),
     // Ice Peaks: blue ice for the slides and the frozen lake's edges
-    glacier: groundSet(77, { top: '#bfe9ff', topDots: ['#d8f3ff', '#a9ddf7', '#e9faff'], body: '#7fa6c9', bodyDots: ['#6f96ba', '#8fb6d6', '#a2c6e2'], drip: ['#d8f3ff', '#bfe9ff'], strata: '#6a8fb2' }),
+    glacier: groundSet(77, { macro: .08, top: '#bfe9ff', topDots: ['#d8f3ff', '#a9ddf7', '#e9faff'], body: '#7fa6c9', bodyDots: ['#6f96ba', '#8fb6d6', '#a2c6e2'], drip: ['#d8f3ff', '#bfe9ff'], strata: '#6a8fb2' }),
     // Candy Land: chocolate cliffs with a cream top
-    choco: groundSet(79, { top: '#fff1e0', topDots: ['#ff5a8a', '#ffe45c', '#7de0ff', '#ffffff', '#ffd1e3'], body: '#7a4526', bodyDots: ['#6d3c20', '#86502d', '#5f341b'], drip: ['#fff1e0', '#ffe4c8'], strata: '#5a2f18' }),
+    choco: groundSet(79, { macro: .1, top: '#fff1e0', topDots: ['#ff5a8a', '#ffe45c', '#7de0ff', '#ffffff', '#ffd1e3'], body: '#7a4526', bodyDots: ['#6d3c20', '#86502d', '#5f341b'], drip: ['#fff1e0', '#ffe4c8'], strata: '#5a2f18' }),
     // the Coral Sea: plank decks and ramps, pink coral rock on the reef
     deck: groundSet(87, { top: '#c98d52', topDots: ['#b87c45', '#d99c62', '#a8703e'], grout: '#7a4f2c', body: '#8a5a33', bodyDots: ['#7a4f2c', '#9a6a3c'], drip: ['#c98d52', '#b87c45'], strata: '#5f3a20' }),
     reef: groundSet(89, { top: '#f2a6b0', topDots: ['#ff9aa8', '#ffc4a6', '#d98a8a', '#f7b8c8', '#ffe45c'], body: '#b8787e', bodyDots: ['#a8686e', '#c8888e', '#9a5f66'], drip: ['#f2a6b0', '#ff9aa8'], strata: '#8f5a60' }),
@@ -1347,13 +1541,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     moon: groundSet(83, { top: '#c2bfd0', topDots: ['#b2afc2', '#d2cfdc', '#a4a1b6', '#dcdae6'], body: '#86839a', bodyDots: ['#76738a', '#9693a8', '#7e7b92'], drip: ['#bebbcc', '#cfccdb'], strata: '#6e6b82' }),
     mare: groundSet(85, { top: '#77748c', topDots: ['#6a6780', '#84819a', '#5f5c74', '#8e8ba2'], body: '#57546c', bodyDots: ['#4c4960', '#625f78'], drip: ['#6a6780', '#77748c'], strata: '#46435a' }),
     // Dino Valley: lush dark grass over red-brown earth; Dragon Peaks: bright grass over lilac rock
-    jungle: groundSet(93, { top: '#4f9a3a', topDots: ['#428a30', '#5fae45', '#3b7f2c', '#6cbc4f'], body: '#8a5a36', bodyDots: ['#7a4d2c', '#9a6a40', '#6f4426'], drip: ['#428a30', '#4f9a3a'], strata: '#6a3f22' }),
+    jungle: groundSet(93, { grass: true, sat: .75, val: .82, top: '#4f9a3a', topDots: ['#428a30', '#5fae45', '#3b7f2c', '#6cbc4f'], body: '#8a5a36', bodyDots: ['#7a4d2c', '#9a6a40', '#6f4426'], drip: ['#428a30', '#4f9a3a'], strata: '#6a3f22' }),
     basalt: groundSet(97, { top: '#6f6468', topDots: ['#5f5458', '#7f7478', '#554a4e', '#8a6a5a'], body: '#4a4046', bodyDots: ['#3f363c', '#564c52', '#5a3a30'], drip: ['#5f5458', '#6f6468'], strata: '#3a3236' }),
-    crag: groundSet(95, { top: '#6fc25a', topDots: ['#5fb04c', '#82d26a', '#58a646', '#8fdc76'], body: '#8d86a8', bodyDots: ['#7d7698', '#9d96b8', '#746e8e'], drip: ['#5fb04c', '#6fc25a'], strata: '#6f6a8a' }),
+    crag: groundSet(95, { grass: true, sat: .75, val: .82, top: '#6fc25a', topDots: ['#5fb04c', '#82d26a', '#58a646', '#8fdc76'], body: '#8d86a8', bodyDots: ['#7d7698', '#9d96b8', '#746e8e'], drip: ['#5fb04c', '#6fc25a'], strata: '#6f6a8a' }),
     // the Tank Range: dry earth churned up by the tracks
-    dirt: groundSet(99, { top: '#c9a877', topDots: ['#b8966a', '#d6b88a', '#a88660', '#dcc095', '#9a7a56'], body: '#8a6446', bodyDots: ['#7a563a', '#9a7250', '#6f4c32'], drip: ['#b8966a', '#c9a877'], strata: '#6f4c32' }),
+    dirt: groundSet(99, { sat: .82, val: .92, top: '#c9a877', topDots: ['#b8966a', '#d6b88a', '#a88660', '#dcc095', '#9a7a56'], body: '#8a6446', bodyDots: ['#7a563a', '#9a7250', '#6f4c32'], drip: ['#b8966a', '#c9a877'], strata: '#6f4c32' }),
     // the Dark Forest: moss and pine needles over dark earth
-    forest: groundSet(101, { top: '#3f7a3a', topDots: ['#356c32', '#4a8a42', '#2f6030', '#6a5a36', '#557f3a'], body: '#5a4230', bodyDots: ['#4c3828', '#684c36', '#42301f'], drip: ['#356c32', '#3f7a3a'], strata: '#3f2e20' }),
+    forest: groundSet(101, { grass: true, sat: .75, val: .82, top: '#3f7a3a', topDots: ['#356c32', '#4a8a42', '#2f6030', '#6a5a36', '#557f3a'], body: '#5a4230', bodyDots: ['#4c3828', '#684c36', '#42301f'], drip: ['#356c32', '#3f7a3a'], strata: '#3f2e20' }),
   };
   // per-theme decor: which tree, ground litter, bush and pipe colours
   const THEMES = {
@@ -2764,7 +2958,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   TX.hazard = makeTex(32, (g, s) => {
     g.fillStyle = '#2b2f4a'; g.fillRect(0, 0, s, s); g.fillStyle = '#ffc53d';
     for (let i = -s; i < s * 2; i += 16) { g.beginPath(); g.moveTo(i, s); g.lineTo(i + 8, s); g.lineTo(i + 8 + s, 0); g.lineTo(i + s, 0); g.closePath(); g.fill(); }
-  });
+  }, { crisp: true, grain: .1, bump: 1.2 });
   MAT.hazard = std({ map: TX.hazard, roughness: .7 });
   // what the hero wears in some worlds: a glass helmet and an air tank on the moon, a snorkel mask under the sea
   GEO.pack = mergedGeo([
@@ -8230,13 +8424,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       L.group.add(cm); L.coinMesh = cm;
     }
     const sky = skyTex(def);
-    scene.background = sky.tex; scene.environment = sky.env; scene.environmentIntensity = def.lava !== undefined ? .35 : .55; scene.backgroundIntensity = 1;
+    scene.background = sky.tex; scene.environment = sky.env; scene.environmentIntensity = def.lava !== undefined ? LIT.envLava : LIT.env; scene.backgroundIntensity = 1;
     scene.fog = new T.Fog(def.fog[0], def.fog[1], def.fog[2]);
     if (camera.far !== (def.far || 240)) { camera.far = def.far || 240; camera.updateProjectionMatrix(); } // the sky world is seen from far off
     underCam = false; Snd.setUnder(false);
-    hemi.color.setHex(def.hemi[0]); hemi.groundColor.setHex(def.hemi[1]); hemi.intensity = def.hemi[2] * 1.15;
+    hemi.color.setHex(def.hemi[0]); hemi.groundColor.setHex(def.hemi[1]); hemi.intensity = def.hemi[2] * LIT.hemi;
     RIM.value.setHex(def.hemi[0]);
-    sun.color.setHex(def.sun); sun.intensity = (def.sunI || .8) * 3.6;
+    sun.color.setHex(def.sun); sun.intensity = (def.sunI || .8) * LIT.sun;
     applyBloom();
     clearParticles(); clearPops();
     setWeather(def.weather || THEME_FX[def.theme].weather);
@@ -10080,7 +10274,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         glow(P.pos.x + (Math.random() - .5) * 26, L.lavaY + .3, P.pos.z - 4 + (Math.random() - .5) * 26, Math.random() < .5 ? 0xff7a1a : 0xffc04a, 1, .3, 1.4, -.3, 2.4, .26);
       }
     }
-    TX.belt.offset.y = (time * 3.2) % 1;
+    TX.belt.offset.y = (time * 3.2) % 1; flowNormal(TX.belt, 0, TX.belt.offset.y);
     for (const gr of L.gears) gr.m.rotation.z += gr.spd * dt;
     for (const c of L.smokers) {
       if (c.big) { if (Math.random() < dt * 1.2) puff(c.x + (Math.random() - .5) * 6, c.y, c.z, Math.random() < .5 ? 0x8a8288 : 0x6f6870, 1, 1.5, 5, 7, 26); }
@@ -10103,6 +10297,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       TX.choco.offset.set((time * .03) % 1, Math.sin(time * .3) * .02);
       TX.milk.offset.set((time * .01) % 1, Math.sin(time * .32) * .03);
       TX.fall.offset.y = (time * 1.5) % 1; TX.chocoFall.offset.y = (time * 1.1) % 1;
+      flowNormal(TX.water, time * .031, time * .019); flowNormal(TX.choco, time * .02, time * .011); flowNormal(TX.milk, time * .018, time * .014);
       MAT.fall.opacity = damp(MAT.fall.opacity, cam.tight ? .28 : .82, 4, dt); // see through it from inside the cave
       MAT.chocoFall.opacity = damp(MAT.chocoFall.opacity, cam.tight ? .3 : .96, 4, dt);
     }
@@ -10129,7 +10324,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         glow(lerp(l.x0, l.x1, Math.random()), l.y + .2, lerp(l.z0, l.z1, Math.random()), Math.random() < .5 ? 0xff7a1a : 0xffc04a, 1, .3, 1.6, -.3, 2, .24);
       }
     }
-    if (L.sands.length) TX.quick.rotation = time * .2;
+    if (L.sands.length) { TX.quick.rotation = time * .2; if (NORMALS.has(TX.quick)) NORMALS.get(TX.quick).rotation = TX.quick.rotation; }
   }
 
   // ================= the open worlds =================
@@ -12504,11 +12699,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the light of day and night: the sky, the fog, the sun (the moon at night), the rim light on the folk, the dark edges
   function ntLight(R) {
     const def = L.def, k = R.nightK = ntNightK(R), warm = R.phase === 'dusk' || R.phase === 'dawn' ? Math.sin(Math.PI * k) : 0;
-    hemi.intensity = lerp(def.hemi[2] * 1.15, .15, k);
+    hemi.intensity = lerp(def.hemi[2] * LIT.hemi, .15, k);
     hemi.color.setHex(def.hemi[0]).lerp(_ntC.setHex(0x8494c8), k); hemi.groundColor.setHex(def.hemi[1]).lerp(_ntC.setHex(0x161a12), k);
-    sun.intensity = lerp((def.sunI || .8) * 3.6, .45, k) * (1 - warm * .3);
+    sun.intensity = lerp((def.sunI || .8) * LIT.sun, .45, k) * (1 - warm * .3);
     sun.color.setHex(def.sun).lerp(_ntC.setHex(0xa4b8ff), k).lerp(_ntC.setHex(0xff8a4a), warm * .75);
-    scene.environmentIntensity = lerp(.55, .07, k);
+    scene.environmentIntensity = lerp(LIT.env, .07, k);
     const fog = scene.fog;
     fog.color.setHex(def.fog[0]).lerp(_ntC.setHex(0x070a14), k).lerp(_ntC.setHex(0x9a6a5a), warm * .5);
     fog.near = lerp(def.fog[1], 4, k); fog.far = lerp(def.fog[2], 46, k);
@@ -16454,6 +16649,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     renderUpdate(); setTimeout(checkUpdate, 2000);
   }
   $('btnUpdate').addEventListener('click', updateGame);
+  // the look: the textures are drawn once at the start, so switching it reloads the page (the progress stays)
+  $('btnGfx').textContent = REAL ? '🎨 Графика: реалистичная' : '🎨 Графика: мультяшная';
+  $('btnGfx').addEventListener('click', () => { store.set('real', !REAL); location.reload(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && G.state === 'title') checkUpdate(); });
   $('btnResume').addEventListener('click', resume);
   $('btnRestart').addEventListener('click', (e) => {
@@ -17790,9 +17988,27 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- post-processing, three quality tiers ----------
   // 2: bloom + ambient occlusion + 2048 shadows (desktop), 1: bloom (phones), 0: plain render
-  let quality = 2, composer = null, bloomPass = null;
+  let quality = 2, composer = null, bloomPass = null, gradePass = null;
+  // the realistic look's grade, after tone mapping: a gentle S-curve, a touch less saturation, cool shadows and warm
+  // lights, a vignette, and a faint moving grain that also hides banding in the sky
+  const GRADE = {
+    uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } },
+    vertexShader: 'varying vec2 vUv;\nvoid main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `
+      uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
+      void main() {
+        vec3 c = texture2D(tDiffuse, vUv).rgb;
+        c = mix(c, c * c * (3.0 - 2.0 * c), .18);
+        float l = dot(c, vec3(.2126, .7152, .0722));
+        c = mix(vec3(l), c, .96);
+        c *= mix(vec3(.97, .99, 1.035), vec3(1.03, 1.0, .965), smoothstep(.15, .85, l));
+        vec2 d = vUv - .5; c *= 1.0 - .55 * dot(d, d);
+        c += (fract(sin(dot(vUv * 913.7 + fract(uTime) * 71.3, vec2(12.9898, 78.233))) * 43758.5453) - .5) * (3.0 / 255.0);
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  };
   function buildComposer() {
-    if (composer) { composer.dispose(); composer = null; }
+    if (composer) { composer.dispose(); composer = null; gradePass = null; }
     const size = quality >= 2 ? 2048 : 1024;
     if (sun.shadow.mapSize.x !== size) { sun.shadow.mapSize.set(size, size); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
     if (quality === 0) return;
@@ -17803,7 +18019,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     composer.addPass(new RenderPass(scene, camera));
     if (quality >= 2) {
       const ao = new GTAOPass(scene, camera, w, h);
-      ao.blendIntensity = .85;
+      ao.blendIntensity = REAL ? 1 : .85;
       composer.addPass(ao);
     }
     // only emissive things (fire, lava, the star) are bright enough to glow
@@ -17811,10 +18027,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     applyBloom();
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
+    gradePass = REAL ? new ShaderPass(GRADE) : null;
+    if (gradePass) composer.addPass(gradePass);
   }
   // the lava world glows from its floor; elsewhere only emissive bits (the star, fire) are bright enough
   function applyBloom() { if (!bloomPass || !L) return; const lava = L.lavaY !== null; bloomPass.threshold = lava ? .9 : 1.6; bloomPass.strength = lava ? .55 : .35; }
-  function renderScene() { if (composer) composer.render(); else renderer.render(scene, camera); }
+  function renderScene() {
+    if (gradePass) gradePass.uniforms.uTime.value = time;
+    if (composer) composer.render(); else renderer.render(scene, camera);
+  }
 
   let perfAcc = 0, perfN = 0;
   function watchPerf(dt) {
