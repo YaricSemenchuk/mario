@@ -14,18 +14,19 @@ Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound ef
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an
 echo on the lead (it speeds up when time runs low and as a boss loses health), and an ambience bed
 per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a moon base, birds and distant calls in the
-jungle). Every open world has a tune of its own (the survival game, the dragons' cup and the tank battle have their own too,
-and Leviathan comes with the bosses' tune),
+jungle, a woodpecker by day and crickets and an owl by night in the Dark Forest). Every open world has a tune of its own (the
+survival game, the dragons' cup and the tank battle have their own too, Leviathan comes with the bosses' tune, and the Dark
+Forest's nights have a slow one over a heartbeat),
 the kart, the jet ski and the moon rover hum louder and higher as they speed up, a tank's tracks clatter, the wind roars past
 a flying dragon, and under the water every sound is muffled.
 
-- Ten open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
+- Eleven open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
   Promo Island sits between them: a village with a fountain, houses and a windmill, a beach with a pier, a lake under
   a waterfall cliff (with a cave behind the water), a vegetable garden, a lighthouse on a plateau, a forest on terraces
   and a sky island above it. The hero swims (the action button is a stroke forward, a jump leaps out of the water) and
   walks up and down slopes
-- Behind the island's gates lie nine more worlds, each with its own folk and quests; the first four have ten stars and
-  doors to their levels, the next two are open worlds of ten quests each, and the last three are open from the start:
+- Behind the island's gates lie ten more worlds, each with its own folk and quests; the first four have ten stars and
+  doors to their levels, the next two are open worlds of ten quests each, and the last four are open from the start:
   - the Desert: an oasis and a bazaar, the Sphinx, the Great Pyramid with a tomb inside, a mesa climbed by riding a
     wandering dust devil, a field of quicksand (the hero sinks and has to jump out), dunes and a melon patch
   - Ice Peaks: a penguin village of igloos, a skating rink, a steaming hot spring, the Ice Mountain with a crystal cave,
@@ -63,6 +64,10 @@ a flying dragon, and under the water every sound is muffled.
     hangar doors the grumpy tanks roll out of) where Commander Mishka runs the tank battles and the battle with Leviathan
     (below), a shooting range with eight targets that only a shell lights, a pond with Captain Claw's treasure on its
     shore, and Ping's tank race round the tank ground
+  - the Dark Forest: a camp in a clearing of dark pines, the campfire in its middle, the children's tent, a workbench, a shop
+    and ranger Fyr the hedgehog; all round it the forest in rings behind a wall of fog, four wolves' dens out in the rings
+    with a trail of ribboned posts to each, chests, berry bushes and bunnies. The whole world is the game of the 99 nights
+    (below)
 - The survival game (Dino Valley): a red pad in the middle of a clearing ringed with rock. A boulder closes the way in and
   the dinosaurs come in waves out of the ferns, more of them and more kinds each time: raptors, pterodactyls, a triceratops,
   and from the fourth wave a tyrannosaur that cannot be knocked over (its stamp sends a ring along the ground to jump
@@ -118,7 +123,40 @@ a flying dragon, and under the water every sound is muffled.
   grumpy tanks, the second time angrily, firing faster. It goes up in a string of bursts with its turret flying off,
   the grumpy tanks still about run away and the KV-44s cheer. The hero gets two hearts more for it; beating it brings a
   star, three medals and fifty badges
-- Stars: 95 in the worlds and one for every level cleared, 109 in all. They come from folk and secrets: lost ones to bring
+- The 99 nights (the Dark Forest), after the Roblox game "99 Nights in the Forest": survive 99 nights by a campfire.
+  - Days and nights go by on a clock (a day of 75 seconds, the first one longer, dusk, a night of 55 seconds, dawn); the
+    light fades, the sky turns to stars and a moon, the fog closes in and the edges of the screen darken, the music and the
+    ambience change, fireflies come out. A panel under the HUD shows the day or night and its clock, hearts and hunger, the
+    fire's level and fuel, what is in the sack and the children brought home
+  - The campfire burns down (faster at night) and goes out without fuel. Walking up to it throws in the logs, coal and cans
+    of fuel from the sack; everything that goes in also grows it, through five levels, and every level pushes the wall of
+    fog further back (nobody gets through the fog: the hero, the wolves and the bunnies stay inside it). Its light makes a
+    circle round the camp, marked on the ground at night; resting in it with a full belly brings a heart back
+  - Trees are felled with the spin (three blows, two with a better axe, one with the strong one) and leave logs and a stump;
+    everything lying about (logs, scrap, coal, cans of fuel, meat) goes in the sack by walking over it, five things at a time
+    (eight and twelve with bigger sacks). Chests open when walked up to
+  - Hunger runs down: berry bushes (they grow back every morning) and meat from bunnies and wolves, roasted by walking up to
+    the fire with it; food in the sack is eaten by itself when the belly runs low, and an empty one costs a heart now and then
+  - The workbench (its gold ring takes the logs and scrap from the sack) makes a bigger sack, better axes, a brighter
+    flashlight, torches that widen the firelight, a bed and a soft bed, a map whose arrow leads to the nearest den, a fur
+    hat for one more heart (wolf pelts and bunny feet) and a first-aid kit; "Взять дрова" takes logs back for the fire
+  - At night the Deer comes out of the fog: a tall dark shape with antlers and glowing eyes, a little faster every night.
+    It never steps into the firelight and waits at its edge; the flashlight comes on by itself at dusk, shines the way the
+    hero faces (and finds the Deer when it is roughly ahead), and held on it makes it slow down, screech and run back into
+    the fog for a while. The first night it only watches from the edge. Its touch costs a heart
+  - Wolves come out of the fog at night, more every night (alphas from the seventh, bears from the fourteenth), and roam the
+    outer rings by day; a wolf takes two hits, an alpha three, a bear four, and each leaves meat, a pelt or a bunny foot and
+    a badge
+  - Four children are held in cages in the wolves' dens (Dino, Kraken, Squid and Koala, each in an animal hoodie), each den
+    further out behind the fog and more strongly guarded (wolves, then an alpha, then bears). With its guards gone the cage
+    opens and the child follows the hero home to the tent. Every child makes each night count for two more, a bed for one or
+    two more: with all of them a night goes by as eleven
+  - Hearts: three (four with the spare heart, one more with the fur hat); one comes back every dawn. With the last one the run
+    is over, its results (and the best run) are shown and a new one starts on the first morning. A run is kept at every dawn
+    and on the way out of the forest, and goes on from that morning; "Новый поход" in the pause card starts over
+  - Eight stars: five nights, scaring the Deer, the fire at its fifth level, all four children home, 25, 50 and 99 nights, and
+    the forest's red badges. "🌲 99 ночей" on the title goes straight to the camp
+- Stars: 103 in the worlds and one for every level cleared, 117 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a
@@ -140,8 +178,8 @@ a flying dragon, and under the water every sound is muffled.
   missing; on the island it also sums up every world and says where the gates are
 - The World Gates open with stars: five on the island's square (the first leads to the Green levels, the others into the
   worlds at 3, 8, 15 and 24 stars), the Sea Gate at the end of the pier (30) and the Star Gate on a cloud islet above the
-  forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley, the Dragon Gate and the Tank Gate, open
-  from the start.
+  forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley, the Dragon Gate, the Tank Gate and, at the
+  cape's end by the sea, the Forest Gate, open from the start.
   Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front of its door
 - Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in three tabs:
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
