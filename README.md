@@ -177,9 +177,15 @@ the minigun's rattle), and under the water every sound is muffled.
     and on the way out of the forest, and goes on from that morning; "Новый поход" in the pause card starts over
   - Eight stars: five nights, scaring the Deer, the fire at its fifth level, all four children home, 25, 50 and 99 nights, and
     the forest's red badges. "🌲 99 ночей" on the title goes straight to the camp
-- The guns (the Duel Arena), as in the Roblox shooters: the camera comes in over the right shoulder with a crosshair in the
-  middle of the screen, the hero turns to where it points, and a shot goes where the crosshair is. A head takes about twice
-  as much as a body, and the crosshair opens up on the move and in the air. Four slots:
+- The guns, as in the Roblox shooters: always in hand in the Duel Arena, and in every other open world and every level the
+  "Оружие" button at the bottom of the screen draws them (X on a keyboard, or 1–4 straight to a slot); the ✋ at the end of
+  the gun bar puts them away. They go away by themselves on a ride or the dino, in the water, with a delivery held over the
+  head, in hide and seek and at a level's flag, and come back out after. The camera comes in over the right shoulder with a
+  crosshair in the middle of the screen, the hero turns to where it points, and a shot goes where the crosshair is (the
+  barrel kicks up only after it). A head takes about twice as much as a body, and the crosshair opens up on the move and in
+  the air. Outside the arena the shots knock the worlds' foes over as a stomp does (a walker takes one revolver shot or
+  three of the rifle; a wolf or a bear flinches at each hit, and a rocket or a grenade bowls over a whole group), bosses
+  shrug them off (it still takes a stomp), and they hurt the friends who are there (below). Four slots:
   - the main gun: the sniper rifle (a scope that brings things about five times closer and sways with the breath; a body shot
     takes 90 of 100, a head shot knocks out at once; wild without the scope), the assault rifle (automatic), the shotgun
     (eight pellets, weaker further off), the minigun (spins up, then a hail of bullets; the hero walks slower), the bow (held
@@ -197,6 +203,13 @@ the minigun's rattle), and under the water every sound is muffled.
   shops' "Оружие" tab, which also puts them in the set taken into a duel. On a phone the fire button also aims when the thumb
   slides over it, the crosshair slows down over an opponent, and a shot that only just misses the middle goes in; on a
   computer a click takes the mouse for aiming (Esc gives it back), the left button fires, 1–4 or the wheel pick a slot
+- Fights between friends anywhere: outside the duels every friend in the same world or level can be shot, stabbed or blown
+  up with the guns, as in the Duel Arena's duels (whether a shot hit is for the shooter's screen to say). While a friend who
+  can shoot is near (or health is short), a bar above the gun bar shows the hero's 100 of health, coming back by itself five
+  seconds after the last hit, and how many friends he has knocked out. At none left the hero is knocked out (a puff of
+  smoke; everyone there hears who did it), and three seconds later is back at the last flag he touched, whole, with a
+  moment when nothing can hurt him. Friends on a ride or the dino, or with the game paused, cannot be hit; nor anyone in a
+  game with friends, a duel with a bot, the survival game, the dragons' cup or a tank battle
 - Duels against the bots (the Duel Arena): a red pad starts one, a barrier closes the way in and the hero and the opponent
   stand at their spots with 100 health each. A knock-out wins a round (a puff of smoke; so does more health left when the
   round's minute and a half is up; leaving the arena loses it); three rounds win the duel. The opponents look like players
@@ -259,7 +272,8 @@ the minigun's rattle), and under the water every sound is muffled.
   code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
   they run, jump, swim, ride and wave (G, or the hand button on a phone) on each other's screens, in their own costumes
   and hats, with a name over the head, or an arrow and the distance at the screen's edge when out of view. Everyone
-  keeps their own world, stars, quests and wallet; only the pose travels. While they play together, a world gate or a level
+  keeps their own world, stars, quests and wallet; only the pose travels (and, with the guns out, what is in hand, every
+  shot's streak and flying thing, the hits and the knock-outs). While they play together, a world gate or a level
   door open for one of them is open for all (the hello carries each player's stars and cleared levels). The friends list
   says where each one is, and "К другу" jumps into their open world right next to them (a race stops and a delivery drops,
   as after a fall). The browsers talk directly over WebRTC (Trystero, loaded from jsDelivr only when a room is joined),
@@ -324,8 +338,8 @@ the minigun's rattle), and under the water every sound is muffled.
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
   on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun; on a KV-44,
   a salvo, with C for its grenade launcher and R for its rockets), mouse drag or Q/E for the
-  camera, V for a ride, G to wave to friends; on the Duel Arena a click to aim with the mouse, the left button to fire, the
-  right one or C for the scope, 1–4 or the wheel for a slot, R to reload
+  camera, V for a ride, G to wave to friends, X for the guns in any world; with the guns a click to aim with the mouse, the
+  left button to fire, the right one or C for the scope, 1–4 or the wheel for a slot, R to reload
 
 ## Play
 

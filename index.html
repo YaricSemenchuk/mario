@@ -171,7 +171,11 @@
   .gun-slot.on { background: rgba(255, 244, 201, .95); border-color: var(--ink); box-shadow: 0 3px 0 var(--ink); }
   .gun-slot.on b { color: var(--ink); text-shadow: none; }
   .gun-slot:disabled { opacity: .35; cursor: default; }
-  @media (orientation: portrait) { body.touch #gunBar { bottom: calc(env(safe-area-inset-bottom, 0px) + 206px); } }
+  @media (orientation: portrait) { body.touch #gunBar, body.touch #gunDraw { bottom: calc(env(safe-area-inset-bottom, 0px) + 206px); } }
+  /* outside the Duel Arena: the guns out (where the bar goes), and a fifth button on the bar to put them away */
+  #gunDraw { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: translateX(-50%); z-index: 5; width: 74px; pointer-events: auto; }
+  #gunDraw b, .gun-slot.away b { font-size: 9px; letter-spacing: .04em; }
+  .gun-slot.away { margin-left: 4px; background: rgba(18, 20, 44, .38); }
   #btnScope { --kv-col: rgba(143, 211, 255, .95); right: calc(env(safe-area-inset-right, 0px) + 214px); bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
   #btnScope.on { --kv-col: rgba(255, 197, 61, .95); }
   body.guns #toast { top: 44%; } /* clear of the duel's panel at the top */
@@ -192,6 +196,22 @@
   #ftScore { font: 400 26px/1 var(--display); color: var(--gold); letter-spacing: .04em; }
   #ftSub { font: 800 10px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
   @media (max-width: 480px) { #ftBar { gap: 8px; padding: 6px 9px 7px; } .ft-side { min-width: 70px; } .ft-hp { width: 70px; } }
+  /* outside the duels: our health when friends can shoot us (above the gun bar), and the friends we knocked out */
+  #gunHp {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 7px;
+    padding: 5px 10px 6px; background: rgba(18, 20, 44, .5); border: 2px solid rgba(28, 30, 59, .8); border-radius: 12px; color: var(--white); pointer-events: none;
+    font: 800 12px/1 var(--ui); font-variant-numeric: tabular-nums; text-shadow: var(--outline); white-space: nowrap;
+  }
+  #gunHp small { font: 800 12px/1 var(--ui); color: var(--gold); }
+  #gunHp small:empty { display: none; }
+  @media (orientation: portrait) { body.touch #gunHp { bottom: calc(env(safe-area-inset-bottom, 0px) + 266px); } }
+  /* in the Dark Forest the sack is along the bottom: the gun bar and the health go above it */
+  body.nights #gunBar, body.nights #gunDraw { bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); }
+  body.nights #gunHp { bottom: calc(env(safe-area-inset-bottom, 0px) + 136px); }
+  @media (orientation: portrait) {
+    body.touch.nights #gunBar, body.touch.nights #gunDraw { bottom: calc(env(safe-area-inset-bottom, 0px) + 266px); }
+    body.touch.nights #gunHp { bottom: calc(env(safe-area-inset-bottom, 0px) + 326px); }
+  }
   /* a bot's name tag carries its health */
   .tag .tag-hp { display: block; width: 44px; height: 6px; border-radius: 3px; background: rgba(28, 30, 59, .3); overflow: hidden; }
   .tag .tag-hp i { display: block; width: 100%; height: 100%; border: 0; border-radius: 0; background: #ff5a4a; transform-origin: left center; }
@@ -463,6 +483,10 @@
     position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); transform: translateX(-50%); z-index: 7;
     display: grid; justify-items: center; gap: 6px; width: max-content; max-width: 60vw; pointer-events: none;
   }
+  /* with the guns out the notes go above the gun bar and the health (in the Dark Forest above the sack too) */
+  body.guns #netFeed { bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); }
+  body.guns.nights #netFeed { bottom: calc(env(safe-area-inset-bottom, 0px) + 172px); }
+  @media (orientation: portrait) { body.touch.guns #netFeed { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); } }
   #netFeed p { margin: 0; padding: 6px 12px 7px; border-radius: 12px; background: rgba(28, 30, 59, .74); color: var(--white); font: 800 13px/1.25 var(--ui); text-align: center; transition: opacity .4s; }
   #netFeed p.out { opacity: 0; }
   #btnNet { position: relative; }
@@ -630,11 +654,13 @@
   </button>
 </div>
 <div id="scope" hidden><i></i></div>
+<button id="gunDraw" class="gun-slot" type="button" aria-label="Достать оружие" hidden><i>🔫</i><b>ОРУЖИЕ</b></button>
 <div id="gunUi" hidden>
   <div id="cross"><i></i><i></i><i></i><i></i><b></b></div>
   <div id="hitmark" hidden><i></i><i></i><i></i><i></i></div>
   <div id="gunBar" role="toolbar" aria-label="Оружие"></div>
 </div>
+<div id="gunHp" role="status" hidden><b>Ты</b><span class="ft-hp"><i id="gunHpBar"></i></span><span id="gunHpN">❤ 100</span><small id="gunHpKo"></small></div>
 <div id="ftBar" role="status" hidden>
   <div class="ft-side"><b>Ты</b><span class="ft-hp"><i id="ftMeHp"></i></span><small id="ftMeN">❤ 100</small></div>
   <div class="ft-mid"><b id="ftScore">0 : 0</b><small id="ftSub"></small></div>
@@ -8203,7 +8229,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function loadLevel(def) {
     if (L && L.def.nights) ntLeave();
     if (L && L.def.duels) duLeave();
-    if (L) { scene.remove(L.group); disposeGroup(L.group); }
+    if (L) { gunLeave(); scene.remove(L.group); disposeGroup(L.group); }
     bubblesEl.textContent = '';
     fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true; $('result').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
@@ -8283,7 +8309,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // in a tank: where the turret points, what it is aimed at (and when to look again), the reload
     aim: 0, aimAt: null, aimT: 0, tankCd: 0,
     // in a duel with guns: health, the time left knocked out, fire burning on him
-    hp: 100, koT: 0, burn: 0, burnAcc: 0 };
+    hp: 100, koT: 0, burn: 0, burnAcc: 0, pvpT: 0 };
   // (aim: how far up or down the crosshair looks, with the guns of the Duel Arena)
   const cam = { yaw: 0, pitch: .38, dist: 9.5, distGoal: 9.5, tx: 0, ty: 0, tz: 0, yawGoal: null, tight: false, aim: 0 };
   let time = 0;
@@ -8586,7 +8612,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const mode = gw ? 'g:' + gw.kind : W ? W.breath : salvo ? 'salvo' : gun ? 'gun' : P.fire ? 'fire' : '';
     if (mode === btnMode) return;
     btnMode = mode;
-    // with the Duel Arena's guns: fire, a swing, a throw, healing, the jetpack
+    // with the guns out: fire, a swing, a throw, healing, the jetpack
     const act = gw ? { melee: 'УДАР', throw: 'БРОСОК', heal: 'ЛЕЧИТЬ', jet: 'ВЗЛЁТ' }[gw.kind] || 'ОГОНЬ'
       : W ? BREATH[W.breath].name : salvo ? 'ЗАЛП' : gun || P.fire ? 'ОГОНЬ' : 'УДАР';
     btnAct.classList.toggle('fire', !!mode); actLbl.textContent = act; btnAct.setAttribute('aria-label', salvo ? 'Залп' : gun ? 'Выстрел' : act[0] + act.slice(1).toLowerCase());
@@ -8674,7 +8700,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- action button: spin on the ground, ground pound in the air, fireballs with the pepper ----------
   function action() {
     if (P.pound || G.state !== 'playing') return;
-    if (gunOn()) { gunPress(); return; } // in the Duel Arena the button fires the gun in hand
+    if (gunOn()) { gunPress(); return; } // with the guns out the button fires the gun in hand
     if (P.swim) { swimDash(); return; }
     if (P.veh && P.veh.wings) { breathe(); return; }
     if (P.veh && P.veh.cannon) { tankFire(); return; }
@@ -13100,12 +13126,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return best;
   }
 
-  // ================= the Duel Arena: guns, bots and duels =================
-  // In the Duel Arena the hero carries guns, as in the Roblox shooters: four slots (a main gun, a spare one, one for close
-  // combat and a special one), a crosshair in the middle of the screen, the camera over the right shoulder, and a scope that
-  // brings far things close. A shot goes where the crosshair points: a ray from the camera for bullets, a flying arrow,
-  // bolt, rocket or paint ball for the rest. A head takes more than a body. Duels are fought against bots (on the arena and
-  // in the sniper canyon) and against friends (games with friends); a knock-out is a puff of smoke, nobody gets hurt.
+  // ================= the guns, and the Duel Arena's bots and duels =================
+  // In the Duel Arena the hero carries guns, as in the Roblox shooters, and in every other world and level he can draw
+  // them too (X, the «Оружие» button): four slots (a main gun, a spare one, one for close combat and a special one), a crosshair
+  // in the middle of the screen, the camera over the right shoulder, and a scope that brings far things close. A shot goes
+  // where the crosshair points: a ray from the camera for bullets, a flying arrow, bolt, rocket or paint ball for the rest.
+  // A head takes more than a body. Duels are fought against bots (on the arena and in the sniper canyon) and against
+  // friends (games with friends); anywhere else the shots knock the worlds' foes over and hurt the friends who are there.
+  // A knock-out is a puff of smoke, nobody gets hurt.
   const GUN_SLOTS = ['Основное', 'Запасное', 'Ближний бой', 'Особое'];
   // kind: ray (bullets: pellets, the spread scoped and not, auto fire, a spin-up), proj (it flies: speed v, drop g, a splash,
   // a bow's draw), melee (reach and the arc of a swing), flame, throw (a grenade or smoke on a fuse), heal, jet. mag: shots
@@ -13204,12 +13232,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // a gun in a rig's hand (the right one, arms[0]), made on demand; the jetpack goes on the back
   function rigGun(h, id) {
     const u = h.guns || (h.guns = { hold: null, back: null, id: '', meshes: {} });
-    if (u.id === id) return;
-    u.id = id;
     if (!u.hold) {
       u.hold = new T.Group(); u.hold.position.set(0, -.085, .01); u.hold.rotation.x = Math.PI / 2; h.arms[0].wr.add(u.hold);
       u.back = new T.Mesh(GEO.gun.jetpack, MAT.char); u.back.position.set(0, .26, -.36); u.back.castShadow = true; u.back.visible = false; h.torso.add(u.back);
     }
+    if (u.id === id) return;
+    u.id = id;
     for (const k in u.meshes) u.meshes[k].visible = false;
     if (!id || id === 'jetpack' || !GEO.gun[id]) return;
     let m = u.meshes[id];
@@ -13227,9 +13255,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- the hero's guns ----------
   // what the hero holds: the set (ids), the slot in hand, rounds left in each, the reload, the time to the next shot, the
   // minigun's spin, the bow's draw, the scope, the specials' charges; a swing or a throw for the pose, a recoil kick
+  // out: the guns drawn in the other worlds (X, the «Оружие» button); shown: whether they were in hand last frame; kos: the
+  // friends knocked out outside the duels
   const GN = { ids: [null, null, null, null], slot: 0, ammo: [0, 0, 0, 0], rel: 0, cd: 0, spin: 0, draw: 0, held: false, was: false, scope: false, scopeK: 0,
-    ch: {}, chT: {}, swingT: 0, throwT: 0, recoil: 0, kick: 0, healT: 0, prev: 0, near: false, sent: '', sendT: 0 };
-  const gunOn = () => !!L && !!L.def.duels && !P.veh && G.state !== 'title' && G.state !== 'win' && G.state !== 'over';
+    ch: {}, chT: {}, swingT: 0, throwT: 0, recoil: 0, kick: 0, healT: 0, prev: 0, near: false, sent: '', sendT: 0, out: !!store.get('gunsOut', 0), shown: false, kos: 0 };
+  // The guns are in hand in the Duel Arena, and in every other world and level once drawn; they go away on a ride or the
+  // dino, in the water, with a delivery held over the head, in hide and seek and while the flag is reached
+  const gunOn = () => !!L && (!!L.def.duels || GN.out) && !P.veh && !P.riding && !P.swim && !ISL.carry && !duelHiding()
+    && G.state !== 'title' && G.state !== 'win' && G.state !== 'over' && G.state !== 'goal';
   const gunCur = () => GUNS[GN.ids[GN.slot]] || null;
   const gunScoped = () => gunOn() && GN.scopeK > .6 && (G.state === 'playing' || G.state === 'dying');
   // the set taken into a fight: sniper rifles only in a sniper duel, the hero's own set otherwise (own: always his own)
@@ -13249,9 +13282,35 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the hero's model holds what is in hand (and wears the jetpack when it is in the set)
   function gunShow() {
     const on = gunOn(), id = on ? GN.ids[GN.slot] : '';
+    GN.shown = on;
     rigGun(hero, id || '');
     if (hero.guns) hero.guns.back.visible = on && GN.ids.includes('jetpack');
     gunUiKey = '';
+  }
+  // X, the «Оружие» button and the bar's ✋: the guns out or away, in any world or level but the Duel Arena, where they are
+  // always out. They come out with the set as it was left (the rounds and charges are not topped up by putting them away)
+  const gunCanDraw = () => !P.veh && !P.riding && !P.swim && !ISL.carry && !duelHiding();
+  function gunToggle() {
+    if (!L || L.def.duels || G.state !== 'playing') return;
+    if (!GN.out && !gunCanDraw()) {
+      const why = P.swim ? 'В воде без оружия' : ISL.carry ? 'Руки заняты' : duelHiding() ? 'В прятках без оружия' : 'Сначала слезь';
+      popup(why, P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return;
+    }
+    GN.out = !GN.out; store.set('gunsOut', GN.out ? 1 : 0);
+    if (GN.out) {
+      cam.yaw = wrapPi(P.facing - Math.PI); cam.aim = 0; cam.yawGoal = null; // the crosshair where the hero looks
+      const ids = gunLoadOut(); if (ids.join() !== GN.ids.join()) gunReset(ids);
+      Snd.sfx.gunLoad(); gunTip();
+    } else { GN.scope = false; GN.draw = 0; GN.spin = 0; gunUnlock(); Snd.sfx.ui(); }
+    gunShow(); gunNet('w');
+  }
+  // the first time the guns are out: how to use them (on a computer the mouse; anywhere, how to put them away)
+  function gunTip() {
+    if (!isTouch && !store.get('gunTip', 0)) { store.set('gunTip', 1); setTimeout(() => toast('Кликни мышкой', 'Мышь целится, левая кнопка стреляет, правая прицел, 1–4 оружие, R перезарядка'), 2600); }
+    if (!L.def.duels && !store.get('gunTipWorld', 0)) {
+      store.set('gunTipWorld', 1);
+      toast('Оружие в руках', 'Стреляй по врагам и по друзьям! ' + (isTouch ? 'Кнопка ✋' : 'X или кнопка ✋') + ' убирает его');
+    }
   }
   function gunSwitch(i) {
     if (!gunOn() || i === GN.slot || !GN.ids[i] || G.state !== 'playing') return;
@@ -13302,6 +13361,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (GN.healT > 0) { const k = Math.min(GN.healT, dt); GN.healT -= dt; P.hp = Math.min(100, P.hp + k * 50 / 1.4); if (Math.random() < dt * 12) glow(P.pos.x, P.pos.y + 1, P.pos.z, 0x9dff7a, 1, 1, 1.5, 0, .5, .25); }
     const on = gunOn(), w = on ? gunCur() : null;
     GN.scopeK = damp(GN.scopeK, on && GN.scope && G.state === 'playing' ? 1 : 0, 14, dt);
+    // onto a ride or into the water the guns go away, and back out after (the friends see it too)
+    if (on !== GN.shown) { if (!on) { GN.scope = false; GN.draw = 0; GN.spin = 0; if (G.state === 'playing') gunUnlock(); } gunShow(); gunNet('w'); }
     if (!on || G.state !== 'playing') { GN.was = false; return; }
     P.facing = wrapPi(cam.yaw + Math.PI); // the hero faces where the crosshair points
     if (GN.rel > 0) {
@@ -13372,23 +13433,32 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (lo > hi || hi < 0) return Infinity;
     return Math.max(lo, 0);
   }
-  // Who a shot can hit: [x, feet y, z, size] and what it is. The hero's shots: the bots, the friends in a duel with guns;
-  // a bot's shots: the hero.
+  // Who a shot can hit: [x, feet y, z, size] and what it is. The hero's shots: the bots, the friends in a duel with guns
+  // (anywhere else every friend here on foot), and the worlds' own foes and bosses; a bot's shots: the hero.
   function gunMarks(mine) {
     const out = [];
     if (!mine) { if (FT && FT.phase === 'fight' && P.koT <= 0 && hero.root.visible) out.push({ x: P.pos.x, y: P.pos.y, z: P.pos.z, s: P.scaleCur, kind: 'me' }); return out; }
     if (FT && FT.bot && FT.bot.alive) out.push({ x: FT.bot.x, y: FT.bot.y, z: FT.bot.z, s: 1, kind: 'bot', ref: FT.bot });
+    const loc = netLoc();
     if (duelGunRun()) {
-      const loc = netLoc();
       for (const id of duel.players) {
         const g = id === duelMe() ? null : net.peers.get(id);
         if (g && g.rig && g.rig.root.visible && g.loc === loc) out.push({ x: g.px, y: g.py, z: g.pz, s: g.cur[2] || 1, kind: 'friend', ref: id });
       }
+    } else if (pvpOn()) for (const g of net.peers.values()) if (pvpTarget(g, loc)) out.push({ x: g.px, y: g.py, z: g.pz, s: g.cur[2] || 1, kind: 'friend', ref: g.id });
+    if (FT || duelGunning()) return out;
+    // a foe is a standing cylinder (s puts its middle where the aim assist looks), a boss too
+    for (const e of L.enemies) {
+      if (!e.alive || !e.mesh.visible || Math.abs(e.x - P.pos.x) > FOE_RANGE || Math.abs(e.z - P.pos.z) > FOE_RANGE) continue;
+      out.push({ x: e.x, y: e.y, z: e.z, s: e.h / 1.9, r: e.hd ? (e.hw + e.hd) / 2 : Math.max(e.hw, .35), h: e.h, kind: 'foe', ref: e });
     }
+    const bs = L.boss;
+    if (bs && bs.active && !bs.dead) out.push({ x: bs.x, y: bs.y, z: bs.z, s: bs.h / 1.9, r: bs.r, h: bs.h, kind: 'boss', ref: bs });
     return out;
   }
-  const HEAD_Y = 1.36, HEAD_R = .4, BODY_R = .42, BODY_Y = 1.06;
+  const HEAD_Y = 1.36, HEAD_R = .4, BODY_R = .42, BODY_Y = 1.06, FOE_RANGE = 170;
   function rayMark(m, ox, oy, oz, dx, dy, dz) {
+    if (m.r) return { t: rayCyl(ox, oy, oz, dx, dy, dz, m.x, m.z, m.r, m.y, m.y + m.h), head: false }; // a foe or a boss
     const th = raySphere(ox, oy, oz, dx, dy, dz, m.x, m.y + HEAD_Y * m.s, m.z, HEAD_R * m.s);
     const tb = rayCyl(ox, oy, oz, dx, dy, dz, m.x, m.z, BODY_R * m.s, m.y + .05, m.y + BODY_Y * m.s);
     return th < tb ? { t: th, head: true } : { t: tb, head: false };
@@ -13399,7 +13469,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     let best = sol.t, who = null, head = false, tgt = null;
     for (const m of marks) { const r = rayMark(m, ox, oy, oz, dx, dy, dz); if (r.t < best) { best = r.t; who = m; head = r.head; } }
     const q = ISL.beacons;
-    if (tg && q && q.style === 'target' && !questDone(q.star)) for (const b of q.list) {
+    if (tg && q && q.style === 'target' && L.def.duels && !questDone(q.star)) for (const b of q.list) { // (the Tank Range's are for shells)
       if (b.lit) continue;
       const t = raySphere(ox, oy, oz, dx, dy, dz, b.x, b.y + TARGET_Y, b.z, .9);
       if (t < best) { best = t; who = null; tgt = b; }
@@ -13445,7 +13515,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const _gs = new T.Vector3(), _ge = new T.Vector3();
   function gunFire(w, k) {
     const id = GN.ids[GN.slot], snd = Snd.sfx[w.snd]; if (snd) snd();
-    GN.recoil = 1; if (w.kick) GN.kick = Math.min(.3, GN.kick + w.kick * (GN.scopeK > .5 ? .5 : 1)); // the barrel jumps up, and settles back
+    GN.recoil = 1;
     if (FT) FT.shots++;
     if (w.kind === 'melee') { gunSwing(w); return; }
     if (w.kind === 'heal') { GN.healT = 1.4; GN.throwT = .4; popup('+' + w.heal + ' ❤', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); return; }
@@ -13485,6 +13555,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (hitAny && FT) FT.hits++;
     flashAt(mz.x, mz.y, mz.z, 0xffe07a, id === 'sniper' ? 1.6 : 1, .06);
     gunNet('s', false, { p: [mz.x, mz.y, mz.z], e: ends });
+    // the barrel jumps up after the shot (the shot itself goes where the crosshair was), and settles back
+    if (w.kick) GN.kick = Math.min(.3, GN.kick + w.kick * (GN.scopeK > .5 ? .5 : 1));
   }
   // what a shot does where it lands: a mark takes the hit (a friend is told), a target of the range lights, a wall puffs
   function gunImpact(r, w, d, by, dmg) {
@@ -13494,17 +13566,31 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return false;
   }
   // a hit on someone: the bot or the hero takes it here, a friend's screen is told; the shooter sees a mark and the number
+  // (a foe of the worlds its knock instead; a boss shrugs shots off, as it does fire: it takes a stomp)
   function gunHit(m, dmg, head, d, by, w) {
     if (dmg <= 0) return;
     const hx = m.x, hy = m.y + (head ? HEAD_Y : .9) * m.s, hz = m.z;
+    if (m.kind === 'boss') { emit(hx, hy, hz, 0xfff3a0, 5, 4, 1, 8, .3, .14); Snd.at(hx, hy, hz).clink(); return; }
     emit(hx, hy, hz, head ? 0xff5a4a : 0xfff3a0, head ? 12 : 7, 4, 1, 8, .35, .16); glow(hx, hy, hz, 0xffffff, 3, 2, 0, 0, .2, .3);
     if (by === 'me') {
-      hitMark(head); popup((head ? '💥' : '') + dmg, hx, hy + .9, hz, head ? 'gold' : '');
+      hitMark(head); if (m.kind !== 'foe') popup((head ? '💥' : '') + dmg, hx, hy + .9, hz, head ? 'gold' : '');
       if (FT && head) FT.heads++;
     }
     if (m.kind === 'bot') botHurt(m.ref, dmg, head, d, w);
-    else if (m.kind === 'friend') { if (duelGunRun()) { duelSay({ t: 'gh', who: m.ref, d: dmg, h: head ? 1 : 0, k: w && w.knock ? 1 : 0 }); if (head && duel.kind === 'snipe') gunHeadStar(); } }
+    else if (m.kind === 'friend') {
+      if (duelGunRun()) { duelSay({ t: 'gh', who: m.ref, d: dmg, h: head ? 1 : 0, k: w && w.knock ? 1 : 0 }); if (head && duel.kind === 'snipe') gunHeadStar(); }
+      else if (by === 'me') gunNet('h', false, { who: m.ref, n: dmg, hd: head ? 1 : 0, kn: w && w.knock ? 1 : 0 });
+    }
+    else if (m.kind === 'foe') gunFoe(m.ref, dmg, d);
     else if (m.kind === 'me') heroHurt(dmg, head, d, by, w);
+  }
+  // A foe of the worlds takes a knock (what a stomp or a fireball does) for every FOE_HP of damage: one revolver shot, three
+  // of the rifle, a spray of the shotgun; a wolf or a bear with hits left flinches at each
+  const FOE_HP = 30;
+  function gunFoe(e, dmg, d) {
+    if (!e.alive) return;
+    e.gunDmg = (e.gunDmg || 0) + dmg;
+    for (let n = 0; n < 3 && e.alive && e.gunDmg >= FOE_HP; n++) { e.gunDmg -= FOE_HP; knockEnemy(e, d ? d.x : 0, d ? d.z : 0, 100, true); }
   }
   function gunHeadStar() {
     const S = ISL.ft && ISL.ft.snipe; if (!S || questDone('du.head')) return;
@@ -13562,11 +13648,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (by === 'me' && !ghost) gunNet('p', false, { i: id, p: [x, y, z], v: [vx, vy, vz], k });
   }
   function updateGunShots(dt) {
+    let mine = null; // who the hero's shots can hit, once a step for all of them
     for (let i = gunShots.length - 1; i >= 0; i--) {
       const f = gunShots[i], w = f.w;
       f.life -= dt; f.vy -= (w.g || 0) * dt;
       const sx = f.vx * dt, sy = f.vy * dt, sz = f.vz * dt, len = Math.hypot(sx, sy, sz) || 1e-6, dx = sx / len, dy = sy / len, dz = sz / len;
-      const marks = f.ghost || f.bounce ? [] : f.by === 'me' ? gunMarks(true) : gunMarks(false);
+      const marks = f.ghost || f.bounce ? [] : f.by === 'me' ? mine || (mine = gunMarks(true)) : gunMarks(false);
       const r = gunRay(f.x, f.y, f.z, dx, dy, dz, len + .05, marks, f.by === 'me' && !f.ghost);
       if (r.t <= len + .05 && (r.who || r.solid || r.tgt)) {
         if (f.bounce && !r.who) { // a grenade bounces off what it meets
@@ -13754,6 +13841,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     if (G.state !== 'playing' && locked()) gunUnlock(); // a card or the pause gives the mouse back
     hitT -= dt; if (hitT <= 0 && !hitEl.hidden) hitEl.hidden = true;
+    gunSideHud();
     if (!on) return;
     const w = gunCur(), sc = GN.scopeK > .6, full = sc && w && w.scope < 20;
     scopeEl.hidden = !full; crossEl.hidden = full || !w || w.kind === 'heal' || w.kind === 'jet';
@@ -13789,7 +13877,31 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Snd.init(); if (i === GN.slot) gunReload(); else gunSwitch(i); });
       gunBarEl.append(b);
     });
+    if (L.def.duels) return;
+    // anywhere but the Duel Arena: a fifth button puts the guns away
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'gun-slot away'; b.setAttribute('aria-label', 'Убрать оружие');
+    const ic = document.createElement('i'), nm = document.createElement('b'); ic.textContent = '✋'; nm.textContent = 'УБРАТЬ'; b.append(ic, nm);
+    if (!isTouch) { const k = document.createElement('small'); k.textContent = 'X'; b.append(k); }
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Snd.init(); gunToggle(); });
+    gunBarEl.append(b);
   }
+  // outside the Duel Arena: the button that brings the guns out (where their bar goes), and our health while friends here
+  // can shoot us or it is still coming back, with the friends we knocked out
+  const gunDrawEl = $('gunDraw'), gunDrawKey = gunDrawEl.appendChild(document.createElement('small')), gunHpEl = $('gunHp'), gunHpKey = {};
+  function gunSideHud() {
+    const hud = !!L && !hudEl.hidden && G.state !== 'title';
+    const draw = hud && !L.def.duels && !GN.out && (G.state === 'playing' || G.state === 'dying') && gunCanDraw();
+    if (gunDrawEl.hidden === draw) { gunDrawEl.hidden = !draw; gunDrawKey.textContent = isTouch ? '' : 'X'; }
+    let show = hud && !FT && !duelGunning() && (P.hp < 100 || P.koT > 0);
+    if (hud && !show && gunUiOn && !FT && !duelGunning() && pvpOn()) { const loc = netLoc(); for (const g of net.peers.values()) if (pvpTarget(g, loc)) { show = true; break; } }
+    if (gunHpEl.hidden === show) gunHpEl.hidden = !show;
+    if (!show) return;
+    const hp = P.koT > 0 ? 0 : Math.round(P.hp);
+    if (gunHpKey.hp !== hp) { gunHpKey.hp = hp; $('gunHpBar').style.transform = 'scaleX(' + (hp / 100).toFixed(2) + ')'; $('gunHpBar').classList.toggle('low', hp < 35); $('gunHpN').textContent = '❤ ' + hp; }
+    if (gunHpKey.ko !== GN.kos) { gunHpKey.ko = GN.kos; $('gunHpKo').textContent = GN.kos ? '💥 ' + GN.kos : ''; }
+  }
+  gunDrawEl.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Snd.init(); gunToggle(); });
+  gunDrawEl.addEventListener('contextmenu', (e) => e.preventDefault());
   // the scope and reload buttons on a phone, and the fire button that also aims when the thumb slides on it
   btnScope.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); gunScopeSet(!GN.scope); btnScope.classList.add('on'); });
   btnGunLoad.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); gunReload(); });
@@ -13817,14 +13929,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   canvas.addEventListener('wheel', (e) => { if (!gunOn() || G.state !== 'playing') return; e.preventDefault(); gunCycle(e.deltaY > 0 ? 1 : -1); }, { passive: false });
 
   // ---------- friends see the guns ----------
-  // what is in hand (now and then, and when it changes), the scope's glint, and every shot's streak or flying thing; hits
-  // and knock-outs go through the game (duelSay)
+  // what is in hand (now and then, and when it changes; nothing when the guns are away), the scope's glint, and every
+  // shot's streak or flying thing. Hits and knock-outs in a duel go through the game (duelSay); anywhere else a hit on a
+  // friend is told to them here ('h': who, how much, a head, a hammer's toss), and one knocked out tells everyone ('k')
   function gunNet(t, quiet, extra) {
     if (!net.room || !net.act || !net.act.gun) return;
     const loc = netLoc(), to = [];
     for (const g of net.peers.values()) if (g.loc === loc && !g.old) to.push(g.id);
     if (!to.length) return;
-    const m = { t, w: GN.ids[GN.slot] || '', z: GN.scope ? 1 : 0 };
+    const m = { t, w: gunOn() ? GN.ids[GN.slot] || '' : '', z: GN.scope ? 1 : 0 };
     if (t === 'w' && quiet && GN.sent === m.w + m.z) return;
     if (t === 'w' || t === 'z') GN.sent = m.w + m.z;
     if (extra) Object.assign(m, extra);
@@ -13835,7 +13948,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function netOnGun(d, from) {
     const g = net.peers.get(from);
-    if (!g || !d || typeof d !== 'object' || g.loc !== netLoc() || !L.def.duels) return;
+    if (!g || !d || typeof d !== 'object' || g.loc !== netLoc()) return;
     const id = GUNS[d.w] ? d.w : '', ok = (a) => Array.isArray(a) && a.length === 3 && a.every((v) => Number.isFinite(v) && Math.abs(v) < 1e4);
     g.gun = id; g.scope = !!d.z;
     if (g.rig) { rigGun(g.rig, id); if (g.rig.guns) g.rig.guns.back.visible = false; }
@@ -13850,6 +13963,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else if (d.t === 'f' && ok(d.p) && ok(d.d)) jetP(POOL.glow, d.p[0], d.p[1], d.p[2], d.d[0], d.d[1], d.d[2], 13, 0xff9a2a, 4, .55, .35, .08, .4, 1);
     else if (d.t === 'm' && w) { Snd.at(g.px, g.py, g.pz)[w.snd](); glow(g.px, g.py + 1, g.pz, 0xdff6ff, 6, 2, 0, 0, .25, .3); }
     else if (d.t === 'j') { Snd.at(g.px, g.py, g.pz).jet(); wave(g.px, g.py, g.pz, 0xffc04a, 1.8, .35); }
+    else if (d.t === 'h' && String(d.who) === duelMe()) pvpHit(g, d);
+    else if (d.t === 'k') pvpDown(g, d);
   }
 
   // ---------- the bots ----------
@@ -14197,10 +14312,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ---------- the hero in a duel: health, hits, a knock-out ----------
+  // (outside the duels only a friend's shot hurts, anywhere the friends can fight: see pvpHit)
   function heroHurt(dmg, head, d, by, w) {
-    if (P.koT > 0 || dmg <= 0 || !gunOn()) return;
-    if (!(FT && FT.phase === 'fight') && !duelGunRun()) return;
-    if (P.inv > 0 && duelGunRun() && by !== 'me') return; // just back after a knock-out
+    if (P.koT > 0 || dmg <= 0) return;
+    if (FT || duelGunRun()) {
+      if (!gunOn() || (!(FT && FT.phase === 'fight') && !duelGunRun())) return;
+      if (P.inv > 0 && duelGunRun() && by !== 'me') return; // just back after a knock-out
+    } else if (!pvpOn() || !net.peers.has(by) || P.inv > 0 || P.veh || P.riding || G.state !== 'playing') return;
+    P.pvpT = 0;
     P.hp = Math.max(0, P.hp - dmg); P.hurtT = .35;
     G.flash = Math.max(G.flash, head ? .55 : .3); G.flashCol = '#ff3b2f'; G.shake = Math.max(G.shake, head ? .3 : .14);
     if (dmg >= 20) Snd.sfx.yelp(); else Snd.sfx.bump();
@@ -14217,6 +14336,57 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     Snd.sfx.ko(); hero.root.visible = false;
     if (FT) ftKO('foe', head);
     else if (duelGunRun()) duelGunKO(by, head);
+    else pvpKO(by, head);
+  }
+
+  // ---------- fights between friends anywhere ----------
+  // Outside the duels every friend in the same world or level is fair game, as in the duels: whether a shot hit is for
+  // the shooter's screen to say, and the one it hit loses health (100, back by itself a few seconds after the last hit).
+  // At none left they are knocked out (a puff of smoke), tell everyone who did it, and three seconds later are back at the
+  // last flag they touched, whole again, with their guns and a moment when nothing can hurt them. Friends on a ride, the
+  // dino or paused cannot be hit; nor anyone in a game with friends, the survival game, the dragons' cup or a tank battle.
+  const pvpOn = () => !!net.room && !FT && !duelOn() && !survOn() && !cupOn() && !tbOn();
+  const pvpTarget = (g, loc) => !!loc && g.loc === loc && !g.old && !!g.rig && g.rig.root.visible && !g.rideNow && !(g.flags & NF_PAUSED)
+    && performance.now() - g.seen < NET_AWAY;
+  // a friend's shot hit us: from their screen, with how much and whether in the head (a duel's hits come through the game)
+  function pvpHit(g, d) {
+    if (FT || duelGunning()) return;
+    const dx = P.pos.x - g.px, dz = P.pos.z - g.pz, l = Math.hypot(dx, dz) || 1;
+    heroHurt(clamp(Math.floor(+d.n) || 0, 1, 200), !!d.hd, _gs.set(dx / l, 0, dz / l), g.id, d.kn ? GUNS.hammer : null);
+  }
+  // we are knocked out: everyone here hears who did it (a delivery falls, as after a fall)
+  function pvpKO(by, head) {
+    const who = net.peers.has(by) ? by : '';
+    P.inv = P.koT + .5; P.burn = 0;
+    if (ISL.carry) dropCarry('hit');
+    gunNet('k', false, { by: who, hd: head ? 1 : 0 });
+    toast(head ? 'Хедшот!' : 'Нокаут!', (who ? duelName(who) + ' → ты' : 'Тебя вырубили') + ' · назад к флажку');
+    if (who) netNote(duelName(who) + ' → Ты' + (head ? ' 🎯' : ''));
+  }
+  // a friend here was knocked out: the puff where they stood, and whose it was
+  function pvpDown(g, d) {
+    const by = String(d.by || ''), me = by === duelMe();
+    if (g.rig) { puff(g.px, g.py + .8, g.pz, 0xe8e6ee, 12, 2.5, .8, .8, 1.3); Snd.at(g.px, g.py, g.pz).poof(); }
+    if (me) { GN.kos++; toast(d.hd ? 'Хедшот!' : 'Нокаут!', (g.name || 'Друг') + ' · у тебя ' + GN.kos); Snd.sfx.ko(); P.happyT = 1.2; }
+    netNote((by && (me || net.peers.has(by)) ? duelName(by) + ' → ' : '') + (g.name || 'Друг') + (d.hd ? ' 🎯' : ''));
+  }
+  // each step outside the duels (they keep their own): the knock-out's wait, then back; health comes back by itself
+  function pvpUpdate(dt) {
+    if (FT || duelGunning()) return;
+    P.pvpT += dt;
+    if (P.koT > 0) {
+      if (G.state !== 'playing') return;
+      P.koT -= dt; hero.root.visible = false;
+      if (P.koT <= 0) pvpBack();
+      return;
+    }
+    if (P.hp < 100 && P.pvpT > 5) P.hp = Math.min(100, P.hp + dt * 12);
+  }
+  function pvpBack() {
+    P.koT = 0; P.hp = 100; P.burn = 0;
+    if (L.def.hub) hubRespawn(true);
+    else { placePlayer(G.cpIndex >= 0 ? cpSpawn(L.checkpoints[G.cpIndex]) : L.start); updateCam(0, true); }
+    P.inv = 1.6; hero.root.visible = true; if (gunOn()) gunReset(); Snd.sfx.bell();
   }
   // fire on someone burns a little more for a few seconds
   function gunBurns(dt) {
@@ -14290,7 +14460,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       gt.k = damp(gt.k, up ? 1 : 0, 3.5, dt); gt.m.visible = gt.k > .01; gt.m.position.y = lerp(gt.y1 - gt.h - .1, gt.y1, gt.k); gt.s.active = up;
       if (up && overlapP(gt.s, P.pos.x, P.pos.y, P.pos.z)) pushOut(gt.s);
     }
-    updateGunShots(dt); updateSmokes(dt);
     if (!FT || G.state !== 'playing') return;
     const B = FT.bot, pl = FT.place;
     gunBurns(dt);
@@ -14364,7 +14533,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function ftAnimate(dt) {
     if (FT && FT.bot) botAnimate(FT.bot, dt);
     let gi = 1;
-    if (L.def.duels) for (const g of net.peers.values()) if (g.scope && g.rig && g.rig.root.visible && g.gun === 'sniper' && g.loc === netLoc() && gi < 5) glintAt(rigMuzzle(g.rig, 'sniper', _gm).set(_gm.x, _gm.y + .12, _gm.z), gi++);
+    for (const g of net.peers.values()) if (g.scope && g.rig && g.rig.root.visible && g.gun === 'sniper' && !g.rideNow && g.loc === netLoc() && gi < 5) glintAt(rigMuzzle(g.rig, 'sniper', _gm).set(_gm.x, _gm.y + .12, _gm.z), gi++);
     for (; gi < glints.length; gi++) glintAt(null, gi);
     if (P.koT > 0) hero.root.visible = false;
     const show = gunUiOn && (!!FT || duelGunning());
@@ -14387,17 +14556,22 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       ftSet('sub', 'нокауты · до ' + GUN_DUEL_KO, (v) => { $('ftSub').textContent = v; });
     }
   }
-  // the Duel Arena opens: the guns come out; it closes: they go away and a duel still on ends without a score
-  function duEnter() {
-    gunReset(); cam.aim = 0;
-    if (!isTouch && !store.get('gunTip', 0)) { store.set('gunTip', 1); setTimeout(() => toast('Кликни мышкой', 'Мышь целится, левая кнопка стреляет, правая прицел, 1–4 оружие, R перезарядка'), 2600); }
+  // a world or a level opens: the guns come out with a fresh set, in the Duel Arena always and anywhere else once drawn
+  function gunEnter() {
+    if (!L.def.duels && !GN.out) return;
+    gunReset(); cam.aim = 0; gunNet('w');
+    if (L.def.duels) gunTip();
   }
+  // the Duel Arena closes: a duel with a bot still on ends without a score
   function duLeave() {
     if (FT) { const b = FT.bot; FT = null; botDrop(b); }
     ftKey.show = null; ftBarEl.hidden = true;
+  }
+  // any world or level closes: what flies and smokes goes, the guns are put away, the hero is whole again
+  function gunLeave() {
     for (let i = 0; i < glints.length; i++) glintAt(null, i);
     clearGunFx(); gunUnlock(); GN.scope = false; GN.scopeK = 0; P.koT = 0; P.hp = 100; P.burn = 0;
-    rigGun(hero, ''); if (hero.guns) hero.guns.back.visible = false;
+    rigGun(hero, ''); if (hero.guns) hero.guns.back.visible = false; GN.shown = false;
   }
 
   // ---------- gates: to the worlds (on the island), between the worlds, into the levels ----------
@@ -14791,7 +14965,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           } });
         }
       });
-      sec('С набором выходишь на арену. В снайперском ущелье у всех снайперки');
+      sec((isTouch ? 'Кнопка «Оружие» внизу экрана' : 'Клавиша X или кнопка «Оружие» внизу экрана') + ' достаёт набор в любом мире. С ним выходишь и на арену; в снайперском ущелье у всех снайперки');
     } else {
       sec(isTouch ? 'Кнопка с самокатом наверху экрана зовёт транспорт в открытых мирах' : 'Клавиша V или кнопка наверху экрана зовёт транспорт в открытых мирах');
       for (const id of SHOP_RIDES) {
@@ -15843,7 +16017,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- camera ----------
   function updateCam(dt, snap) {
-    if (gunOn()) { gunCam(dt, snap); return; } // over the shoulder, with the guns of the Duel Arena
+    if (gunOn()) { gunCam(dt, snap); return; } // over the shoulder, with the guns out
     if (cam.yawGoal !== null) {
       cam.yaw = angleDamp(cam.yaw, cam.yawGoal, 7, dt);
       if (Math.abs(wrapPi(cam.yaw - cam.yawGoal)) < .01) cam.yawGoal = null;
@@ -16020,6 +16194,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     Snd.setRoom(L.def.theme === 'stone' ? .32 : .12);
     Snd.setAmbient(L.def.amb || THEME_FX[L.def.theme].amb);
     Snd.startMusic(L.def.music);
+    gunEnter();
   }
   // through a door into a level, with three fresh lives (four with the spare heart)
   function playLevel(li) {
@@ -16050,7 +16225,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       : key === 'island' ? '★ ' + starCount() + ' / ' + TOTAL_STARS : 'Звёзды этого мира: ' + ws.got + ' из ' + ws.all);
     Snd.setRoom(.12); Snd.setAmbient(def.amb); Snd.startMusic(def.music);
     if (def.nights) ntBegin(); // the 99 nights go on
-    if (def.duels) duEnter(); // the guns come out
+    gunEnter(); // the guns come out (always in the Duel Arena)
   }
   // falling in an open world costs nothing: the hero is back at the last flag he touched (in a race with friends, at the
   // last ring he flew through, on the race's ride)
@@ -16249,10 +16424,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
     if (ACT_KEYS.includes(e.code) && !e.repeat && G.state === 'playing') input.actQueued = true;
-    // in the Duel Arena: 1–4 pick a gun, R reloads, C scopes
-    if (gunOn() && G.state === 'playing' && !e.repeat) {
-      const n = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
-      if (n >= 0) gunSwitch(n);
+    // X: the guns out or away; with them in hand 1–4 pick a gun (with them away one of those draws it), R reloads, C scopes
+    if (e.code === 'KeyX' && !e.repeat && G.state === 'playing') gunToggle();
+    const slotKey = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
+    if (slotKey >= 0 && !e.repeat && G.state === 'playing' && !GN.out && L && !L.def.duels && gunLoadOut()[slotKey]) {
+      gunToggle(); if (gunOn()) gunSwitch(slotKey);
+    } else if (gunOn() && G.state === 'playing' && !e.repeat) {
+      if (slotKey >= 0) gunSwitch(slotKey);
       if (e.code === 'KeyR') gunReload();
       if (e.code === 'KeyC') gunScopeSet(!GN.scope);
     } else {
@@ -16378,8 +16556,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function updateHowto() {
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
-      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['В дуэлях', ' свайп целится, «Прицел» — оптика.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['На Дуэльной арене', ' клик — целиться мышью, левая кнопка — огонь, правая или C — прицел, 1–4 — оружие, R — перезарядка. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
+      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['«Оружие» внизу', ' — оружие в любом мире: свайп целится, красная стреляет, «Прицел» — оптика, ✋ — убрать.']]
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['X', ' — достать или убрать оружие в любом мире (на Дуэльной арене оно всегда в руках). '], ['С оружием', ' клик — целиться мышью, левая кнопка — огонь, правая или C — прицел, 1–4 — оружие, R — перезарядка. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
@@ -16520,7 +16698,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 6, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 7, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
@@ -16679,6 +16857,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const g = netPeer(id), now = performance.now(), prev = g.snaps[g.snaps.length - 1];
     if (s.loc !== g.loc || (prev && s.t < prev.t)) {
       g.snaps.length = 0; g.off = null;
+      if (s.loc !== g.loc) { g.gun = ''; g.scope = false; } // elsewhere they say again what is in hand
       if (s.loc && s.loc === netLoc() && g.name) netNote(g.name + ' тоже здесь');
     }
     g.loc = s.loc; g.seen = now; g.last = s;
@@ -16835,7 +17014,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (let i = 0; i < NET_VIS.length; i++) g.visNodes[i].visible = !!(g.vis & (1 << i));
     const fire = !!(g.flags & NF_FIRE), suit = !!L.def.suit, key = g.look.skin + '|' + g.look.cap + '|' + g.look.hat + '|' + fire + '|' + suit;
     if (g.dress !== key) { g.dress = key; dressHero(h, g.look, fire, suit); }
-    if (h.guns && h.guns.id && !L.def.duels) { rigGun(h, ''); g.gun = ''; g.scope = false; } // the guns stay in the Duel Arena
+    const gw = g.rideNow ? '' : g.gun || ''; // what the friend has in hand (nothing on a ride)
+    if (h.guns ? h.guns.id !== gw : gw) { rigGun(h, gw); h.guns.back.visible = false; }
     const shown = r.visible, dist = Math.hypot(g.px - P.pos.x, g.py - P.pos.y, g.pz - P.pos.z);
     r.visible = shown && dist < (scene.fog ? scene.fog.far + 20 : 260); // past the fog there is nothing to see
     netRide(g, g.rideNow);
@@ -17856,6 +18036,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateFireballs(dt);
     updateTank(dt);
     updateGun(dt);
+    updateGunShots(dt); updateSmokes(dt);
+    pvpUpdate(dt);
     updateChain(dt);
     magnetCoins(dt);
     updateSprings(dt);
