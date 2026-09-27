@@ -167,8 +167,12 @@
   /* the sack: a place for each thing it can hold, along the bottom of the screen, filled with what is in it */
   #sackBar {
     position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); transform: translateX(-50%); z-index: 6;
-    display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; --slot: 34px; --slots: min(94vw, 560px);
+    display: flex; flex-direction: column; align-items: center; gap: 4px; --slot: 34px; --slots: min(94vw, 560px);
+    margin: 0; padding: 4px 6px; background: none; border: 0; border-radius: 12px; color: inherit; font: inherit; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
+  #sackBar:active #sackSlots { transform: translateY(2px); }
+  #sackBar:focus-visible { outline: 3px solid var(--white); outline-offset: 2px; }
   #sackLbl { font: 800 11px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--white); text-shadow: var(--outline); }
   #sackSlots { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; width: max-content; max-width: var(--slots); }
   .sack-slot {
@@ -180,9 +184,29 @@
   @keyframes slotIn { from { transform: scale(1.5); } }
   #sackBar.full .sack-slot.got { background: #ffd1c4; }
   #sackBar.full #sackLbl { color: #ffb4a6; }
-  /* on a phone it keeps clear of the thumb stick and the buttons: narrower, and above them when held upright */
-  body.touch #sackBar { --slot: 32px; --slots: min(56vw, 420px); }
-  @media (orientation: portrait) { body.touch #sackBar { bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); --slots: 92vw; --slot: 30px; } }
+  /* on a phone it keeps clear of the thumb stick and the buttons (a tap on it would not reach them): narrower, and above
+     them when held upright */
+  body.touch #sackBar { --slot: 32px; --slots: min(calc(100vw - 2 * (env(safe-area-inset-right, 0px) + 222px)), 420px); }
+  @media (orientation: portrait) { body.touch #sackBar { bottom: calc(env(safe-area-inset-bottom, 0px) + 200px); --slots: 92vw; --slot: 30px; } }
+  /* the open sack: a row for each kind of thing in it, with what can be done with it here and now */
+  #scrSack .card { width: min(560px, 100%); }
+  #sackList { max-height: max(150px, calc(100dvh - 270px)); overflow-y: auto; padding: 2px 4px 6px 2px; overscroll-behavior: contain; }
+  .sack-row {
+    display: grid; gap: 8px; padding: 10px 12px; text-align: left; color: var(--ink); background: var(--white);
+    border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 4px 0 var(--ink); font: 800 15px/1.2 var(--ui);
+  }
+  .sack-row small { display: block; margin-top: 2px; font: 600 12px/1.3 var(--ui); color: var(--ink-soft); }
+  .sack-row .btn-row { display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
+  .sack-empty { margin: 0; font: 700 14px/1.4 var(--ui); color: var(--ink-soft); }
+  /* a phone held sideways: a row a line each, the name to the left and what to do with it to the right */
+  @media (max-height: 460px) {
+    #scrSack .eyebrow, .sack-row small { display: none; }
+    #scrSack .card { gap: 8px; }
+    #sackList { gap: 6px; max-height: max(120px, calc(100dvh - 190px)); }
+    .sack-row { grid-template-columns: auto 1fr; align-items: center; padding: 6px 8px 6px 12px; }
+    .sack-row .btn-row { justify-content: flex-end; }
+    #btnSackClose { padding: 10px 24px; }
+  }
   @media (max-height: 420px) { #nights { gap: 2px; padding: 6px 8px 7px; font-size: 12px; } #ntDay { font-size: 15px; } }
 
   /* ---------- combo meter ---------- */
@@ -544,7 +568,7 @@
   <div class="nt-row" id="ntSkills">🪓1 🏹1 🎒1 🔦1</div>
   <div class="nt-row" id="ntKids">🧒 0/4</div>
 </div>
-<div id="sackBar" role="status" aria-label="Мешок" hidden><small id="sackLbl">Мешок 0/5</small><div id="sackSlots"></div></div>
+<button id="sackBar" type="button" aria-label="Открыть мешок" hidden><small id="sackLbl">Мешок 0/5</small><span id="sackSlots"></span></button>
 <div id="combo" aria-hidden="true"><div><b id="comboN">×2</b><small>комбо</small></div><span id="comboBar"><i></i></span></div>
 <div id="pops"></div>
 <div id="bubbles"></div>
@@ -678,6 +702,16 @@
     </div>
     <div class="shop-list" id="shopList" role="tabpanel"></div>
     <div class="card-actions"><button class="btn btn-ghost" id="btnShopClose" type="button">Уйти</button></div>
+  </div>
+</section>
+
+<section class="screen" id="scrSack" hidden>
+  <div class="card">
+    <p class="eyebrow">Тёмный лес</p>
+    <h2>Мешок</h2>
+    <p class="card-sub" id="sackSub"></p>
+    <div class="shop-list" id="sackList"></div>
+    <div class="card-actions"><button class="btn btn-ghost" id="btnSackClose" type="button">Закрыть</button></div>
   </div>
 </section>
 
@@ -11916,13 +11950,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // something lying about (or thrown out of a chest, or dropped by a wolf): it pops up and falls to the ground
   function ntItem(kind, x, z, y = null, pop = false) {
-    const R = ISL.nt; if (!R || R.items.length > 160) return;
+    const R = ISL.nt; if (!R || R.items.length > 160) return null;
     const m = new T.Mesh(kind === 'heart' ? GEO.heart : GEO.nt[kind], MAT.char); m.castShadow = true; L.group.add(m);
     const gy = groundAt(x, z, (y === null ? 0 : y) + .5);
     const it = { kind, x, z, y: y === null ? gy : y, gy, m, t: pop ? 0 : 1, rest: !pop, vx: pop ? (Math.random() - .5) * 4 : 0, vz: pop ? (Math.random() - .5) * 4 : 0, vy: pop ? 5 + Math.random() * 2 : 0,
       spin: Math.random() * 6.3, ph: Math.random() * 6.3 };
     if (kind === 'heart') it.m.scale.setScalar(.9);
     m.position.set(x, it.y, z); R.items.push(it);
+    return it;
   }
   // the pines, as two instanced meshes (a shade each) and the stumps left behind
   function ntPlantTrees(list) {
@@ -12027,6 +12062,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const next = R.dens.find((dn) => R.kids[dn.i] !== 2), lines = [
       'Это Тёмный лес. Тут надо продержаться 99 ночей! Сейчас ' + (R.phase === 'night' ? 'ночь ' : 'день ') + R.night + '.',
       'Днём руби деревья: крутись вихрем у ствола. Бревна неси прямо в костёр, он сам их возьмёт.',
+      'Нажми на мешок внизу экрана: там можно поесть, бросить что-то в костёр, положить на верстак или выбросить лишнее.',
       'Ночью из тумана выходит Олень. В свет костра он не заходит, а фонарика боится: держи луч прямо на нём!',
       'Чем больше костёр, тем дальше отступает туман. Сейчас костёр ' + R.lv + '-го уровня.',
       'В тумане темно и бродят волки, но пройти можно. Не заблудись: столбики с лентами ведут от костра к логовам.',
@@ -12317,9 +12353,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       it.spin += dt * (it.rest ? 1.2 : 6);
       it.m.position.set(it.x, it.y + (it.rest ? .12 + Math.sin(time * 2.6 + it.ph) * .08 : 0), it.z); it.m.rotation.y = it.spin;
       if (it.rest && Math.random() < dt * .7) glow(it.x, it.y + .5, it.z, 0xfff3b0, 1, .2, .6, 0, .7, .2);
-      if (!playing || it.t < .35) continue;
+      if (!playing || it.t < .35 || (it.drop && !it.rest)) continue;
       const far = Math.hypot(P.pos.x - it.x, P.pos.z - it.z);
-      if (it.rest && far < 4.5 && far > .6 && magnet && (it.kind === 'heart' ? R.hearts < ntMax(R) : room)) { // the gatherer's pull
+      if (it.drop && far > 5) it.drop = false; // thrown out of the sack: the magnet leaves it until the hero has walked off
+      if (it.rest && far < 4.5 && far > .6 && magnet && !it.drop && (it.kind === 'heart' ? R.hearts < ntMax(R) : room)) { // the gatherer's pull
         it.x = damp(it.x, P.pos.x, 5, dt); it.z = damp(it.z, P.pos.z, 5, dt); it.y = damp(it.y, P.pos.y + .3, 5, dt);
       }
       if (far > 1.3 + (P.veh ? .7 : 0) || Math.abs(P.pos.y + .6 - it.y) > 1.9) continue;
@@ -12328,7 +12365,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         R.hearts++; Snd.sfx.heart(); popup('+❤', it.x, it.y + 1, it.z, 'gold');
       } else {
         if (ntLoad(R) >= ntCap(R)) {
-          if (R.fullT <= 0) { R.fullT = 2.5; popup('Мешок полон!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold'); Snd.sfx.locked(); if (!R.tip.full) { R.tip.full = true; toast('Мешок полон!', 'Дрова неси в костёр, железки на верстак'); } }
+          if (R.fullT <= 0) { R.fullT = 2.5; popup('Мешок полон!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold'); Snd.sfx.locked(); if (!R.tip.full) { R.tip.full = true; toast('Мешок полон!', 'Нажми на мешок внизу: дрова в костёр, железки на верстак, лишнее выброси'); } }
           continue;
         }
         R.sack[it.kind]++; Snd.sfx.pop(); popup('+' + NT_ICON[it.kind], it.x, it.y + 1, it.z, 'gold'); ntSkillUp('pack');
@@ -12612,13 +12649,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function ntSackBar(R) {
     const cap = ntCap(R), items = [];
     for (const k of NT_KINDS) for (let i = 0; i < R.sack[k]; i++) items.push(k);
-    const key = cap + ':' + items.join(',');
+    const key = cap + ':' + items.join(',') + (R.tip.opened ? '' : '?');
     if (R.hud.sack === key) return;
     const before = R.hud.sackN || 0; R.hud.sack = key; R.hud.sackN = items.length;
     if (sackSlots.children.length !== cap) { sackSlots.textContent = ''; for (let i = 0; i < cap; i++) { const d = document.createElement('i'); d.className = 'sack-slot'; sackSlots.append(d); } }
     Array.from(sackSlots.children).forEach((d, i) => { const k = items[i]; d.textContent = k ? NT_ICON[k] : ''; d.classList.toggle('got', !!k); });
-    if (items.length > before && items.length) { const d = sackSlots.children[items.length - 1]; d.classList.remove('slot-in'); void d.offsetWidth; d.classList.add('slot-in'); }
-    sackLbl.textContent = 'Мешок ' + items.length + '/' + cap;
+    if (items.length > before && items.length) { const d = sackSlots.children[Math.min(items.length, cap) - 1]; d.classList.remove('slot-in'); void d.offsetWidth; d.classList.add('slot-in'); }
+    sackLbl.textContent = 'Мешок ' + items.length + '/' + cap + (R.tip.opened ? '' : isTouch ? ' · нажми' : ' · клик или B');
     sackEl.classList.toggle('full', items.length >= cap);
   }
   function ntHud(R) {
@@ -12637,6 +12674,76 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const fk = R.kidsE.find((k) => k.state === 'follow');
     text('kids', '🧒 ' + ntHome(R) + '/4' + (fk ? ' · ' + NT_KIDS[fk.i].name + ' с тобой' : '') + (R.feet || R.pelts ? ' · ' + NT_ICON.feet + R.feet + ' ' + NT_ICON.pelts + R.pelts : ''));
   }
+
+  // ---------- the open sack ----------
+  // a tap on the sack's bar (or B) opens it, and the game waits. Each kind of thing in it gets a row with what can be done
+  // with it here and now: into the fire (close to it, even when it is full: all that goes in still grows it), onto the
+  // workbench, eaten (meat raw or roasted, and roasted at the fire), or thrown out to make room
+  const NT_NAME = { log: ['Бревно', 'Дрова для костра и верстака'], coal: ['Уголь', 'Костёр горит дольше и растёт быстрее'],
+    fuel: ['Канистра', 'Больше всего огня для костра'], scrap: ['Железка', 'Нужна верстаку'], meat: ['Сырое мясо', 'Лучше пожарить у костра'],
+    steak: ['Жареное мясо', 'Сытная еда: +45 к сытости'] };
+  const ntNearFire = (R) => Math.hypot(P.pos.x - R.fire.x, P.pos.z - R.fire.z) < 7 && Math.abs(P.pos.y) < 2.5;
+  const ntNearBench = () => L.pads.some((pd) => pd.kind === 'craft' && Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < 5);
+  function ntOpenSack() {
+    const R = ISL.nt; if (!ntOn() || G.state !== 'playing') return;
+    R.tip.opened = true; renderSack(); openMenu('sack'); Snd.sfx.ui();
+  }
+  function renderSack() {
+    const R = ISL.nt; if (!R) return;
+    const fire = ntNearFire(R), bench = ntNearBench(), box = $('sackList'), keep = box.scrollTop;
+    $('sackSub').textContent = 'Занято ' + ntLoad(R) + ' из ' + ntCap(R) + ' · сытость ' + Math.round(R.food) + '%' + (fire ? ' · костёр рядом' : bench ? ' · верстак рядом' : '');
+    box.textContent = '';
+    for (const k of NT_KINDS) {
+      if (!R.sack[k]) continue;
+      const acts = [];
+      if (NT_BURN[k]) acts.push(fire ? ['🔥 В костёр', () => ntSackBurn(R, k)] : ['Костёр далеко', null]);
+      if (k === 'log' && bench) acts.push(['🛠 На верстак', () => ntSackBench(R, k)]);
+      if (k === 'scrap') acts.push(bench ? ['🛠 На верстак', () => ntSackBench(R, k)] : ['Верстак далеко', null]);
+      if (k === 'meat') { if (fire && R.fuel > 0) acts.push(['🔥 Пожарить', () => ntSackRoast(R)]); acts.push(['Съесть сырым', () => ntSackEat(R, k)]); }
+      if (k === 'steak') acts.push(R.food < 97 ? ['Съесть', () => ntSackEat(R, k)] : ['Ты сыт', null]);
+      acts.push(['Выбросить', () => ntSackDrop(R, k)]);
+      const row = document.createElement('div'); row.className = 'sack-row';
+      const name = document.createElement('span'), sm = document.createElement('small');
+      sm.textContent = NT_NAME[k][1]; name.append(NT_ICON[k] + ' ' + NT_NAME[k][0] + ' × ' + R.sack[k], sm);
+      const btns = document.createElement('div'); btns.className = 'btn-row';
+      for (const [label, fn] of acts) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm' + (label === 'Выбросить' ? ' btn-ghost' : ''); b.textContent = label; b.disabled = !fn;
+        if (fn) b.addEventListener('click', () => { if (!R.sack[k]) return; fn(); renderSack(); });
+        btns.append(b);
+      }
+      row.append(name, btns); box.append(row);
+    }
+    if (!ntLoad(R)) {
+      const p = document.createElement('p'); p.className = 'sack-empty';
+      p.textContent = 'Пусто. Пройди по бревну, углю, железке или мясу, и оно ляжет в мешок.'; box.append(p);
+    }
+    box.scrollTop = keep;
+  }
+  // into the fire: it flies there as soon as the game goes on
+  function ntSackBurn(R, k) {
+    R.sack[k]--;
+    const m = new T.Mesh(GEO.nt[k], MAT.char); L.group.add(m);
+    R.flying.push({ kind: k, m, x: P.pos.x, y: P.pos.y + PH, z: P.pos.z, t: 0 });
+    Snd.sfx.pop(); P.throwT = .2;
+  }
+  function ntSackBench(R, k) { R.sack[k]--; R.store[k]++; Snd.sfx.deliver(); popup('На верстак: ' + NT_ICON[k], P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold'); }
+  function ntSackRoast(R) {
+    const F = R.fire; R.sack.meat--; R.sack.steak++;
+    Snd.at(F.x, 1, F.z).sizzle(); popup(NT_ICON.meat + '→' + NT_ICON.steak, P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); puff(F.x, 1.6, F.z, 0xffffff, 3, .6, 1.2, 1, 1);
+  }
+  function ntSackEat(R, k) {
+    R.sack[k]--; R.food = Math.min(100, R.food + (k === 'steak' ? 45 : 18)); Snd.sfx.munch(); P.happyT = .8;
+    popup(k === 'steak' ? 'Ням! ' + NT_ICON.steak : 'Сырое… Лучше пожарить у костра', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold');
+  }
+  // thrown out a few steps ahead, where it lies like anything else in the forest (walking over it picks it up again)
+  function ntSackDrop(R, k) {
+    const a = P.facing, it = ntItem(k, P.pos.x + Math.sin(a) * .8, P.pos.z + Math.cos(a) * .8, P.pos.y + 1.1);
+    if (!it) return;
+    R.sack[k]--; it.rest = false; it.t = 0; it.drop = true; it.vx = Math.sin(a) * 3.2; it.vz = Math.cos(a) * 3.2; it.vy = 4.5;
+    Snd.sfx.pop();
+  }
+  sackEl.addEventListener('click', () => { Snd.init(); ntOpenSack(); sackEl.blur(); });
+  $('btnSackClose').addEventListener('click', closeMenu);
 
   // ---------- the workbench ----------
   // stepping on its ring leaves the logs and the scrap in the sack on it, and opens it
@@ -14263,7 +14370,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ================= flow =================
   const screens = { title: $('scrTitle'), pause: $('scrPause'), clear: $('scrClear'), over: $('scrOver'), win: $('scrWin'), world: $('scrWorld'), shop: $('scrShop'), net: $('scrNet'),
-    craft: $('scrCraft') };
+    craft: $('scrCraft'), sack: $('scrSack') };
   const hudEl = $('hud'), touchEl = $('touch');
   function showScreen(name) { for (const k in screens) screens[k].hidden = k !== name; }
   function placePlayer(pt, facing = Math.PI) {
@@ -14522,6 +14629,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (e.code === 'KeyM') { toggleMute(); return; }
     if (e.code === 'KeyV' && !e.repeat && G.state === 'playing') { rideToggle(); return; }
     if (e.code === 'KeyG' && !e.repeat) { netWave(); return; }
+    if ((e.code === 'KeyB' || e.code === 'KeyI') && !e.repeat) { if (G.state === 'playing') ntOpenSack(); else if (G.state === 'menu' && !screens.sack.hidden) closeMenu(); return; }
     if (e.code === 'Enter' && G.state === 'title' && document.activeElement === document.body) { startGame(); return; }
     if (JUMP_KEYS.includes(e.code) || e.code.startsWith('Arrow')) e.preventDefault();
     if (JUMP_KEYS.includes(e.code) && !e.repeat) input.jumpQueued = true;
@@ -14646,7 +14754,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
       ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['G', ' — помахать друзьям. '], ['Esc', ' — пауза.']];
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
