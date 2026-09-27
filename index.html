@@ -2831,6 +2831,25 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       [SPH_HI, 0xffd23f, M4(.3, .42, .14, .045, .045, .03)], [CONE, 0x3faa48, M4(.36, .33, .1, .03, .1, .02, 0, 0, -.8)]]),
   };
   GEO.halo = shared(new T.TorusGeometry(.3, .035, 8, 32)); GEO.halo.rotateX(Math.PI / 2); GEO.halo.translate(0, .82, 0);
+  // what some costumes add to the hero: `top` takes the cap's place on the head (a shop hat that hides the cap hides it
+  // too), `face` sits on the head, `body` on the torso, `tail` on the hips
+  GEO.wear = {
+    // the Grinch in Santa's coat: a floppy red hat with a white band and pompom, a black belt with a gold buckle
+    grinch: {
+      top: mergedGeo([[HEMI_HI, 0xd8302a, M4(0, .2, -.01, .4, .3, .4)], [CYL, 0xffffff, M4(0, .22, 0, .43, .13, .43)],
+        [CONE, 0xd8302a, M4(0, .6, -.08, .3, .5, .3, -.35, 0, 0)], [CONE, 0xd8302a, M4(.02, .78, -.35, .14, .36, .14, -1.75, 0, .2)],
+        [SPH_HI, 0xffffff, M4(.04, .76, -.54, .11, .11, .11)]]),
+      body: mergedGeo([[CYL, 0x2b2f4a, M4(0, .08, 0, .36, .08, .33)], [BOX, 0xffd23f, M4(0, .08, .325, .13, .1, .03)], [BOX, 0x2b2f4a, M4(0, .08, .335, .07, .05, .02)]]),
+    },
+    // a chicken from Chicken Gun: a red comb, a yellow beak with a red wattle under it, a fan of white tail feathers
+    chicken: {
+      top: mergedGeo([...[[.13, .45, .09], [0, .52, .12], [-.13, .46, .1]].map(([z, y, r]) => [SPH_HI, 0xe8352a, M4(0, y, z, .05, r, r * .8)]),
+        [SPH_HI, 0xe8352a, M4(0, .38, 0, .06, .08, .22)]]),
+      face: mergedGeo([[CONE, 0xffb52e, M4(0, -.055, .45, .1, .17, .06, Math.PI / 2, 0, 0)], [CONE, 0xf29a1c, M4(0, -.11, .42, .07, .11, .035, Math.PI / 2 + .25, 0, 0)],
+        [SPH_HI, 0xe8352a, M4(0, -.16, .43, .035, .055, .03)]]),
+      tail: mergedGeo([...[-1, 0, 1].map((s) => [SPH_HI, 0xffffff, M4(s * .1, .16 + (s ? 0 : .04), -.34, .06, .2, .05, -.7, s * .15, -s * .35)])]),
+    },
+  };
   // the compass perk's arrow, pointing along +z
   GEO.arrow = mergedGeo([[CONE, 0xffffff, M4(0, 0, .22, .2, .36, .2, Math.PI / 2, 0, 0)], [BOX, 0xffffff, M4(0, 0, -.12, .12, .1, .34)]]);
   // treasure chest; the lid is its own mesh so it can open
@@ -2879,13 +2898,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // Our own hero in a glossy toy style: big head, big eyes, soft round shapes. Jointed like a puppet (hips, knees,
   // ankles, waist, shoulders, elbows, wrists, neck) so the animation can bend every limb; eyes with moving pupils
   // and blinks, several mouth shapes, a scarf and a cowlick that swing with the motion. Friends online get rigs of their own.
+  // HERO_FACE: the colours of the face, hair, eyes and socks, which a costume may change (SKINS' `face`)
+  const HERO_FACE = { skin: 0xffcaa0, nose: 0xffb08a, blush: 0xff9f9a, hair: 0x5a3a22, brow: 0x5a3a22, white: 0xffffff, iris: 0x2f86e0, sock: 0xf4f1ea };
   function buildHero() {
     const gloss = (color, shininess = 38) => addRim(std({ color, roughness: glossToRough(shininess) }));
-    const m = {
+    const F = HERO_FACE, m = {
       cap: gloss(0x16a39c, 70), capDark: gloss(0x0f7f79, 60), shirt: gloss(0xff8a2a), over: gloss(0x2c3f93, 45),
-      skin: gloss(0xffcaa0, 25), nose: gloss(0xffb08a, 45), blush: gloss(0xff9f9a, 20), sock: gloss(0xf4f1ea, 20),
-      glove: gloss(0xffffff, 40), mitt: gloss(0xffffff, 40), shoe: gloss(0x7a4524, 60), sole: gloss(0x4a2e1a, 20), hair: gloss(0x5a3a22, 30),
-      gold: gloss(0xffd23f, 90), white: gloss(0xffffff, 110), iris: gloss(0x2f86e0, 110), ink: gloss(INK, 110),
+      skin: gloss(F.skin, 25), nose: gloss(F.nose, 45), blush: gloss(F.blush, 20), sock: gloss(F.sock, 20),
+      glove: gloss(0xffffff, 40), mitt: gloss(0xffffff, 40), shoe: gloss(0x7a4524, 60), sole: gloss(0x4a2e1a, 20), hair: gloss(F.hair, 30), brow: gloss(F.brow, 30),
+      gold: gloss(0xffd23f, 90), white: gloss(F.white, 110), iris: gloss(F.iris, 110), ink: gloss(INK, 110),
       mouth: gloss(0x7a1f2c, 30), tongue: gloss(0xff6f7d, 40), teeth: gloss(0xffffff, 60), brand: gloss(0x4262ff, 80),
       scarf: gloss(0x4262ff, 60), scarf2: gloss(0xffffff, 60), shine: new T.MeshBasicMaterial({ color: 0xffffff }),
     };
@@ -2986,7 +3007,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       part(SPH_HI, 'shine', look, -s * .03, .02, .374, .018, .022, .01);
       part(SPH_HI, 'shine', look, s * .01, -.05, .37, .008, .01, .005);
       const lid = part(SPH_HI, 'skin', eye, 0, .06, .33, .094, .075, .045, 0, 0, s * .08); lid.visible = false;
-      brows.push(part(BOX, 'hair', head, s * .12, .17, .3, .12, .032, .04, 0, 0, -s * .12));
+      brows.push(part(BOX, 'brow', head, s * .12, .17, .3, .12, .032, .04, 0, 0, -s * .12));
       const hp = part(TORUS_ARC, 'ink', head, s * .12, .0, .338, .055, .055, .055); hp.visible = false; happy.push(hp);
       eyes.push(eye); looks.push(look); lids.push(lid);
     }
@@ -3011,13 +3032,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const hats = {};
     for (const id in GEO.hats) { const o = new T.Mesh(GEO.hats[id], MAT.char); o.visible = false; o.castShadow = true; head.add(o); hats[id] = o; }
     hats.halo = new T.Mesh(GEO.halo, MAT.gold); hats.halo.visible = false; head.add(hats.halo);
+    // the costumes' own parts (GEO.wear), shown by dressHero
+    const wear = {}, wearAt = { top: head, face: head, body: torso, tail: hips };
+    for (const id in GEO.wear) {
+      wear[id] = {};
+      for (const at in GEO.wear[id]) { const o = new T.Mesh(GEO.wear[id][at], MAT.char); o.visible = false; o.castShadow = true; wearAt[at].add(o); wear[id][at] = o; }
+    }
     // the moon's glass helmet and air tank, the sea's snorkel mask; the worlds put them on and take them off
     const helmet = new T.Mesh(SPH_HI, MAT.glass); helmet.position.set(0, .1, .02); helmet.scale.setScalar(.6); helmet.renderOrder = 3; helmet.visible = false; head.add(helmet);
     const pack = new T.Mesh(GEO.pack, MAT.char); pack.castShadow = true; pack.visible = false; torso.add(pack);
     const mask = new T.Mesh(GEO.mask, MAT.char); mask.visible = false; head.add(mask);
     const shield = new T.Mesh(SPH, new T.MeshBasicMaterial({ color: 0x8ff3ff, transparent: true, opacity: .24, depthWrite: false }));
     shield.position.y = .85; shield.scale.setScalar(1.02); shield.visible = false; root.add(shield);
-    return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, helmet, pack, mask };
+    return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, wear, helmet, pack, mask };
   }
   const hero = buildHero();
   scene.add(hero.root);
@@ -14755,9 +14782,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { id: 'clock', name: 'Песочные часы', sub: '+60 секунд в каждом уровне', price: 50 },
   ];
   const perkOn = (id) => SAVE.perks.includes(id) && !SAVE.perksOff.includes(id);
-  // costumes recolour the shirt, overalls, scarf, mittens, shoes and the cap (unless a cap of its own is chosen)
+  // costumes recolour the shirt, overalls, scarf, mittens, shoes and the cap (unless a cap of its own is chosen); some
+  // also recolour the face, hair, eyes and socks (`face`, over HERO_FACE) and put on parts of their own (GEO.wear, by id).
+  // Free ones (price 0) are everyone's from the start; `sw` is the shop's two swatch colours, `sub` its line
   const SKINS = [
     { id: 'classic', name: 'Классика', price: 0, shirt: 0xff8a2a, over: 0x2c3f93, scarf: 0x4262ff, scarf2: 0xffffff, glove: 0xffffff, shoe: 0x7a4524, cap: 0x16a39c, dark: 0x0f7f79 },
+    { id: 'grinch', name: 'Гринч', price: 0, sub: 'Бесплатно! Зелёный мех, жёлтые глаза и колпак Санты', sw: [0x8cbf3f, 0xd8302a],
+      shirt: 0xd8302a, over: 0xa81d18, scarf: 0xffffff, scarf2: 0xd8302a, glove: 0x8cbf3f, shoe: 0x2b2f4a, cap: 0xd8302a, dark: 0xffffff,
+      face: { skin: 0x8cbf3f, nose: 0x76a82e, blush: 0x7aaa30, hair: 0x6f9a26, brow: 0x4f7a1a, white: 0xf2e24a, iris: 0xd8302a, sock: 0x8cbf3f } },
+    { id: 'chicken', name: 'Чикен Ган', price: 0, sub: 'Бесплатно! Белые перья, гребешок, клюв и хвост', sw: [0xffffff, 0xe8352a],
+      shirt: 0xffffff, over: 0xf4f1ea, scarf: 0xe8352a, scarf2: 0xffffff, glove: 0xffffff, shoe: 0xf29a1c, cap: 0xffffff, dark: 0xe8352a,
+      face: { skin: 0xfbfaf6, nose: 0xffb52e, blush: 0xffc4c0, hair: 0xffffff, brow: 0xc9c3b6, sock: 0xffb52e } },
     { id: 'forest', name: 'Лесник', price: 60, shirt: 0xf2d27a, over: 0x3f8f3a, scarf: 0xf0503a, scarf2: 0xffe45c, glove: 0x9a6038, shoe: 0x5a3a22, cap: 0x3faa48, dark: 0x2f7d34 },
     { id: 'explorer', name: 'Искатель кладов', price: 80, shirt: 0xf2e6cf, over: 0x9a6a3c, scarf: 0xf0503a, scarf2: 0xffd23f, glove: 0xc98d52, shoe: 0x5a3a22, cap: 0xd9b163, dark: 0xb8903f },
     { id: 'pirate', name: 'Пират', price: 90, shirt: 0xffffff, over: 0x2b2f4a, scarf: 0xf0503a, scarf2: 0xffffff, glove: 0xf4ecdc, shoe: 0x2b2f4a, cap: 0x2b2f4a, dark: 0x1c1e2e },
@@ -14846,15 +14881,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const skinDef = (id = SAVE.skin) => SKINS.find((s) => s.id === id) || SKINS[0];
   const capDef = (id = SAVE.cap, skin = SAVE.skin) => { const c = CAPS.find((k) => k.id === id); if (c && c.col !== undefined) return c; const s = skinDef(skin); return { col: s.cap, dark: s.dark }; };
   // costume, cap and hat on a hero (ours or a friend's); the fire pepper still turns the cap red and the overalls cream,
-  // and the moon's worlds put on the glass helmet and the air tank
+  // and the moon's worlds put on the glass helmet and the air tank. A costume's own headwear (the Grinch's hat, the
+  // chicken's comb) takes the cap's place, and goes like the cap under a shop hat; under the glass helmet the cap comes back
   function dressHero(h, look, fire, suit) {
     const s = skinDef(look.skin), c = capDef(look.cap, look.skin), m = h.m;
     m.shirt.color.setHex(s.shirt); m.over.color.setHex(fire ? 0xfff1dc : s.over); m.scarf.color.setHex(s.scarf); m.scarf2.color.setHex(s.scarf2);
     m.mitt.color.setHex(s.glove); m.shoe.color.setHex(s.shoe);
+    for (const k in HERO_FACE) m[k].color.setHex(s.face && s.face[k] !== undefined ? s.face[k] : HERO_FACE[k]);
     m.cap.color.setHex(fire ? 0xf0503a : c.col); m.capDark.color.setHex(fire ? 0xc0341f : c.dark);
-    const hat = HATS.find((k) => k.id === look.hat);
+    const hat = HATS.find((k) => k.id === look.hat), hide = !!(hat && hat.hide), top = !suit && !hide && !!(h.wear[s.id] && h.wear[s.id].top);
     for (const id in h.hats) h.hats[id].visible = !suit && !!hat && hat.id === id;
-    h.capG.visible = suit || !(hat && hat.hide);
+    for (const id in h.wear) for (const at in h.wear[id]) h.wear[id][at].visible = id === s.id && (at !== 'top' || top);
+    h.capG.visible = suit || (!hide && !top);
     h.helmet.visible = h.pack.visible = suit;
   }
   function applyLook() {
@@ -14916,9 +14954,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else if (shopTab === 'skins') {
       sec('Костюмы');
       for (const s of SKINS) {
-        const own = SAVE.skins.includes(s.id), on = SAVE.skin === s.id;
-        item({ title: s.name, sub: own ? 'Твой' : 'Костюм целиком', price: s.price, state: own ? (on ? 'Надет' : 'Надеть') : null, can: !on, on,
-          swatch: 'linear-gradient(135deg, ' + hexCss(s.shirt) + ' 50%, ' + hexCss(s.over) + ' 50%)', act: () => {
+        const own = !s.price || SAVE.skins.includes(s.id), on = SAVE.skin === s.id, [sw1, sw2] = s.sw || [s.shirt, s.over];
+        item({ title: s.name, sub: s.sub || (own ? 'Твой' : 'Костюм целиком'), price: s.price, state: own ? (on ? 'Надет' : 'Надеть') : null, can: !on, on,
+          swatch: 'linear-gradient(135deg, ' + hexCss(sw1) + ' 50%, ' + hexCss(sw2) + ' 50%)', act: () => {
             if (!own) SAVE.skins.push(s.id);
             SAVE.skin = s.id; applyLook(); P.happyT = 1;
           } });

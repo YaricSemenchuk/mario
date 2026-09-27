@@ -256,8 +256,10 @@ the minigun's rattle), and under the water every sound is muffled.
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
     the hero's head, Iskra always along, a spare heart and a mushroom in the pocket for the levels, an hourglass with
     a minute more; and goods for right now (a shield, a mushroom, the fire pepper, one star on the island)
-  - skins: thirteen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
-    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower)
+  - skins: fifteen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
+    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Two costumes are free from the
+    start: the Grinch (green fur, yellow eyes, Santa's coat, belt and floppy hat) and the Chicken Gun chicken (white
+    feathers, a red comb, a beak and a tail); their hat and comb take the cap's place
   - rides, called with the ride button (V on a keyboard) in the open worlds: a scooter, a go-kart that bowls enemies
     over, a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
