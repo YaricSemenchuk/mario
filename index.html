@@ -602,6 +602,7 @@
   <div class="hud-cell hub-only"><span class="hud-lbl">Звёзды</span><span class="hud-val"><svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true"><path d="M10 1.8l2.5 5.4 5.9.7-4.4 4 1.2 5.8L10 14.8l-5.2 2.9 1.2-5.8-4.4-4 5.9-.7z" fill="#ffc53d" stroke="#1c1e3b" stroke-width="1.8" stroke-linejoin="round"/></svg><span id="hStars">0</span></span></div>
   <div class="hud-cell lvl-only"><span class="hud-lbl">Очки</span><span class="hud-val" id="hScore">000000</span></div>
   <div class="hud-cell"><span class="hud-lbl">Значки</span><span class="hud-val"><svg class="coin-ico" viewBox="1.6 0.6 12.8 14.2" width="15" height="17" aria-hidden="true"><g fill="#4262FF" stroke="#1c1e3b" stroke-width="1.3" stroke-linejoin="round" paint-order="stroke"><path fill-rule="evenodd" d="M8.00009 12.2322C9.76563 12.2322 11.1969 10.8307 11.1969 9.10198C11.1969 7.37323 9.76563 5.9718 8.00009 5.9718C6.23456 5.9718 4.80331 7.37323 4.80331 9.10198C4.80331 10.8307 6.23456 12.2322 8.00009 12.2322ZM8.00009 13.9979C10.7616 13.9979 13.0002 11.8059 13.0002 9.10198C13.0002 6.39803 10.7616 4.20605 8.00009 4.20605C5.23862 4.20605 3 6.39803 3 9.10198C3 11.8059 5.23862 13.9979 8.00009 13.9979Z"/><path fill-rule="evenodd" d="M9.24972 2.6439C9.24972 3.27674 8.7367 3.78976 8.10386 3.78976C7.47102 3.78976 6.95801 3.27674 6.95801 2.6439C6.95801 2.01106 7.47102 1.49805 8.10386 1.49805C8.7367 1.49805 9.24972 2.01106 9.24972 2.6439Z"/><path fill-rule="evenodd" d="M9.24972 9.10191C9.24972 9.73475 8.7367 10.2478 8.10386 10.2478C7.47102 10.2478 6.95801 9.73475 6.95801 9.10191C6.95801 8.46907 7.47102 7.95605 8.10386 7.95605C8.7367 7.95605 9.24972 8.46907 9.24972 9.10191Z"/></g></svg>×<span id="hCoins">00</span></span></div>
+  <div class="hud-cell hub-only" id="hStageCell" hidden><span class="hud-lbl">Этап</span><span class="hud-val" id="hStage">0</span></div>
   <div class="hud-cell hud-world lvl-only"><span class="hud-lbl">Мир</span><span class="hud-val" id="hWorld">1-1</span></div>
   <div class="hud-cell hud-time"><span class="hud-lbl">Время</span><span class="hud-val" id="hTime">300</span></div>
   <div class="hud-cell lvl-only"><span class="hud-lbl">Жизни</span><span class="hud-val"><svg viewBox="0 0 18 16" width="17" height="15" aria-hidden="true"><path d="M9 14.6 2.2 8A4.1 4.1 0 0 1 9 2.9a4.1 4.1 0 0 1 6.8 5.1Z" fill="#f0503a" stroke="#1c1e3b" stroke-width="2" stroke-linejoin="round"/></svg>×<span id="hLives">3</span></span></div>
@@ -711,6 +712,7 @@
       <button class="btn btn-ghost btn-mode" id="btnModeTanks" type="button">💥 Танки</button>
       <button class="btn btn-ghost btn-mode" id="btnModeNights" type="button">🌲 99 ночей</button>
       <button class="btn btn-ghost btn-mode" id="btnModeDuels" type="button">🎯 Дуэли</button>
+      <button class="btn btn-ghost btn-mode" id="btnModeRoblox" type="button">🧱 Роблокс</button>
     </div>
     <p class="title-note" id="saveInfo" hidden></p>
     <div class="title-modes">
@@ -1397,6 +1399,62 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     dirt: { ground: 'dirt', tree: 'round', tuft: null, litter: [0x9a8f7a, 0xb4a88e, 0x7f7666], bush: [0x7a9a4a, 0x8aaa52], under: [0x8a6446, 0x7a563a], pipe: [0x6fbf4a, 0xffd23f] },
     forest: { ground: 'forest', tree: 'pine', tuft: [0x2f6a2c, 0x3f7f36], litter: null, bush: [0x2f6a34, 0x3f8040], under: [0x5a4230, 0x4c3828], pipe: [0x7a4f2c, 0x9a6a3c] },
   };
+  // ---------- the Roblox world: bricks with studs on their tops, a green baseplate ----------
+  // A tile of 8 × 8 studs covers 2 m (a stud a quarter metre across, as on Roblox, where a hero is five studs tall). The
+  // colour map is white with a soft shadow round each stud, so a brick's own colour tints it; the normal map rounds the
+  // studs' rims, so the sun lights them from wherever it is. Only a studded box's top samples the studs, its other faces
+  // a flat corner of the tile (studGeo)
+  const STUD_N = 8, STUD_PX = 256;
+  TX.studs = (() => {
+    const t = makeTex(STUD_PX, (g, s) => {
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, s, s);
+      const c = s / STUD_N, r = c * .31;
+      for (let i = 0; i < STUD_N; i++) for (let j = 0; j < STUD_N; j++) {
+        const x = (i + .5) * c, y = (j + .5) * c, gr = g.createRadialGradient(x + r * .12, y + r * .12, r * .9, x + r * .12, y + r * .12, r * 1.45);
+        gr.addColorStop(0, 'rgba(30, 30, 50, .26)'); gr.addColorStop(1, 'rgba(30, 30, 50, 0)');
+        g.fillStyle = gr; g.fillRect(x - c / 2, y - c / 2, c, c);
+        g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      }
+    });
+    t.magFilter = T.LinearFilter;
+    return t;
+  })();
+  TX.studsN = (() => {
+    const s = STUD_PX, c = s / STUD_N, r = c * .31, b = c * .1, cv = document.createElement('canvas'); cv.width = cv.height = s;
+    const g = cv.getContext('2d'), img = g.createImageData(s, s), d = img.data;
+    for (let py = 0; py < s; py++) for (let px = 0; px < s; px++) {
+      const dx = (px + .5) % c - c / 2, dy = (py + .5) % c - c / 2, rr = Math.hypot(dx, dy);
+      let nx = 0, ny = 0;
+      if (rr > r - b && rr < r + .5) { const k = Math.sin(Math.min(1, (rr - r + b) / b) * Math.PI / 2) * 2.4; nx = dx / rr * k; ny = dy / rr * k; } // the rim rounds off outwards
+      const l = Math.hypot(nx, ny, 1), o = (py * s + px) * 4;
+      d[o] = (nx / l * .5 + .5) * 255; d[o + 1] = (-ny / l * .5 + .5) * 255; d[o + 2] = (1 / l * .5 + .5) * 255; d[o + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    const t = new T.CanvasTexture(cv); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = maxAniso;
+    return t;
+  })();
+  const STUD = { map: TX.studs, normalMap: TX.studsN };
+  const STUD_TILE = 2;
+  function studGeo(w, h, d) {
+    const g = new T.BoxGeometry(w, h, d), uv = g.attributes.uv;
+    for (let k = 0; k < uv.count; k++) {
+      if (k >= 8 && k < 12) uv.setXY(k, uv.getX(k) * w / STUD_TILE, uv.getY(k) * d / STUD_TILE); // the top (+y) face
+      else uv.setXY(k, .01, .01);
+    }
+    return g;
+  }
+  MAT.studs = std(Object.assign({ vertexColors: true, roughness: .5 }, STUD));
+  const STUD_MATS = {};
+  const studMat = (col) => STUD_MATS[col] || (STUD_MATS[col] = std(Object.assign({ color: col, roughness: .5 }, STUD)));
+  // a kill brick's glowing red (Roblox's "neon"): it pulses, and the bloom makes it glow
+  MAT.neon = std({ color: 0xff2414, emissive: 0xe81400, emissiveIntensity: 1, roughness: .4 });
+  GROUND.studs = (() => {
+    const top = std(Object.assign({ color: 0x5cae4c, roughness: .6 }, STUD)), side = std({ color: 0x4f9e41, roughness: .6 }), body = std({ color: 0x6a707e, roughness: .8 });
+    return { lip: [side, side, top, body, side, side], body };
+  })();
+  THEMES.roblox = { ground: 'studs', tree: 'round', tuft: null, litter: null, bush: [0x3d9e3c, 0x52b84a], under: [0x6a707e, 0x5a606e], pipe: [0xe8392b, 0xf5cd30] };
+  const RB_PLANE = new T.PlaneGeometry(1, 1);
+  RB_PLANE.userData.shared = true;
   // asteroids: rough faceted rock under a pale dusty top
   MAT.rock = std({ color: 0xa9a6b8, roughness: .95, flatShading: true });
   MAT.rockTop = std({ map: GROUND.moon.lip[2].map, roughness: 1 });
@@ -2023,6 +2081,54 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     [TORUS_ARC, 0x7a1f2c, M4(0, 1.02, .31, .045, .035, .035, 0, 0, Math.PI)],
     [CYL, 0x4f7a32, M4(0, 1.47, 0, .31, .12, .31)], [CYL, 0xf0503a, M4(0, 1.45, 0, .315, .05, .315)], [CYL, 0x5f8a3a, M4(0, 1.57, -.02, .38, .09, .39)],
     [SPH_HI, 0x1c1e2e, M4(0, 1.43, .25, .23, .03, .15)], [CYL, 0xffd23f, M4(0, 1.5, .31, .06, .02, .06, Math.PI / 2, 0, 0)],
+  ]);
+  // ---------- the Roblox world's folk: blocky, a round head with a smile ----------
+  // a short cylinder with rounded rims (radius 1, 1.8 tall): the head of every blocky body
+  const RB_HEAD = (() => {
+    const pts = [new T.Vector2(0, -.9)], b = .3;
+    for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + i / 5 * Math.PI / 2; pts.push(new T.Vector2(1 - b + Math.cos(a) * b, -.9 + b + Math.sin(a) * b)); }
+    for (let i = 0; i <= 5; i++) { const a = i / 5 * Math.PI / 2; pts.push(new T.Vector2(1 - b + Math.cos(a) * b, .9 - b + Math.sin(a) * b)); }
+    pts.push(new T.Vector2(0, .9));
+    return shared(new T.LatheGeometry(pts, 28));
+  })();
+  // a blocky body standing: c = { head, torso, arm, hand, leg, shoe } colours; `extra` adds parts (hair, a hat, a vest)
+  function blockyGeo(c, extra = []) {
+    return mergedGeo([
+      [BOX, c.leg, M4(-.135, .31, 0, .27, .38, .25)], [BOX, c.leg, M4(.135, .31, 0, .27, .38, .25)],
+      [BOX, c.shoe, M4(-.135, .06, .015, .27, .12, .28)], [BOX, c.shoe, M4(.135, .06, .015, .27, .12, .28)],
+      [BOX, c.torso, M4(0, .78, 0, .55, .56, .25)],
+      [BOX, c.arm, M4(-.4125, .82, 0, .27, .44, .25)], [BOX, c.arm, M4(.4125, .82, 0, .27, .44, .25)],
+      [BOX, c.hand, M4(-.4125, .54, 0, .26, .12, .24)], [BOX, c.hand, M4(.4125, .54, 0, .26, .12, .24)],
+      [RB_HEAD, c.head, M4(0, 1.23, 0, .18, .18, .18)],
+      [SPH_HI, INK, M4(-.055, 1.26, .171, .022, .04, .012)], [SPH_HI, INK, M4(.055, 1.26, .171, .022, .04, .012)],
+      [TORUS_ARC, INK, M4(0, 1.205, .166, .058, .058, .05, 0, 0, Math.PI)],
+    ].concat(extra));
+  }
+  const NOOB = { head: 0xf5cd30, torso: 0x2d7cf0, arm: 0xf5cd30, hand: 0xf5cd30, leg: 0x4fae4a, shoe: 0x4fae4a };
+  GEO.noob = blockyGeo(NOOB);
+  // Mama Noobie: a pink top, brown hair with a bow
+  GEO.noobMom = blockyGeo(Object.assign({}, NOOB, { torso: 0xff6fae, leg: 0x3a4fb0, shoe: 0x3a4fb0 }), [
+    [BOX, 0x6a3f22, M4(0, 1.37, -.02, .4, .12, .4)], [BOX, 0x6a3f22, M4(0, 1.19, -.15, .4, .36, .12)],
+    [BOX, 0xff4f8a, M4(-.09, 1.45, -.1, .14, .09, .06, 0, 0, .4)], [BOX, 0xff4f8a, M4(.09, 1.45, -.1, .14, .09, .06, 0, 0, -.4)], [BOX, 0xff4f8a, M4(0, 1.45, -.1, .07, .07, .08)],
+  ]);
+  // Brick the builder: an orange vest over a grey shirt, a yellow hard hat
+  GEO.builder = blockyGeo({ head: 0xffcf9e, torso: 0x8a8f9c, arm: 0x8a8f9c, hand: 0xffcf9e, leg: 0x3a5a9a, shoe: 0x5a3a22 }, [
+    [BOX, 0xff8a1f, M4(0, .8, .005, .57, .5, .26)], [BOX, 0xf4f1ea, M4(0, .7, .137, .57, .05, .01)],
+    [HEMI_HI, 0xf5cd30, M4(0, 1.37, 0, .205, .14, .205)], [CYL, 0xf5cd30, M4(0, 1.375, .03, .24, .02, .25)],
+  ]);
+  // DJ Blok: headphones, a black T-shirt with two stripes
+  GEO.dj = blockyGeo({ head: 0xc98d62, torso: 0x2b2f4a, arm: 0xc98d62, hand: 0xc98d62, leg: 0x5a5f6e, shoe: 0xffffff }, [
+    [BOX, 0xff4fd8, M4(0, .84, .128, .55, .07, .01)], [BOX, 0x2de0ff, M4(0, .74, .128, .55, .05, .01)],
+    [TORUS_ARC, 0x2b2f4a, M4(0, 1.29, 0, .2, .2, .25)], [CYL, 0xff4fd8, M4(-.195, 1.24, 0, .075, .05, .075, 0, 0, Math.PI / 2)], [CYL, 0xff4fd8, M4(.195, 1.24, 0, .075, .05, .075, 0, 0, Math.PI / 2)],
+  ]);
+  // Speedy: red and white, a red cap
+  GEO.speedy = blockyGeo({ head: 0xffd9b0, torso: 0xe8392b, arm: 0xffffff, hand: 0xffd9b0, leg: 0x2b2f4a, shoe: 0xe8392b }, [
+    [BOX, 0xe8392b, M4(0, 1.42, -.01, .38, .1, .37)], [BOX, 0xb02018, M4(0, 1.39, .2, .32, .035, .16)], [BOX, 0xffffff, M4(0, .8, .128, .12, .3, .01)],
+  ]);
+  // Professor Spring: a white coat, grey hair, round glasses
+  GEO.prof = blockyGeo({ head: 0xffd9b0, torso: 0xf4f6fb, arm: 0xf4f6fb, hand: 0xffd9b0, leg: 0x4a4f5e, shoe: 0x2b2f4a }, [
+    [BOX, 0xd6d6de, M4(0, 1.37, -.02, .4, .1, .4)], [BOX, 0xd6d6de, M4(-.19, 1.27, -.02, .06, .16, .36)], [BOX, 0xd6d6de, M4(.19, 1.27, -.02, .06, .16, .36)],
+    [TORUS, 0x2b2f4a, M4(-.06, 1.265, .178, .09, .09, .09)], [TORUS, 0x2b2f4a, M4(.06, 1.265, .178, .09, .09, .09)], [BOX, 0x7a4524, M4(0, .7, .128, .1, .12, .01)],
   ]);
   // the baker's ingredients: a strawberry, an egg, a bag of flour, a bottle of milk and a chocolate bar
   GEO.recipe = [
@@ -3050,7 +3156,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const PRISM = (() => { let g = new T.CylinderGeometry(1, 1, 1, 3); g.rotateX(-Math.PI / 2); g = g.toNonIndexed(); g.computeVertexNormals(); return shared(g); })();
   const SIGN_GEO = shared(new T.BoxGeometry(1.9, .72, .1));
   const NPC_H = { robot: 2.05, frog: 1.05, penguin: 1.2, hedgehog: 1.15, cat: 1.4, crab: 1.05, camel: 2.25, snowman: 2.2, ginger: 1.3, gingerGran: 1.45, bear: 1.9,
-    turtle: .95, turtleGran: .95, octopus: 1.6, dolphin: 1, alien: 1.5, caveman: 1.95, cavegirl: 2.05, bronto: 5.1, dragonElder: 2.95, dragonMama: 2.95, commander: 1.75 };
+    turtle: .95, turtleGran: .95, octopus: 1.6, dolphin: 1, alien: 1.5, caveman: 1.95, cavegirl: 2.05, bronto: 5.1, dragonElder: 2.95, dragonMama: 2.95, commander: 1.75,
+    noob: 1.45, noobMom: 1.5, builder: 1.5, dj: 1.5, speedy: 1.5, prof: 1.5 };
   // on the moon everyone but the aliens wears a glass helmet: its centre height and radius for each kind of folk
   const NPC_HELMET = { robot: [1.55, .52], penguin: [.92, .46], cat: [1.12, .46], crab: [.72, .56], frog: [.72, .56], bear: [1.35, .56], hedgehog: [.72, .52] };
   const PYR = shared(new T.ConeGeometry(.75, 1, 4)); PYR.rotateY(Math.PI / 4);
@@ -3398,6 +3505,88 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     h.body.add(g);
     return g;
+  }
+  // ---------- blocky heroes: in the Roblox world everyone (ours, friends', the bots) is built of blocks ----------
+  // Blocks on the rig's own joints, cut the way Roblox's R15 bodies are (upper and lower arms and legs, hands, feet, two
+  // torso blocks), the round head with a face drawn on, a block cap in the cap's colours. The built hero (or its model)
+  // hides meanwhile and the shoulders move out to the blocky arms. Four faces: a smile, a grin, an "oof" and a blink
+  const RB_FACE_TEX = (() => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 48;
+    const g = c.getContext('2d'); g.fillStyle = g.strokeStyle = '#1c1e2e'; g.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const x = i * 64 + 32;
+      if (i === 3) { g.lineWidth = 3.5; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(x + s * 9 - 4, 17); g.lineTo(x + s * 9 + 4, 17); g.stroke(); } }
+      else for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * 9, 16, 3.4, 6, 0, 0, Math.PI * 2); g.fill(); }
+      g.lineWidth = 3.2; g.beginPath();
+      if (i === 1) { g.moveTo(x - 13, 26); g.quadraticCurveTo(x, 46, x + 13, 26); g.closePath(); g.fill(); }
+      else if (i === 2) { g.ellipse(x, 33, 4.5, 6, 0, 0, Math.PI * 2); g.fill(); }
+      else { g.arc(x, 22, 12, .18 * Math.PI, .82 * Math.PI); g.stroke(); }
+    }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = maxAniso; return t;
+  })();
+  const RB_FACE_MATS = [0, 1, 2, 3].map((i) => {
+    const t = RB_FACE_TEX.clone(); t.repeat.set(.25, 1); t.offset.set(i * .25, 0); t.needsUpdate = true;
+    return std({ map: t, alphaTest: .5, roughness: .5 });
+  });
+  const RB_FACE_GEO = shared(new T.CylinderGeometry(1, 1, 1, 12, 1, true, -.75, 1.5));
+  function blockyRig(h) {
+    const mats = {}, parts = [];
+    for (const k of ['skin', 'shirt', 'pants', 'shoe', 'cap', 'capDark']) mats[k] = addRim(std({ color: 0xffffff, roughness: .5 }));
+    const put = (j, geo, mat, x, y, z, sx, sy, sz) => {
+      const o = new T.Mesh(geo, mats[mat]); o.position.set(x, y, z); o.scale.set(sx, sy, sz); o.castShadow = true; o.visible = false; j.add(o); parts.push(o); return o;
+    };
+    for (const l of h.legs) {
+      put(l.hip, BOX, 'pants', 0, -.1, 0, .27, .22, .25);
+      put(l.knee, BOX, 'pants', 0, -.095, 0, .265, .21, .245);
+      put(l.ankle, BOX, 'shoe', 0, -.05, .015, .27, .12, .28);
+    }
+    put(h.hips, BOX, 'pants', 0, .04, 0, .55, .14, .25);
+    put(h.torso, BOX, 'shirt', 0, .26, 0, .55, .44, .25);
+    for (const a of h.arms) {
+      put(a.sh, BOX, 'shirt', 0, -.04, 0, .27, .29, .25);
+      put(a.el, BOX, 'shirt', 0, -.075, 0, .265, .16, .245);
+      put(a.wr, BOX, 'skin', 0, -.06, 0, .26, .13, .24);
+    }
+    const head = put(h.head, RB_HEAD, 'skin', 0, -.08, 0, .18, .18, .18);
+    put(h.head, BOX, 'cap', 0, .105, -.01, .39, .1, .38);
+    put(h.head, BOX, 'capDark', 0, .075, .2, .34, .035, .16);
+    const faces = RB_FACE_MATS.map((m) => { const o = new T.Mesh(RB_FACE_GEO, m); o.position.set(0, -.065, 0); o.scale.set(.183, .19, .183); o.visible = false; h.head.add(o); return o; });
+    return { parts, faces, head, mats, on: false, face: -1 };
+  }
+  // put the blocks on (in the costume's colours) or take them off, whatever the costume and the model underneath
+  function blockyLook(h, on, s, c, fire) {
+    const b = h.blocky;
+    if (!on) {
+      if (!b || !b.on) return;
+      b.on = false; b.face = -1;
+      for (const o of b.parts) o.visible = false;
+      for (const o of b.faces) o.visible = false;
+      if (h.coil) h.coil.visible = false;
+      const id = h.model; h.model = null; wearModel(h, id); // the built hero (or its model) back, with its own arms
+      return;
+    }
+    const B = h.blocky || (h.blocky = blockyRig(h)), M = B.mats, F = s.face || {};
+    B.on = true;
+    for (const o of B.parts) o.visible = true;
+    M.skin.color.setHex(F.skin !== undefined ? F.skin : HERO_FACE.skin); M.shirt.color.setHex(s.shirt); M.pants.color.setHex(fire ? 0xfff1dc : s.over); M.shoe.color.setHex(s.shoe);
+    M.cap.color.setHex(fire ? 0xf0503a : c.col); M.capDark.color.setHex(fire ? 0xc0341f : c.dark);
+    for (const k in h.m) h.m[k].visible = false;
+    for (const k in h.skins) h.skins[k].visible = false;
+    for (const id in h.hats) h.hats[id].visible = false;
+    for (const id in h.wear) for (const at in h.wear[id]) h.wear[id][at].visible = false;
+    h.helmet.visible = h.pack.visible = false;
+    h.arms.forEach((a, i) => { const r = h.armRest[i]; a.sh.position.set((i ? 1 : -1) * .4125, r[0].y, r[0].z); a.el.position.copy(r[1]); a.wr.position.copy(r[2]); });
+    h.armOut = 0; h.gripAt = .1;
+    blockyFace(h);
+  }
+  // the face drawn on the head follows the built face's mouth and eyes (they are hidden, but still move)
+  function blockyFace(h) {
+    const B = h.blocky;
+    if (!B || !B.on) return;
+    const i = h.open.visible || h.frown.visible ? 2 : h.grin.visible || h.happy[0].visible ? 1 : h.eyes[0].scale.y < .5 ? 3 : 0;
+    if (B.face === i) return;
+    B.face = i;
+    B.faces.forEach((o, k) => { o.visible = k === i; });
   }
   // Hands on a ride's grips (the bars, a steering wheel), whatever the arms' lengths: each arm turns at the shoulder and
   // bends at the elbow so that its hand's grip (h.gripAt past the wrist, the hand straight on) lands on its grip, the elbow
@@ -3858,6 +4047,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       follow: () => seq('pulse', [79, 84, 88], .06, .09, .05),
       // the other open worlds and the rides
       boing: () => { tone('sine', 160, 520, .22, .35); tone('triangle', 320, 900, .15, .08, .03); },
+      // the Roblox world: falling apart, a coil taken, the tiles of Color Block dropping away
+      oof: () => { tone('square', 430, 200, .13, .09); tone('triangle', 330, 130, .24, .18); noise(.09, .07, 0, 800, 'bandpass', 420, 2); },
+      coil: () => { tone('sine', 300, 1300, .3, .12); seq('pulse', [76, 83, 88], .05, .09, .05); },
+      tiles: () => { swoosh(.45, .22, 2400, 300); tone('square', 260, 70, .32, .07); },
       sink: () => { noise(.5, .25, 0, 700, 'lowpass', 150, .9); tone('sine', 220, 80, .45, .15); },
       switchOn: () => { tone('square', 200, 90, .12, .15); seq('pulse', [72, 79, 84, 91], .08, .11, .06); },
       peep: () => { tone('sine', 1800, 2400, .07, .06); tone('sine', 1900, 2600, .07, .05, .1); },
@@ -4091,6 +4284,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         lead: [79, 0, 0, 81, 83, 0, 81, 79, 76, 0, 74, 0, 76, 0, 0, 0, 79, 0, 0, 81, 83, 0, 86, 83, 81, 0, 79, 0, 81, 0, 0, 0,
           83, 0, 86, 0, 88, 0, 86, 83, 81, 0, 79, 76, 79, 0, 0, 0, 76, 0, 79, 0, 81, 0, 79, 76, 74, 0, 76, 0, 79, 0, 0, 0],
       },
+      // the Roblox world: a bouncy tune in C for the obby
+      obby: {
+        bpm: 146, drums: 'pop', chords: [48, 45, 41, 43, 48, 45, 41, 43],
+        lead: [72, 0, 76, 79, 84, 0, 79, 76, 81, 0, 76, 72, 69, 0, 72, 76, 77, 0, 81, 84, 81, 77, 72, 77, 79, 0, 83, 86, 83, 0, 79, 0,
+          84, 0, 83, 84, 79, 0, 76, 79, 81, 0, 84, 81, 76, 0, 72, 76, 77, 81, 84, 81, 77, 81, 84, 89, 86, 0, 83, 0, 79, 0, 0, 0],
+      },
       nights: {
         bpm: 92, drums: 'heart', chords: [45, 45, 41, 41, 43, 43, 40, 40],
         lead: [69, 0, 0, 0, 72, 0, 0, 0, 71, 0, 0, 0, 68, 0, 0, 0, 69, 0, 0, 0, 76, 0, 0, 0, 74, 0, 72, 0, 71, 0, 0, 0,
@@ -4301,7 +4500,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function makeBuilder(seed) {
     const near = new ChunkMerger(false), far = new ChunkMerger(false), stone = new ChunkMerger(true), sky = new Merger(false), lit = new Merger(false);
-    const paths = new ChunkMerger(true), gems = new Merger(false), slabs = {};
+    const paths = new ChunkMerger(true), gems = new Merger(false), slabs = {}, studs = new ChunkMerger(true), neon = new Merger(false);
     const R = rng(seed);
     const add = (o) => { L.group.add(o); return o; };
     // a gate's frame: local x runs along its width, local z along the way it faces (yaw 0 faces +z, south)
@@ -4377,7 +4576,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
           const r = new T.Mesh(HEMI, MAT.rock); r.rotation.x = Math.PI; r.scale.set(w * .58, 1.1 + (w + dd) * .12, dd * .58); r.position.y = .25; r.castShadow = true; mesh.add(r);
           const top = new T.Mesh(CYL, MAT.rockTop); top.scale.set(w * .56, .06, dd * .56); top.position.y = .22; mesh.add(top);
           for (let i = 0; i < 3; i++) { const b = new T.Mesh(ICO, MAT.rock); const a = i * 2.1 + x; b.scale.setScalar(.25 + (i % 2) * .15); b.position.set(Math.cos(a) * w * .4, -.3 - i * .2, Math.sin(a) * dd * .4); mesh.add(b); }
-        } else {
+        } else if (opt.skin === 'stud') mesh = new T.Mesh(studGeo(w, th, dd), studMat(opt.col));
+        else {
           const m = opt.skin === 'ice' ? MAT.ice : opt.fall ? MAT.plankFall : opt.skin === 'metal' ? GROUND.metal.lip : MAT.plank;
           mesh = new T.Mesh(boxGeo(w, th, dd, 2), m);
         }
@@ -4962,9 +5162,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       portal(x, d, top, wi) { this.gate(x, d, top, 'world', wi); },
       levelDoor(li, x, d, top, yaw = 0, front = 9.5) { this.gate(x, d, top, 'level', li, yaw, front); },
       warp(hub, x, d, top, yaw = 0, front = 9.5) { this.gate(x, d, top, 'warp', hub, yaw, front); },
-      sign(x, d, top, lines, yaw = 0) {
+      sign(x, top, d, lines, yaw = 0) {
         const z = -d, m = new T.Mesh(SIGN_GEO, std({ map: signTex(lines), roughness: .8 }));
-        near.add(BOX, 0x7a4f2c, M4(x, top + .7, z, .16, 1.4, .16));
+        near.add(BOX, 0x7a4f2c, M4(x - Math.sin(yaw) * .13, top + .7, z - Math.cos(yaw) * .13, .16, 1.4, .16)); // the post behind the board
         m.position.set(x, top + 1.55, z); m.rotation.y = yaw; m.castShadow = true; add(m);
         addSolid(x - .12, top, z - .12, x + .12, top + 1.2, z + .12, 'hard');
       },
@@ -5361,7 +5561,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // a glowing ring on the ground: the shop's golden one, a blue one that lends a ride (`data` names it), a red one that
       // starts a challenge, the purple one that wakes Leviathan
       pad(kind, x, top, d, data) {
-        const col = kind === 'rent' || kind === 'dragon' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
+        const col = kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' || kind === 'cb' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
         const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: col, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
@@ -5512,6 +5712,86 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (cfg.leviPad) this.pad('levi', cfg.leviPad[0], cfg.top, cfg.leviPad[1]);
         ISL.tb = Object.assign({}, cfg, { phase: 'off', cz: -cfg.cd, z0: -cfg.d1, z1: -cfg.d0, gate: { m, s, h, k: 0, y1: cfg.top + h / 2 }, allies: [], mortars: [], parked: [] });
       },
+      // ---------- the Roblox world ----------
+      // a brick with studs on top (merged with the others), solid unless told otherwise
+      brick(x0, x1, d0, d1, y0, y1, col, solid = true) {
+        studs.add(studGeo(x1 - x0, y1 - y0, d1 - d0), col, M4((x0 + x1) / 2, (y0 + y1) / 2, -(d0 + d1) / 2));
+        return solid ? addSolid(x0, y0, -d1, x1, y1, -d0, 'hard') : null;
+      },
+      // a SpawnLocation: a grey pad with the spawn mark, where a fall brings the hero back once he has touched it. With a
+      // stage number it is one of the obby's checkpoints and wears the number; `face`: which way he looks, back on it
+      spawn(x, top, d, stage = 0, face) {
+        this.brick(x - 1.5, x + 1.5, d - 1.5, d + 1.5, top, top + .4, 0xa3a2a5);
+        const m = new T.Mesh(RB_PLANE, std({ map: spawnTex(stage), alphaTest: .5, roughness: .6 }));
+        m.rotation.order = 'YXZ'; m.rotation.set(-Math.PI / 2, (face === undefined ? Math.PI : face) - Math.PI, 0); // the number reads the way the hero comes
+        m.position.set(x, top + .41, -d); m.scale.setScalar(2.5); add(m);
+        L.checkpoints.push({ x, y: top + .4, z: -d, reached: false, flag: m, pad: true, stage, face });
+      },
+      // a kill brick: neon red, one touch and the hero falls apart. Not solid: it is only ever in the way as a danger
+      kill(x0, x1, d0, d1, y0, y1) {
+        neon.add(BOX, 0xffffff, M4((x0 + x1) / 2, (y0 + y1) / 2, -(d0 + d1) / 2, x1 - x0, y1 - y0, d1 - d0));
+        L.kills.push({ min: { x: x0, y: y0, z: -d1 }, max: { x: x1, y: y1, z: -d0 } });
+      },
+      // a kill brick sliding to and fro along x or d, `range` each way, there and back in `period` seconds
+      killSlide(x, d, y, w, h, dd, axis, range, period, phase = 0) {
+        const m = new T.Mesh(BOX, MAT.neon); m.scale.set(w, h, dd); m.position.set(x, y + h / 2, -d); add(m);
+        L.kills.push({ m, hx: x, hz: -d, axis, range, period, phase, hw: w / 2, hd: dd / 2, min: { x: x - w / 2, y, z: -d - dd / 2 }, max: { x: x + w / 2, y: y + h, z: -d + dd / 2 } });
+      },
+      // a kill bar spinning round a post: jump over it as it comes round
+      killSpin(x, d, y, len, speed) {
+        const g = new T.Group(); g.position.set(x, y, -d); add(g);
+        const b = new T.Mesh(BOX, MAT.neon); b.scale.set(len * 2, .3, .3); b.castShadow = true; g.add(b);
+        L.kills.push({ spin: g, x, z: -d, y, len, speed });
+      },
+      // a truss: a grey lattice tower a metre across; walk into it to climb it
+      truss(x, d, y0, y1) {
+        const z = -d, col = 0x9a9ca4, h = y1 - y0;
+        for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) near.add(BOX, col, M4(x + sx * .45, y0 + h / 2, z + sz * .45, .1, h, .1));
+        for (let y = y0 + .5; y < y1 - .01; y += .5) {
+          near.add(BOX, col, M4(x, y, z - .45, .9, .07, .07)); near.add(BOX, col, M4(x, y, z + .45, .9, .07, .07));
+          near.add(BOX, col, M4(x - .45, y, z, .07, .07, .9)); near.add(BOX, col, M4(x + .45, y, z, .07, .07, .9));
+        }
+        for (let y = y0; y + .5 <= y1 + 1e-6; y += .5) for (const s of [-1, 1]) {
+          near.add(BOX, col, M4(x, y + .25, z + s * .45, .06, .7, .06, 0, 0, s * Math.PI / 4)); near.add(BOX, col, M4(x + s * .45, y + .25, z, .06, .7, .06, s * Math.PI / 4, 0, 0));
+        }
+        L.trusses.push(addSolid(x - .5, y0, z - .5, x + .5, y1, z + .5, 'hard'));
+      },
+      // a brick that fades away a moment after it is stepped on, and comes back a little later
+      fade(x0, x1, d0, d1, y0, y1, col) {
+        const m = new T.Mesh(studGeo(x1 - x0, y1 - y0, d1 - d0), std(Object.assign({ color: col, roughness: .5, transparent: true }, STUD)));
+        m.position.set((x0 + x1) / 2, (y0 + y1) / 2, -(d0 + d1) / 2); m.castShadow = m.receiveShadow = true; add(m);
+        L.fades.push(addSolid(x0, y0, -d1, x1, y1, -d0, 'hard', { mesh: m, fadeT: 0, gone: 0 }));
+      },
+      // a launch pad: a glowing green disc on a slab that throws the hero high (it bounces like a spring)
+      jumpPad(x, top, d) {
+        this.brick(x - 1, x + 1, d - 1, d + 1, top, top + .2, 0x5a5f6e, false);
+        const m = new T.Mesh(CYL, std({ color: 0x6aff5a, emissive: 0x2fe02a, emissiveIntensity: 1.2, roughness: .4 })); m.scale.set(.8, .08, .8); m.position.set(x, top + .24, -d); add(m);
+        L.jpads.push(addSolid(x - 1, top, -d - 1, x + 1, top + .28, -d + 1, 'spring', { sq: 0, jpad: m }));
+      },
+      // a gear giver: a pedestal with the coil turning over it; walking into it takes the coil (again, puts it back)
+      giver(kind, x, top, d) {
+        this.brick(x - .6, x + .6, d - .6, d + .6, top, top + 1, 0x5a5f6e);
+        this.brick(x - .75, x + .75, d - .75, d + .75, top + 1, top + 1.12, RB_COILS[kind].col, false);
+        const m = new T.Mesh(COIL_GEO, RB_COILS[kind].mat); m.position.set(x, top + 1.6, -d); m.scale.setScalar(2.4); add(m);
+        L.givers.push({ kind, x, y: top + 1.12, z: -d, m, armed: true });
+      },
+      // Color Block: a square of tiles over the void and the board behind it that lights up in the colour called
+      colorBlock(x0, d0, host) {
+        const tiles = [], n = CB_N, t = CB_TILE, dEnd = d0 + n * t;
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+          const x = x0 + i * t, d = d0 + j * t;
+          const m = new T.Mesh(studGeo(t - .08, .6, t - .08), std(Object.assign({ color: 0xffffff, roughness: .5 }, STUD)));
+          m.position.set(x + t / 2, -.3, -(d + t / 2)); m.castShadow = m.receiveShadow = true; add(m);
+          tiles.push(addSolid(x, -.6, -(d + t), x + t, 0, -d, 'hard', { mesh: m, ci: 0 }));
+        }
+        this.brick(x0 + 7, x0 + 17, dEnd + 1, dEnd + 2.2, 0, 1, 0x5a5f6e);
+        this.brick(x0 + 7, x0 + 7.6, dEnd + 1.3, dEnd + 1.9, 1, 6.4, 0x5a5f6e); this.brick(x0 + 16.4, x0 + 17, dEnd + 1.3, dEnd + 1.9, 1, 6.4, 0x5a5f6e);
+        const board = new T.Mesh(BOX, std({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: .3, roughness: .5 }));
+        board.scale.set(8.8, 4.6, .4); board.position.set(x0 + 12, 3.8, -(dEnd + 1.6)); board.castShadow = true; add(board);
+        addSolid(x0 + 7.6, 1.5, -(dEnd + 1.8), x0 + 16.4, 6.1, -(dEnd + 1.4), 'hard');
+        ISL.cb = { on: false, tiles, x0, x1: x0 + n * t, d0, z0: -dEnd, z1: -d0, host, board, phase: 'idle', round: 0, t: 0, ci: -1, tick: 0, bots: [], pool: [], back: null };
+        cbPaint(ISL.cb, true);
+      },
       finish() {
         // scatter grass tufts, flowers and bushes where nothing stands
         const blocked = (x, z, top) => L.solids.some((s) => s.kind !== 'ground' && s.min.y <= top + .05 && s.max.y > top + .05 &&
@@ -5549,6 +5829,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const d = sky.build(MAT.cloud); if (d) add(d);
         const e = lit.build(MAT.bulb); if (e) add(e);
         const f = gems.build(MAT.crystal); if (f) add(f);
+        for (const c of studs.build(MAT.studs)) { c.castShadow = c.receiveShadow = true; add(c); }
+        const k = neon.build(MAT.neon); if (k) add(k);
       },
     };
     return B;
@@ -6507,7 +6789,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('robot', 0, 1.5, 49.5, 'Страж врат', ['Это Врата миров. Каждые врата открываются, когда у тебя хватает звёзд.',
       'Первые врата ведут в уровни Зелёного края, а остальные в целые миры: там свои жители, звёзды и уровни.', 'За каждый пройденный уровень тоже дают звезду.',
       'Ещё двое врат стоят не здесь: Морские в конце пирса, а Звёздные на облачном островке над лесом.',
-      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи, Танковые, Лесные и Дуэльные. Туда можно сразу!']);
+      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи, Танковые, Лесные, Дуэльные и Роблокс-врата. Туда можно сразу!']);
     B.tree(-16.6, 1.5, 47, 1, 'pillar'); B.tree(16.6, 1.5, 47, 1, 'pillar');
     // the cape past Foma's garden: the Ancient Gate to Dino Valley and the Dragon Gate, both open from the start
     B.ground(46, 64, 18, 46, 0, 12);
@@ -6524,6 +6806,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.ground(46, 64, -24, -10, 0, 12);
     B.gate(59, -17, 0, 'world', 11, -Math.PI / 2, 8);
     B.sign(51, 0, -21.5, ['Дуэльная', 'арена'], -Math.PI / 2);
+    // and at the very end, the Roblox Gate to the world of bricks, a noob from there by it
+    B.ground(46, 64, -38, -24, 0, 12);
+    B.gate(59, -31, 0, 'world', 12, -Math.PI / 2, 8);
+    B.sign(51, 0, -35.5, ['Мир', 'Роблокс'], -Math.PI / 2);
+    B.npc('noob', 52, 0, -27.5, 'Нубик', ['Привет! Я из Мира Роблокс. Там всё из кубиков, даже герои!',
+      'Врата рядом. Там обби, башня, цветные плитки и пружины!'], { yaw: -Math.PI / 2 });
     { const t = new T.Mesh(GEO.beacon.target, MAT.char); t.position.set(62, 0, 22); t.rotation.y = -Math.PI / 2; t.castShadow = true; L.group.add(t); addSolid(61.7, .75, 21.1, 62.3, 2.4, 22.9, 'hard'); }
     for (const [x, d, s] of [[62.5, -8.5, .9], [62.5, 2.5, .8], [49, -9, .75]]) B.tree(x, 0, d, s);
     const toy = tankModel('tank'); toy.position.set(57, 0, -4.5); toy.rotation.y = -Math.PI * .65; toy.userData.turret.rotation.y = -.6; L.group.add(toy);
@@ -8362,6 +8650,216 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     sceneryDuelsHub(B);
   }
 
+  // The Roblox world: a green baseplate in the sky, everything built of studded bricks. An obby over the void to the west
+  // and on to the north and east (12 stages), Brick's tower, Color Block, the gear givers and the sky platform, a ring
+  // race, Mama Noobie's lost little noobs. Everyone is blocky here and falls apart on a kill brick
+  const RBC = { red: 0xe8392b, blue: 0x2d7cf0, yellow: 0xf5cd30, green: 0x3fbf4a, lime: 0x8fe04a, orange: 0xff8a1f, violet: 0xa052e0, pink: 0xff6fae,
+    cyan: 0x3fd8e8, white: 0xf2f3f3, grey: 0xa3a2a5, dark: 0x5a5f6e, brown: 0x8a5a36, leaf: 0x3a9a44, gold: 0xffc53d };
+  // a blocky tree: a brown trunk and a cube of leaves (with a smaller one on top)
+  function rbTree(B, x, d, s = 1) {
+    B.brick(x - .5 * s, x + .5 * s, d - .5 * s, d + .5 * s, 0, 3 * s, RBC.brown);
+    B.brick(x - 1.6 * s, x + 1.6 * s, d - 1.6 * s, d + 1.6 * s, 3 * s, 5.6 * s, RBC.leaf);
+    B.brick(x - 1 * s, x + 1 * s, d - 1 * s, d + 1 * s, 5.6 * s, 6.6 * s, 0x4fb04a);
+  }
+  // a little brick house: four walls with a doorway on one side (n, e, s or w), windows, a roof in steps
+  function rbHouse(B, x0, x1, d0, d1, wall, roof, door) {
+    const h = 3.2, t = .5, cx = (x0 + x1) / 2, cd = (d0 + d1) / 2;
+    const side = (a0, a1, b0, b1, gap) => { // a wall, with the doorway's gap in its middle if it has one
+      if (!gap) { B.brick(a0, a1, b0, b1, 0, h, wall); return; }
+      if (a1 - a0 > b1 - b0) { B.brick(a0, cx - .8, b0, b1, 0, h, wall); B.brick(cx + .8, a1, b0, b1, 0, h, wall); B.brick(cx - .8, cx + .8, b0, b1, 2.3, h, wall); }
+      else { B.brick(a0, a1, b0, cd - .8, 0, h, wall); B.brick(a0, a1, cd + .8, b1, 0, h, wall); B.brick(a0, a1, cd - .8, cd + .8, 2.3, h, wall); }
+    };
+    side(x0, x1, d0, d0 + t, door === 's'); side(x0, x1, d1 - t, d1, door === 'n');
+    side(x0, x0 + t, d0 + t, d1 - t, door === 'w'); side(x1 - t, x1, d0 + t, d1 - t, door === 'e');
+    for (let i = 0; i < 3; i++) B.brick(x0 - .4 + i * .9, x1 + .4 - i * .9, d0 - .4 + i * .9, d1 + .4 - i * .9, h + i * .6, h + (i + 1) * .6, roof);
+    return h + 1.8;
+  }
+  function buildRoblox(B) {
+    const R = B.R, C = RBC, X = -55;
+    B.start(0, .4, -6);
+    L.titleCam = { x: -10, y: 6, z: -60, r: 60, h: 26 };
+    L.modeSpot = { x: 0, y: .4, z: 6, face: Math.PI }; // where "Roblox" on the title puts the hero: on the spawn
+    L.modeHint = 'Обби на западе, цветные плитки на востоке, башня на северо-востоке!';
+    ISL.rb = { coil: '' };
+
+    // --- the baseplate floating in the sky, the Color Block square cut out of it ---
+    B.groundCut(-40, 60, -26, 132, 0, 2, 'studs', [[22, 46, 30, 54]], true);
+
+    // --- the lobby: the spawn, the gate home, the welcome board, the guide, the shop ---
+    B.warp('island', 0, -18, 0, Math.PI);
+    B.spawn(0, 0, -6);
+    B.brick(-5.5, -4.9, 4.7, 5.3, 0, 6.8, C.dark); B.brick(4.9, 5.5, 4.7, 5.3, 0, 6.8, C.dark);
+    { const bd = new T.Mesh(BOX, std({ color: 0x3a3f4a, roughness: .7 })); bd.scale.set(10.2, 2.8, .3); bd.position.set(0, 5.4, -5); bd.castShadow = true; L.group.add(bd);
+      const f = new T.Mesh(RB_PLANE, std({ map: rbSignTex(['Добро пожаловать', 'в Мир Роблокс!'], '#2d7cf0'), roughness: .7 })); f.scale.set(9.8, 2.5, 1); f.position.set(0, 5.4, -4.84); L.group.add(f); }
+    B.npc('noob', -4.5, 0, -3, 'Нубик', () => [
+      'Привет! Это Мир Роблокс. Тут всё из кубиков, даже ты!',
+      'На западе обби: двенадцать этапов над пустотой. Красные светящиеся блоки не трогай: рассыплешься на кусочки!',
+      'Не бойся: вернёшься на серую площадку последнего этапа. Синий коврик у входа в обби переносит на самый дальний этап.',
+      'Решётки-фермы можно залезть: просто иди прямо в них.',
+      'На востоке цветные плитки, на северо-востоке башня Брика, а на севере пружины: гравитационная и скоростная.',
+    ]);
+    B.stall(12, 2); B.pad('shop', 9.6, 0, 2);
+    B.npc('cat', 13.4, 0, 2, 'Кот Кубик', ['Мур! Я кот Кубик, кузен Мурра. Тут всё квадратное, а в лавке обычный товар.',
+      'Надень что-нибудь новое: здесь любой костюм станет кубическим!'], { yaw: -Math.PI / 2 });
+    for (let d = 0; d <= 12; d += 2) B.coin(-1.5, 1.2, d);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; B.coin(-12 + Math.cos(a) * 2.6, 1.2, 2 + Math.sin(a) * 2.6); }
+
+    // --- the obby: out over the void to the west, on north and then east; a spawn pad at each stage ---
+    const plat = (x0, x1, d0, d1, top, col = C.grey) => B.brick(x0, x1, d0, d1, top - 1, top, col);
+    B.brick(-52, -40, 9, 13, -1, 0, C.grey); // the bridge out to it
+    rbSign(B, -37, 0, 14.5, ['ОББИ', '12 этапов'], Math.PI / 2, 2.8, '#e8392b');
+    B.pad('rbwarp', -35, 0, 11);
+    rbSign(B, -32.5, 0, 14.5, ['Синий коврик:', 'к дальнему этапу'], Math.PI / 2, 2.4);
+    // 1: cubes going up
+    plat(-58, -52, 8, 14, 0); B.spawn(X, 0, 11, 1);
+    [[X, 17, .6, C.red], [X + 1.5, 20.5, 1.2, C.blue], [X - 1, 24, 1.8, C.yellow], [X + .5, 27.5, 2.4, C.green]].forEach(([x, d, top, col]) => B.brick(x - 1, x + 1, d - 1, d + 1, top - 2, top, col));
+    // 2: strips of kill brick across a path
+    plat(-58, -52, 30, 36, 2.4); B.spawn(X, 2.4, 33, 2);
+    B.brick(-57, -53, 36, 50, 1.4, 2.4, C.white);
+    for (const d of [39, 43, 47]) B.kill(-57, -53, d, d + 1, 2.3, 2.7);
+    // 3: two bricks swinging side to side over a gap
+    plat(-58, -52, 50, 56, 2.4); B.spawn(X, 2.4, 53, 3);
+    B.platform(X, 2.4, 59.5, 3, 3, { move: { axis: 'x', range: 3.5, period: 4 }, skin: 'stud', col: C.orange });
+    B.platform(X, 2.4, 65.5, 3, 3, { move: { axis: 'x', range: 3.5, period: 4, phase: Math.PI }, skin: 'stud', col: C.violet });
+    // 4: a truss up a tall block
+    plat(-58, -52, 69, 77, 2.4); B.spawn(X, 2.4, 72, 4);
+    B.brick(-58, -52, 78, 84, 1.4, 8.4, C.blue);
+    B.truss(X, 77.5, 2.4, 8.4);
+    // 5: fading bricks
+    B.spawn(X, 8.4, 81, 5);
+    [[X + 1, 87], [X - 1, 90.5], [X + 1, 94], [X - 1, 97.5]].forEach(([x, d], i) => B.fade(x - 1, x + 1, d - 1, d + 1, 7.9, 8.4, [C.cyan, C.pink, C.lime, C.yellow][i]));
+    // 6: a kill bar sweeping round a square
+    plat(-58, -52, 100, 105, 8.4); B.spawn(X, 8.4, 102.5, 6);
+    B.brick(-61, -49, 105, 117, 7.4, 8.4, C.green);
+    B.brick(-55.5, -54.5, 110.5, 111.5, 8.4, 9.6, C.dark);
+    B.killSpin(X, 111, 8.95, 5.4, 1.5);
+    // 7: a conveyor running back, kill bricks by its edges
+    plat(-58, -52, 117, 123, 8.4); B.spawn(X, 8.4, 120, 7);
+    B.belt(-57, -53, 123, 137, 8.4, -1);
+    B.kill(-57, -55.8, 127, 128.2, 8.4, 9.4); B.kill(-54.2, -53, 131.5, 132.7, 8.4, 9.4);
+    // 8: a launch pad up to a high brick
+    plat(-58, -52, 137, 146, 8.4); B.spawn(X, 8.4, 139.5, 8);
+    B.jumpPad(X, 8.4, 144.5);
+    // 9: narrow beams with turns
+    plat(-58, -52, 150, 156, 15.4); B.spawn(X, 15.4, 153, 9);
+    B.brick(X - .3, X + .3, 156, 162.6, 14.9, 15.4, C.yellow);
+    B.brick(X - .3, -49.4, 162, 162.6, 14.9, 15.4, C.yellow);
+    B.brick(-50, -49.4, 162.6, 169, 14.9, 15.4, C.yellow);
+    // 10: walls of kill brick sliding across the way east
+    plat(-53, -47, 169, 175, 15.4); B.spawn(-50, 15.4, 172, 10, Math.PI / 2);
+    B.brick(-47, -29, 170, 174, 14.4, 15.4, C.white);
+    [[-43, 2.4, 0], [-38, 2, 1.7], [-33, 2.8, 3.1]].forEach(([x, per, ph]) => B.killSlide(x, 172, 15.4, 1, 2.2, 2, 'd', 1.5, per, ph));
+    // 11: steps with lava on every other one, a truss up to the finish
+    plat(-29, -23, 169, 175, 15.4); B.spawn(-26, 15.4, 172, 11, Math.PI / 2);
+    for (let i = 0; i < 5; i++) {
+      const x0 = -23 + i * 2, top = 16.3 + i * .9;
+      B.brick(x0, x0 + 2, 170, 174, top - 1, top, [C.red, C.orange, C.yellow, C.lime, C.cyan][i]);
+      if (i % 2) B.kill(x0 + .15, x0 + 1.85, 172, 174, top - .05, top + .25);
+    }
+    B.brick(-12, -2, 168, 176, 19.9, 24.9, C.blue);
+    B.truss(-12.5, 172, 19.9, 24.9);
+    // 12: the finish: gold, the star, the way back down
+    B.brick(-12, -2, 168, 176, 24.9, 25.1, C.gold);
+    B.spawn(-8.5, 25.1, 172, 12, Math.PI / 2);
+    B.star('rb.obby', -4.5, 26.5, 173.5);
+    B.pad('rbhome', -4.5, 25.1, 170);
+    rbSign(B, -2.6, 25.1, 175, ['ФИНИШ!'], -Math.PI / 2, 2.4, '#ffc53d');
+    for (const [x, d] of [[-11.6, 168.4], [-2.4, 168.4], [-11.6, 175.6], [-2.4, 175.6]]) B.brick(x - .4, x + .4, d - .4, d + .4, 25.1, 26.5, C.gold);
+    B.coinRow(X, 3.4, 37, 49, 3); B.coinRow(X, 9.6, 106, 116, 2.5); B.coinRow(-40, 16.6, 171, 171, 1);
+
+    // --- Brick's tower: platforms round a grey column, two laps up; the star on top ---
+    const TX0 = 40, TD0 = 106, ring = [[0, -4.5], [4.5, -4.5], [4.5, 0], [4.5, 4.5], [0, 4.5], [-4.5, 4.5], [-4.5, 0], [-4.5, -4.5]];
+    const rainbow = [C.red, C.orange, C.yellow, C.lime, C.green, C.cyan, C.blue, C.violet, C.pink];
+    B.brick(TX0 - 2, TX0 + 2, TD0 - 2, TD0 + 2, 0, 30.6, C.grey);
+    for (let i = 1; i <= 16; i++) {
+      const [dx, dd] = ring[i % 8], x = TX0 + dx, d = TD0 + dd, top = 1.8 * i, col = rainbow[i % rainbow.length];
+      if (i === 8) { B.brick(x - 2, x + 2, d - 2.5, d + 1.5, top - .6, top, C.grey); B.spawn(x, top, d - .5); continue; } // halfway: a spawn pad
+      if (i === 4 || i === 10 || i === 13 || i === 15) { B.fade(x - 1.5, x + 1.5, d - 1.5, d + 1.5, top - .5, top, col); continue; }
+      B.brick(x - 1.5, x + 1.5, d - 1.5, d + 1.5, top - .6, top, col);
+      if (i === 6 || i === 12) B.kill(x - 1.5, x + 1.5, d + .5, d + 1.5, top - .05, top + .25); // lava on the outer third
+    }
+    B.star('rb.tower', TX0, 32, TD0);
+    B.spawn(TX0, 0, 97.5);
+    B.npc('builder', 35.5, 0, 97, 'Строитель Брик', () => [
+      hasStar('rb.tower') ? 'Ты был на самом верху моей башни! Вот это прыжки!' : 'Это моя башня! Прыгай с площадки на площадку вокруг столба до самой вершины.',
+      'Прозрачные плиты исчезают, если на них постоять. Не задерживайся!',
+      'На середине есть точка появления: наступи на неё, и после лавы вернёшься туда.',
+    ]);
+    rbSign(B, 45, 0, 97.5, ['Башня Брика'], 0, 2.6, '#a052e0');
+
+    // --- Color Block: DJ Blok calls the colours ---
+    const dj = B.npc('dj', 27, 0, 25.5, 'Диджей Блок', () => [
+      'Йо! Это Цветные плитки. Встань на красный коврик, и начнётся игра.',
+      'На табло загорается цвет: беги на плитку этого цвета! Все остальные плитки исчезнут.',
+      'С каждым раундом времени всё меньше. Продержись восемь раундов, и звезда твоя!',
+      SAVE.rbCb ? 'Твой рекорд: ' + SAVE.rbCb + ' ' + plural(SAVE.rbCb, 'раунд', 'раунда', 'раундов') + '.' : 'С тобой сыграют ребята с сервера. Не зевай!',
+    ]);
+    B.colorBlock(22, 30, dj);
+    B.pad('cb', 34, 0, 27);
+    B.star('rb.colors', 24.5, 2.2, 25.5, !questDone('rb.colors'));
+    rbSign(B, 41, 0, 26, ['Цветные', 'плитки'], 0, 2.6, '#ff8a1f');
+
+    // --- the gear: the gravity coil by the sky platform, the speed coil by the race ---
+    B.giver('grav', 0, 0, 90);
+    B.npc('prof', -3.2, 0, 89, 'Профессор Пружинкин', () => [
+      'Гравитационная пружина! Подойди к синей подставке, и она твоя. С ней прыгаешь больше чем вдвое выше.',
+      'Видишь небесную площадку? Без пружины туда не допрыгнуть.',
+      'Надоест: подойди к подставке ещё раз, и пружина вернётся на место.',
+    ]);
+    B.brick(6, 9, 96, 99, 7.5, 8.5, C.cyan);
+    B.brick(9.5, 13.5, 100, 104, 14, 15, C.violet);
+    B.star('rb.coil', 11.5, 16.4, 102);
+    rbSign(B, 4, 0, 88, ['Небесная площадка:', 'только с пружиной!'], 0, 2.8, '#3f7fff');
+
+    // --- Speedy's ring race round the square ---
+    B.giver('speed', -12, 0, 15);
+    const speedy = B.npc('speedy', -15, 0, 15.5, 'Спидик', () => (questDone('rb.race')
+      ? [hasStar('rb.race') ? 'Ты быстрее всех на сервере!' : 'Звезда у меня, забирай!', 'Со скоростной пружиной можно ещё быстрее.']
+      : ['Гонка по кольцам вокруг площади! Первое кольцо запускает таймер.', 'Возьми скоростную пружину с красной подставки: с ней бегаешь в полтора раза быстрее!']), { yaw: Math.PI / 2 });
+    B.race({ star: 'rb.race', owner: speedy, limit: 24, where: 'Спидик ждёт у первого кольца', fail: 'Чуть-чуть! Со скоростной пружиной успеешь.', win: 'Рекорд сервера! Звезда твоя!' },
+      [[-8, 1.4, 20], [-22, 1.4, 30], [-28, 1.4, 48], [-24, 1.4, 66], [-12, 1.4, 80], [4, 1.4, 84], [14, 1.4, 70], [16, 1.4, 50], [10, 1.4, 32], [0, 1.4, 24]]);
+    B.star('rb.race', -18, 1.8, 13, !questDone('rb.race'));
+
+    // --- Mama Noobie's house and her five little noobs ---
+    const roofTop = rbHouse(B, -36, -26, -18, -8, C.white, C.red, 'e');
+    const mom = B.npc('noobMom', -23.5, 0, -12, 'Мама Нуби', () => {
+      const got = setOf('rb.noobs').length;
+      if (hasStar('rb.noobs') || got >= LOST_N) return ['Все мои нубики дома! Спасибо тебе!'];
+      return ['Ой-ой! Мои нубики разбежались! Их пятеро.', 'Один залез на башню Брика, другой ушёл в обби… Кто-то сидит на крыше, кто-то за табло у плиток.',
+        'Подойди к малышу, и он пойдёт за тобой. Дома уже ' + got + ' из ' + LOST_N + '.'];
+    }, { yaw: Math.PI / 2 });
+    B.lostQuest({ key: 'rb.noobs', star: 'rb.noobs', owner: mom, geo: GEO.noob, scale: .5, found: 'Нубик с тобой!', call: 'giggle',
+      home: (i) => ({ x: -24.8 + (i % 3) * .75, y: 0, z: -(-14.6 + Math.floor(i / 3) * .8) }),
+      back: (got, n) => (got >= LOST_N ? 'Все дома! Спасибо! Держи звезду!' : (n === 1 ? 'Нубик вернулся! ' : 'Нубики вернулись! ') + 'Дома ' + got + ' из ' + LOST_N + '.') });
+    B.lost(0, TX0 - 4.5, 1.8 * 5, TD0 + 4.5);
+    B.lost(1, X - 2.2, 2.4, 35.2);
+    B.lost(3, 34, 0, 58.5);
+    B.lost(4, 56, 0, 128);
+    B.star('rb.noobs', -21.5, 1.8, -15, !questDone('rb.noobs'));
+
+    // --- houses on the south-east, a noob on a roof ---
+    const roof2 = rbHouse(B, 30, 40, -20, -10, C.yellow, C.blue, 'n');
+    rbHouse(B, 44, 54, -20, -10, C.pink, C.green, 'n');
+    B.lost(2, 35, roof2, -15);
+
+    // --- red badges ---
+    B.itemSet({ key: 'rb.red', star: 'rb.red' });
+    for (const [i, x, y, d] of [[0, -53, 9.6, 83], [1, TX0, 1.8 * 12 + 1.2, TD0 + 4.5], [2, 34, 1.2, 42], [3, -31, roofTop + 1.2, -13], [4, 57, 1.2, 130], [5, X, 9.6, 130],
+      [6, 58, 1.2, -23], [7, -6, 1.2, 52]]) B.collect('rb.red', i, x, y, d);
+    B.star('rb.red', 6, 2.2, -8, setOf('rb.red').length < RED_N);
+
+    // --- trees round the edges, badges, clouds, other baseplates floating far off ---
+    for (const [x, d, s] of [[-34, 26, 1], [-35, 44, .9], [-34, 62, 1.1], [-35, 82, 1], [-33, 104, .9], [-34, 122, 1], [-8, 124, 1], [22, 124, .9], [54, 110, 1],
+      [56, 86, 1.1], [54, 66, .9], [56, 40, 1], [55, 10, 1], [24, 6, .9], [-22, 4, 1], [-14, -20, .9], [18, -22, 1], [-38, -22, .8]]) rbTree(B, x, d, s);
+    for (const [x, d] of [[-20, 100], [30, 76], [48, 24], [-30, 110], [16, 116]]) B.coinArc(x, 1.2, d - 2, d + 2, 3, .8);
+    for (let i = 0; i < 18; i++) B.cloud(-240 + R() * 480, 30 + R() * 30, -300 + R() * 420, 1 + R() * 1.4);
+    for (let i = 0; i < 10; i++) {
+      const a = i / 10 * Math.PI * 2 + R() * .3, r = 170 + R() * 90, x = Math.cos(a) * r + 10, z = Math.sin(a) * r - 60, y = -30 + R() * 50, s = 14 + R() * 20;
+      B.farBox(x, y, z, s * 2, 1.6, s * 2, 0x5cae4c); B.farBox(x, y - 2, z, s * 2, 2.4, s * 2, 0x6a707e);
+      B.farBox(x + s * .4, y + 3, z - s * .3, 3, 5, 3, [RBC.red, RBC.blue, RBC.yellow][i % 3]);
+    }
+  }
+
   const LEVELS = [
     { id: '1-1', name: 'Зелёные холмы', time: 300, seed: 11, killY: -12, music: 'hills', theme: 'grass', build: buildL1,
       sky: [[0, '#3d9be9'], [.55, '#8fd0ff'], [1, '#dff5ff']], fog: [0xd8f2ff, 60, 150], hemi: [0xeaf7ff, 0x6b8f4a, .78], sun: 0xfff3dc, glow: [0xfff6d8, .45] },
@@ -8413,6 +8911,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { n: 10, name: 'Танковый полигон', need: 0, levels: [], col: 0x5f8fd6, hub: 'tanks', where: 'Танковые врата на том же мысу, ближе к морю.' },
     { n: 11, name: 'Тёмный лес', need: 0, levels: [], col: 0x3f7a3a, hub: 'forest', where: 'Лесные врата на мысу, у моря.' },
     { n: 12, name: 'Дуэльная арена', need: 0, levels: [], col: 0xe0503a, hub: 'duels', where: 'Дуэльные врата на самом краю мыса, за Лесными.' },
+    { n: 13, name: 'Мир Роблокс', need: 0, levels: [], col: 0xf5cd30, hub: 'roblox', where: 'Роблокс-врата в самом конце мыса, за Дуэльными.' },
   ];
   const worldOf = (li) => WORLDS.findIndex((w) => w.levels.includes(li));
   const hubOfLevel = (li) => WORLDS[worldOf(li)].hub || 'island';
@@ -8597,6 +9096,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         { id: 'du.tower', name: 'Снайперская вышка', hint: 'Вышка у лобби: прыгай по площадкам вокруг неё до самого верха.' },
         { id: 'du.red', name: 'Красные значки', hint: 'Восемь красных значков: на арене, в ущелье, на вышке, за тиром…', prog: ['du.red', 8] },
       ] },
+    // the Roblox world: everything of studded bricks, every hero blocky (blocky), the obby, a tower, Color Block
+    roblox: { id: 'hub-roblox', key: 'roblox', name: 'Мир Роблокс', to: 'В Мир Роблокс', shop: 'Лавка кота Кубика', col: 0xf5cd30, hub: true, seed: 1301, killY: -30,
+      music: 'obby', theme: 'roblox', build: buildRoblox, scatter: 12, amb: 'birds', far: 320, blocky: true,
+      sky: [[0, '#2f8ff0'], [.55, '#8fcfff'], [1, '#e8f6ff']], fog: [0xdcefff, 130, 320], hemi: [0xffffff, 0x7a9a6a, .9], sun: 0xffffff, glow: [0xffffff, .45, true],
+      stars: [
+        { id: 'rb.obby', name: 'Обби', hint: 'Обби на западе: пройди все 12 этапов над пустотой. Красные светящиеся блоки не трогай!' },
+        { id: 'rb.tower', name: 'Башня Брика', hint: 'Башня на северо-востоке: прыгай по площадкам вокруг столба до самой вершины.' },
+        { id: 'rb.colors', name: 'Цветные плитки', hint: 'Диджей Блок на востоке: продержись восемь раундов в Цветных плитках.' },
+        { id: 'rb.coil', name: 'Небесная площадка', hint: 'Возьми гравитационную пружину у синей подставки на севере и допрыгни до небесной площадки.' },
+        { id: 'rb.race', name: 'Кольца Спидика', hint: 'Спидик у первого кольца к западу от точки появления. Скоростная пружина поможет!' },
+        { id: 'rb.noobs', name: 'Нубики', hint: 'Мама Нуби у домика на юго-западе ищет пятерых нубиков.', prog: ['rb.noobs', 5] },
+        { id: 'rb.red', name: 'Красные значки', hint: 'Восемь красных значков: в обби, на башне, над плитками, на крыше…', prog: ['rb.red', 8] },
+      ] },
   };
   // the Dark Forest's sky at night: stars and a pale moon
   const NIGHT_SKY = { id: 'hub-forest-night', seed: 1102, sky: [[0, '#04060e'], [.55, '#0b1224'], [1, '#1a2238']], stars: true, starN: 700,
@@ -8647,9 +9159,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // the island
       waters: [], falls: [], fountains: [], spinners: [], portals: [], pads: [], stars: [], lost: [], setItems: [], raceRings: [], buttons: [], magic: [], digs: [], paths: [],
       sands: [], lavas: [], switches: [], rocket: null, course: null, perches: [], cupRings: [], hearts: [], meteors: [],
+      // the Roblox world
+      kills: [], trusses: [], fades: [], jpads: [], givers: [],
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
-    resetIsland();
+    resetIsland(); RB_BITS.length = 0;
     const B = makeBuilder(def.seed);
     def.build(B);
     B.finish();
@@ -8691,6 +9205,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     crag: { weather: 'wisps', amb: 'wind', dust: 0xe4e0ee },
     dirt: { weather: 'pollen', amb: 'birds', dust: 0xd6c09a },
     forest: { weather: 'motes', amb: 'forest', dust: 0x9a8a66 },
+    // the Roblox world, and its baseplate's dust
+    roblox: { weather: null, amb: 'birds', dust: 0xe4e6ea }, studs: { weather: null, amb: 'birds', dust: 0xe4e6ea },
   };
 
   // ================= game state =================
@@ -9592,8 +10108,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     Snd.sfx.cp(); popup('ЧЕКПОИНТ', c.x, c.y + 3.2, c.z, 'gold'); P.happyT = .7;
     emit(c.x + .5, c.y + 2.3, c.z, 0x6ff28a, 16, 4, 1, 5, .6); glow(c.x + .5, c.y + 2.3, c.z, 0xb8ffc8, 14, 3, 1, 1, .7, .3); wave(c.x, c.y, c.z, 0x6ff28a, 2.2, .45);
   }
-  function markCheckpoint(c) { if (!c) return; c.reached = true; c.flag.material.color.setHex(0x3fcf5a); c.flag.position.y = c.y + 2.35; }
-  function cpSpawn(c) { return { x: c.x + 1.3, y: c.y, z: c.z }; }
+  function markCheckpoint(c) { if (!c) return; c.reached = true; c.flag.material.color.setHex(0x3fcf5a); if (!c.pad) c.flag.position.y = c.y + 2.35; }
+  function cpSpawn(c) { return c.pad ? { x: c.x, y: c.y, z: c.z } : { x: c.x + 1.3, y: c.y, z: c.z }; } // (a spawn pad: right on it)
 
   // ================= effects =================
   function fxCoin(x, y, z) {
@@ -9716,7 +10232,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // how many extra jumps in the air: the dino gives one, a ride its own, the spring boots one; on the moon the air tank's jets one more
   const airBase = () => (P.riding ? 1 : P.veh ? P.veh.air : perkOn('boots') ? 1 : 0) + (L.def.suit && !P.veh ? 1 : 0);
   // the moon pulls less: gravity and jumps are scaled so a jump goes up about twice as high and hangs in the air
-  const gravK = () => L.def.grav || 1;
+  const gravK = () => (L.def.grav || 1) * (coilOn('grav') ? .42 : 1); // (and the Roblox world's gravity coil)
   const jumpK = () => (L.def.grav ? .86 : 1);
   // a ride's top speed right now: the jet ski is fast on water, the snowboard on snow, ice and sand, the skis on snow and ice
   // (kept through a jump)
@@ -9844,7 +10360,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (P.swim) acc = mag > .01 ? 14 : 5;
       if (P.sand) acc = 12;
       if (slide && !grip) acc = mag > .01 ? 10 : 2.5;
-      let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1);
+      let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1) * (coilOn('speed') ? 1.55 : 1);
       if (slide) spdMax = Math.max(spdMax, 14); // steering down a slide must not brake it
       if (gunOn()) spdMax *= gunSpeedK(); // slower through a scope and with a spinning minigun
       let tx = wx, tz = wz;
@@ -9942,7 +10458,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     else {
       let grav = GRAV * gravK();
       if (P.vel.y > 0 && !jumpHeld() && !P.noCut) grav *= 2.3;
-      P.vel.y = Math.max(P.vel.y - grav * dt, TERM * (L.def.grav ? .6 : 1));
+      P.vel.y = Math.max(P.vel.y - grav * dt, TERM * (L.def.grav || coilOn('grav') ? .6 : 1));
       if (V && V.glide && P.vel.y < -2.6 && jumpHeld()) P.vel.y = -2.6; // the cloud glides while the jump is held
       if (V && V.hover && P.vel.y < -3.4) P.vel.y = -3.4; // the UFO never drops fast
       if (P.wallSlide) {
@@ -9950,6 +10466,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (Math.random() < dt * 14) puff(P.pos.x - P.wallN.x * HW, P.pos.y + .3, P.pos.z - P.wallN.z * HW, 0xe9e4d8, 1, .4, .6, .4, .45);
       }
       fanLift(dt);
+      if (L.trusses.length) trussClimb(dt, wx, wz, mag);
     }
 
     P.onGround = false; P.ground = null;
@@ -10033,7 +10550,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (ISL.cp === c || Math.hypot(P.pos.x - c.x, P.pos.z - c.z) > 2 || Math.abs(P.pos.y - c.y) > 2.5) continue;
         ISL.cp = c;
         if (c.reached) continue;
-        markCheckpoint(c); Snd.sfx.cp(); popup('ФЛАЖОК', c.x, c.y + 3.2, c.z, 'gold'); P.happyT = .7;
+        markCheckpoint(c); Snd.sfx.cp(); popup(c.stage ? 'ЭТАП ' + c.stage : c.pad ? 'ТОЧКА ПОЯВЛЕНИЯ' : 'ФЛАЖОК', c.x, c.y + 3.2, c.z, 'gold'); P.happyT = .7;
+        if (c.stage) rbStageReached(c);
         emit(c.x + .5, c.y + 2.3, c.z, 0x6ff28a, 16, 4, 1, 5, .6); wave(c.x, c.y, c.z, 0x6ff28a, 2.2, .45);
       }
       return;
@@ -10584,7 +11102,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     ntSkill: { wood: 0, hunt: 0, pack: 0, brave: 0 },
     // the Duel Arena: the guns bought and the set taken into a duel (main, spare, close combat, special), the next arena
     // opponent, the arena duels won, the sniper duels won, the opponents beaten at least once
-    guns: ['sniper', 'rifle', 'revolver', 'katana', 'grenade'], load: ['sniper', 'revolver', 'katana', 'grenade'], duLad: 0, duWins: 0, duSn: 0, duBeat: [] });
+    guns: ['sniper', 'rifle', 'revolver', 'katana', 'grenade'], load: ['sniper', 'revolver', 'katana', 'grenade'], duLad: 0, duWins: 0, duSn: 0, duBeat: [],
+    // the Roblox world: the furthest obby stage reached, the most Color Block rounds lasted
+    rbStage: 0, rbCb: 0 });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
   // older saves: the island's red badges and froglets had lists of their own, and the turquoise cap was the default
   if (SAVE.red) { SAVE.sets.red = SAVE.red; delete SAVE.red; }
@@ -10615,7 +11135,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const ISL = {};
   function resetIsland() {
     Object.assign(ISL, { trail: [], lost: null, sets: {}, race: null, clears: [], switches: null, magicT: 0, cp: null, deliveries: [], chases: [], beacons: null, carry: null,
-      surv: null, cup: null, tb: null, nt: null, ft: null });
+      surv: null, cup: null, tb: null, nt: null, ft: null, rb: null, cb: null });
   }
   resetIsland();
   function awardStar(id) {
@@ -12432,6 +12952,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function questTrack() {
     const du = duelTrack(); if (du) return du;
     if (FT) return null; // a duel shows its own panel at the top
+    if (cbOn()) {
+      const C = ISL.cb;
+      return ['Цветные плитки · раунд ' + Math.max(1, C.round), C.phase === 'pick' ? 'Беги на ' + CB_COLS[C.ci][1] + '!' : C.phase === 'count' ? 'Приготовься!' : C.phase === 'drop' ? 'Держись!' : 'Следующий раунд…'];
+    }
     if (survOn()) {
       const S = ISL.surv, hearts = '❤'.repeat(S.hearts) + '♡'.repeat(Math.max(0, S.max - S.hearts));
       return [S.phase === 'count' ? 'Выживание' : S.phase === 'rest' ? 'Передышка · волна ' + (S.wave + 1) + ' скоро' : 'Выживание · волна ' + S.wave, hearts + ' · прогнано ' + S.kills];
@@ -12463,6 +12987,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function challengeLeft() {
     const dc = duelClock(); if (dc !== null) return dc;
     if (FT) return FT.phase === 'fight' ? Math.max(0, FT.left) : null; // the round's time
+    if (cbOn()) return ISL.cb.phase === 'pick' ? Math.max(0, ISL.cb.t) : null;
     if (survOn()) return Math.max(0, ISL.surv.t);
     if (tbOn()) return ISL.tb.phase === 'wave' || ISL.tb.won ? null : Math.max(0, ISL.tb.t); // the wait for the next wave
     if (cupOn()) return ISL.cup.phase === 'run' ? ((ISL.cup.fin || performance.now() - ISL.cup.runAt)) / 1000 : null;
@@ -13546,6 +14071,339 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const d = Math.hypot(dn.x - P.pos.x, dn.z - P.pos.z); if (d > 5 && d < bd) { bd = d; best = dn; }
     }
     return best;
+  }
+
+  // ================= the Roblox world =================
+  // Everything is bricks: the obby (stages with spawn pads, kill bricks, trusses, fading bricks, a launch pad), Brick's
+  // tower, the gear givers (the gravity coil, the speed coil), Color Block. Heroes are blocky here, and a kill brick or
+  // the void makes one fall apart into its blocks with an "oof" and come back on the last spawn pad touched.
+  const RB_STAGES = 12, RB_OOF_Y = -7, CLIMB_V = 5.2, FADE_T = .6, FADE_BACK = 3;
+  // the gear: the gravity coil lets the hero jump more than twice as high and fall slowly, the speed coil runs faster
+  class Helix extends T.Curve { getPoint(t, out = new T.Vector3()) { const a = t * Math.PI * 10; return out.set(Math.cos(a) * .06, t * .26 - .13, Math.sin(a) * .06); } }
+  const COIL_GEO = shared(new T.TubeGeometry(new Helix(), 90, .012, 6, false));
+  const RB_COILS = {
+    grav: { name: 'Гравитационная пружина', sub: 'Прыгаешь выше, падаешь медленно', col: 0x3f7fff,
+      mat: std({ color: 0x5a8fff, emissive: 0x1a3aa0, emissiveIntensity: .6, metalness: .5, roughness: .3 }) },
+    speed: { name: 'Скоростная пружина', sub: 'Бегаешь в полтора раза быстрее', col: 0xe8392b,
+      mat: std({ color: 0xff4a3a, emissive: 0x901a10, emissiveIntensity: .6, metalness: .5, roughness: .3 }) },
+  };
+  const coilOn = (k) => !!(L && L.def.blocky && ISL.rb && ISL.rb.coil === k && !P.veh);
+  // the spawn mark on a pad: a ring with a little figure in it, or the stage's number
+  const SPAWN_TEX = {};
+  function spawnTex(stage) {
+    if (SPAWN_TEX[stage]) return SPAWN_TEX[stage];
+    const c = document.createElement('canvas'); c.width = c.height = 128;
+    const g = c.getContext('2d'); g.strokeStyle = g.fillStyle = '#ffffff'; g.lineWidth = 9;
+    g.beginPath(); g.arc(64, 64, 52, 0, Math.PI * 2); g.stroke();
+    if (stage) { g.font = '900 62px Rubik, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(stage), 64, 67); }
+    else { g.beginPath(); g.arc(64, 43, 13, 0, Math.PI * 2); g.fill(); g.fillRect(46, 62, 36, 30); g.fillRect(40, 62, 48, 12); }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = maxAniso;
+    return (SPAWN_TEX[stage] = t);
+  }
+  // a board on a post in the Roblox world's own style: flat, dark, white letters
+  function rbSignTex(lines, bg = '#2b2f3a', fg = '#ffffff') {
+    const c = document.createElement('canvas'); c.width = 512; c.height = 192;
+    const g = c.getContext('2d');
+    g.fillStyle = bg; g.fillRect(0, 0, 512, 192); g.strokeStyle = 'rgba(255, 255, 255, .85)'; g.lineWidth = 10; g.strokeRect(10, 10, 492, 172);
+    g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const fs = lines.length > 1 ? 56 : 76;
+    g.font = `900 ${fs}px Rubik, system-ui, sans-serif`;
+    lines.forEach((ln, i) => g.fillText(ln, 256, 96 + (i - (lines.length - 1) / 2) * fs * 1.12, 470));
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = maxAniso; return t;
+  }
+  function rbSign(B, x, top, d, lines, yaw = 0, w = 2.6, bg) {
+    const h = w * .375, c = Math.cos(yaw), s = Math.sin(yaw);
+    B.brick(x - .15, x + .15, d - .15, d + .15, top, top + 1.2 + h, 0x5a5f6e);
+    const board = new T.Mesh(BOX, std({ color: 0x3a3f4a, roughness: .7 })); board.scale.set(w + .16, h + .16, .12);
+    board.position.set(x + s * .22, top + 1.3 + h / 2, -d + c * .22); board.rotation.y = yaw; board.castShadow = true; L.group.add(board); // (in front of the post)
+    const face = new T.Mesh(RB_PLANE, std({ map: rbSignTex(lines, bg), roughness: .7 })); face.scale.set(w, h, 1);
+    face.position.set(x + s * .285, top + 1.3 + h / 2, -d + c * .285); face.rotation.y = yaw; L.group.add(face);
+  }
+
+  // ---------- falling apart: a kill brick, the void ----------
+  const RB_BITS = [];
+  const _rbC = new T.Vector3(), _rbM = new T.Matrix4();
+  // each block of a blocky hero flies off on its own, bounces, lies there a while and is gone
+  function rbBreak(h) {
+    const B = h.blocky;
+    if (!B || !B.on || !h.root.visible) return;
+    h.root.updateMatrixWorld(true);
+    h.torso.getWorldPosition(_rbC);
+    const face = B.faces.find((f) => f.visible);
+    for (const o of B.parts) {
+      const m = new T.Mesh(o.geometry, o.material); o.matrixWorld.decompose(m.position, m.quaternion, m.scale); m.castShadow = true; L.group.add(m);
+      if (o === B.head && face) { const f = new T.Mesh(face.geometry, face.material); _rbM.copy(o.matrix).invert().multiply(face.matrix).decompose(f.position, f.quaternion, f.scale); m.add(f); }
+      const dx = m.position.x - _rbC.x, dz = m.position.z - _rbC.z, dl = Math.hypot(dx, dz) || 1, k = 1.4 + Math.random() * 2.2;
+      RB_BITS.push({ m, s0: m.scale.clone(), vx: dx / dl * k + (Math.random() - .5) * 1.6, vy: 2 + Math.random() * 3.5, vz: dz / dl * k + (Math.random() - .5) * 1.6,
+        rx: (Math.random() - .5) * 10, rz: (Math.random() - .5) * 10, hh: o.geometry === RB_HEAD ? .9 * m.scale.y : .5 * Math.max(m.scale.x, m.scale.y, m.scale.z), t: 3.4 });
+    }
+  }
+  function updateBits(dt) {
+    for (let i = RB_BITS.length - 1; i >= 0; i--) {
+      const b = RB_BITS[i], m = b.m;
+      b.t -= dt;
+      if (b.t <= 0 || m.parent !== L.group || m.position.y < -40) { if (m.parent) m.parent.remove(m); RB_BITS.splice(i, 1); continue; }
+      b.vy -= 28 * dt;
+      m.position.x += b.vx * dt; m.position.y += b.vy * dt; m.position.z += b.vz * dt;
+      const gy = groundAt(m.position.x, m.position.z, m.position.y, 0);
+      if (m.position.y - b.hh < gy) {
+        m.position.y = gy + b.hh;
+        b.vy = b.vy < -2.5 ? -b.vy * .3 : 0; b.vx *= .55; b.vz *= .55; b.rx *= .45; b.rz *= .45;
+      }
+      m.rotation.x += b.rx * dt; m.rotation.z += b.rz * dt;
+      if (b.t < .4) m.scale.copy(b.s0).multiplyScalar(b.t / .4);
+    }
+  }
+  function rbOof() {
+    if (G.state !== 'playing') return;
+    G.state = 'dying'; G.dieKind = 'oof'; G.stateT = 0;
+    P.pound = null; P.spinT = 0; endChain(); P.vel.set(0, 0, 0); P.shield = false; P.swim = false; P.dive = false;
+    Snd.sfx.oof(); popup('Уф!', P.pos.x, P.pos.y + PH + .8, P.pos.z, 'gold');
+    rbBreak(hero); hero.root.visible = false;
+    if (cbOn()) cbEnd('fall');
+  }
+  // the blue pad at the obby's start takes the hero on to the furthest stage he has reached (Roblox keeps your stage)
+  function rbContinue() {
+    const n = SAVE.rbStage, c = L.checkpoints.find((k) => k.stage === n);
+    if (n < 2 || !c) { popup('Начни с первого этапа!', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
+    rbTeleport(cpSpawn(c), c.face); ISL.cp = c;
+    for (const k of L.checkpoints) if (k.stage && k.stage <= n && !k.reached) markCheckpoint(k);
+    toast('Этап ' + n, n >= RB_STAGES ? 'Финиш обби' : 'Продолжаем обби!');
+  }
+  function rbHome() { rbTeleport(L.start, Math.PI); ISL.cp = L.checkpoints.find((k) => k.pad && !k.stage) || null; toast(L.def.name, 'Назад к точке появления'); }
+  function rbTeleport(pt, face) {
+    puff(P.pos.x, P.pos.y + .8, P.pos.z, 0xffffff, 10, 2, .6, .5, 1); Snd.sfx.portal(); G.flash = .4; G.flashCol = '#ffffff';
+    placePlayer(pt, face); updateCam(0, true);
+  }
+  // a spawn pad with a stage number: the furthest one is kept, the last one is the finish
+  function rbStageReached(c) {
+    if (c.stage > SAVE.rbStage) { SAVE.rbStage = c.stage; saveGame(); }
+    if (c.stage === RB_STAGES) {
+      toast('Обби пройдено!', 'Все ' + RB_STAGES + ' этапов! Звезда рядом'); Snd.sfx.clear();
+      for (let i = 0; i < 4; i++) glow(c.x + (Math.random() - .5) * 4, c.y + 3 + Math.random() * 2, c.z + (Math.random() - .5) * 4, [0xff5a3d, 0xffd23f, 0x8ff3ff, 0x9dff7a][i], 30, 6, 0, 3, 1.2, .35);
+    }
+  }
+  // climbing a truss: walking into one lifts the hero up it; past its top he steps off onto whatever is there
+  function trussClimb(dt, wx, wz, mag) {
+    if (mag < .3 || P.veh || P.riding || P.pound) return;
+    const p = P.pos, r = HW + .16;
+    for (const t of L.trusses) {
+      if (p.x + r < t.min.x || p.x - r > t.max.x || p.z + r < t.min.z || p.z - r > t.max.z || p.y > t.max.y - .02 || p.y + PH < t.min.y + .2) continue;
+      const nx = clamp(p.x, t.min.x, t.max.x) - p.x, nz = clamp(p.z, t.min.z, t.max.z) - p.z, nl = Math.hypot(nx, nz);
+      if (nl > 1e-4 && (wx * nx + wz * nz) / (nl * mag) < .35) continue; // walking along it or away from it
+      if (Math.random() < dt * 4) Snd.at(p.x, p.y + 1, p.z).stroke();
+      P.vel.y = Math.max(P.vel.y, CLIMB_V); P.climbT = .15; P.airJumps = airBase(); P.noCut = true;
+      return;
+    }
+  }
+  // up a truss, hand over hand
+  function climbPose(t) {
+    const c = Math.sin(time * 10);
+    t.shLx = -2.6 + c * .45; t.shRx = -2.6 - c * .45; t.shLz = t.shRz = .15; t.elL = t.elR = -.6;
+    t.hipL = -.7 - c * .35; t.hipR = -.7 + c * .35; t.kneeL = 1.1 + c * .3; t.kneeR = 1.1 - c * .3; t.lean = .1;
+  }
+  // the coil in the hero's free hand while he has one
+  function rbCoilShow() {
+    const k = ISL.rb ? ISL.rb.coil : '', on = !!k && !P.veh && G.state !== 'dying' && hero.root.visible;
+    if (!hero.coil) {
+      if (!on) return;
+      hero.coil = new T.Mesh(COIL_GEO, RB_COILS.grav.mat); hero.coil.position.set(0, -.14, .07); hero.coil.scale.setScalar(1.7); hero.coil.castShadow = true;
+      hero.arms[1].wr.add(hero.coil);
+    }
+    hero.coil.visible = on;
+    if (on) hero.coil.material = RB_COILS[k].mat;
+  }
+  function updateRoblox(dt) {
+    MAT.neon.emissiveIntensity = .9 + Math.sin(time * 4) * .3;
+    updateBits(dt);
+    for (const k of L.kills) {
+      if (k.m) {
+        const o = Math.sin(time * Math.PI * 2 / k.period + k.phase) * k.range, x = k.hx + (k.axis === 'x' ? o : 0), z = k.hz - (k.axis === 'd' ? o : 0);
+        k.m.position.x = x; k.m.position.z = z; k.min.x = x - k.hw; k.max.x = x + k.hw; k.min.z = z - k.hd; k.max.z = z + k.hd;
+      } else if (k.spin) k.spin.rotation.y = time * k.speed;
+    }
+    for (const s of L.fades) {
+      if (s.gone > 0) {
+        s.gone -= dt;
+        if (s.gone > 0) continue;
+        if (overlapP(s, P.pos.x, P.pos.y, P.pos.z)) { s.gone = .3; continue; }
+        s.active = true; s.mesh.visible = true; s.mesh.material.opacity = 1; s.fadeT = 0;
+        continue;
+      }
+      if (!s.fadeT && P.onGround && P.ground === s && G.state === 'playing') { s.fadeT = 1e-4; Snd.at(P.pos.x, P.pos.y, P.pos.z).blip(); }
+      if (s.fadeT > 0) {
+        s.fadeT += dt; s.mesh.material.opacity = 1 - .8 * s.fadeT / FADE_T;
+        if (s.fadeT >= FADE_T) { s.active = false; s.mesh.visible = false; s.gone = FADE_BACK; if (P.ground === s) { P.onGround = false; P.ground = null; } }
+      }
+    }
+    for (const s of L.jpads) { s.sq = Math.max(0, s.sq - dt * 2.5); s.jpad.scale.y = .08 + s.sq * .14; s.jpad.material.emissiveIntensity = 1.1 + s.sq * 2.5 + Math.sin(time * 5) * .25; }
+    for (const g of L.givers) {
+      g.m.rotation.y += dt * 2; g.m.position.y = g.y + .5 + Math.sin(time * 2 + g.x) * .08;
+      g.m.visible = ISL.rb.coil !== g.kind;
+      const dh = Math.hypot(P.pos.x - g.x, P.pos.z - g.z);
+      if (dh > 2.4) { g.armed = true; continue; } // (a jump beside it does not count as coming again)
+      if (dh > 1.4 || Math.abs(P.pos.y + .5 - g.y) > 2 || !g.armed || G.state !== 'playing') continue;
+      g.armed = false;
+      const C = RB_COILS[g.kind];
+      if (ISL.rb.coil === g.kind) { ISL.rb.coil = ''; popup('Пружина на месте', g.x, g.y + 1.6, g.z, 'gold'); Snd.sfx.ui(); continue; }
+      ISL.rb.coil = g.kind; popup(C.name + '!', g.x, g.y + 1.8, g.z, 'gold'); toast(C.name, C.sub + '. Подойди ещё раз, чтобы вернуть');
+      Snd.sfx.coil(); glow(g.x, g.y + .6, g.z, C.col, 16, 3, 1, 3, .5, .28);
+    }
+    rbCoilShow();
+    if (ISL.cb) cbUpdate(dt);
+    if (G.state !== 'playing') return;
+    // a touch of a kill brick, or a fall into the void, and the hero falls apart
+    const p = P.pos;
+    if (p.y < RB_OOF_Y) { rbOof(); return; }
+    for (const k of L.kills) {
+      if (k.spin) {
+        if (p.y > k.y + .2 || p.y + PH < k.y - .2) continue;
+        const a = time * k.speed, ux = Math.cos(a), uz = -Math.sin(a), dx = p.x - k.x, dz = p.z - k.z, along = clamp(dx * ux + dz * uz, -k.len, k.len);
+        if (Math.hypot(dx - ux * along, dz - uz * along) < HW + .15) { rbOof(); return; }
+      } else if (p.x + HW > k.min.x && p.x - HW < k.max.x && p.z + HW > k.min.z && p.z - HW < k.max.z && p.y < k.max.y && p.y + PH > k.min.y) { rbOof(); return; }
+    }
+  }
+
+  // ---------- Color Block ("Цветные плитки"): a colour is called, and every tile of another colour drops away ----------
+  const CB_COLS = [[0xe8392b, 'красный'], [0x2d7cf0, 'синий'], [0xf5cd30, 'жёлтый'], [0x3fbf4a, 'зелёный'], [0xa052e0, 'фиолетовый'], [0xff8a1f, 'оранжевый']];
+  const CB_N = 6, CB_TILE = 4, CB_STAR = 8, CB_MAX = 15;
+  // the other players on the server: bots with Roblox-ish names, some quicker and surer than others
+  const CB_BOTS = [
+    { name: 'Бекон', look: { skin: 'classic', cap: 'auto', hat: '' }, skill: .4 },
+    { name: 'Нуб2016', look: { skin: 'noob', cap: 'auto', hat: '' }, skill: .25 },
+    { name: 'ПроИгрок', look: { skin: 'ninja', cap: 'black', hat: '' }, skill: .8 },
+    { name: 'Гость 777', look: { skin: 'robo', cap: 'auto', hat: '' }, skill: .5 },
+    { name: 'Кексик', look: { skin: 'candy', cap: 'auto', hat: '' }, skill: .62 },
+  ];
+  const cbOn = () => !!(ISL.cb && ISL.cb.on);
+  // the tiles' colours: in diagonal stripes while nobody plays, shuffled for a round (each colour six times)
+  function cbPaint(C, pattern) {
+    const cis = [];
+    for (let i = 0; i < CB_N * CB_N; i++) cis.push(i % CB_COLS.length);
+    for (let i = cis.length - 1; i > 0 && !pattern; i--) { const j = (Math.random() * (i + 1)) | 0; [cis[i], cis[j]] = [cis[j], cis[i]]; }
+    C.tiles.forEach((s, i) => {
+      s.ci = pattern ? (Math.floor(i / CB_N) + i % CB_N) % CB_COLS.length : cis[i];
+      s.mesh.material.color.setHex(CB_COLS[s.ci][0]); s.active = true; s.mesh.visible = true;
+    });
+  }
+  function cbTileAt(C, x, z) {
+    const i = Math.floor((x - C.x0) / CB_TILE), j = Math.floor((-z - C.d0) / CB_TILE);
+    return i >= 0 && j >= 0 && i < CB_N && j < CB_N ? C.tiles[i * CB_N + j] : null;
+  }
+  function cbBoard(C, col) { C.board.material.color.setHex(col); C.board.material.emissive.setHex(col); }
+  function cbStart() {
+    const C = ISL.cb;
+    if (!C || C.on) return;
+    Snd.init(); hideResult();
+    Object.assign(C, { on: true, round: 0, phase: 'count', t: 3.2, tick: 4, ci: -1, back: null });
+    cbPaint(C, true); cbBoard(C, 0xffffff);
+    const cx = (C.x0 + C.x1) / 2, cz = (C.z0 + C.z1) / 2;
+    placePlayer({ x: cx - 2, y: 0, z: cz + 2 }, Math.PI); updateCam(0, true);
+    C.bots = CB_BOTS.map((def, i) => { const a = i / CB_BOTS.length * Math.PI * 2 + .5; return cbBotMake(C, i, def, cx + Math.cos(a) * 7, cz + Math.sin(a) * 7); });
+    Snd.startMusic('race'); toast('Цветные плитки', 'Беги на плитку того цвета, что загорится на табло!');
+    npcSay(C.host, 'Поехали! Смотри на табло!');
+  }
+  function cbRound(C) {
+    C.round++; cbPaint(C, false);
+    let ci; do ci = (Math.random() * CB_COLS.length) | 0; while (ci === C.ci);
+    C.ci = ci; C.phase = 'pick'; C.t = Math.max(1.7, 4.5 - C.round * .22);
+    cbBoard(C, CB_COLS[ci][0]);
+    toast('Раунд ' + C.round, 'Беги на ' + CB_COLS[ci][1].toUpperCase() + '!'); Snd.sfx.press();
+    for (const b of C.bots) if (b.state === 'in') cbBotPick(C, b);
+  }
+  function cbDrop(C) {
+    C.phase = 'drop'; C.t = 2.2;
+    for (const s of C.tiles) if (s.ci !== C.ci) { s.active = false; s.mesh.visible = false; }
+    Snd.sfx.tiles(); G.shake = Math.max(G.shake, .15);
+  }
+  // the hero is still on a tile after the drop: the round is his (had he fallen, the game would be over already)
+  function cbSurvived(C) {
+    if (C.round > SAVE.rbCb) { SAVE.rbCb = C.round; saveGame(); }
+    if (C.round === CB_STAR && !questDone('rb.colors')) { revealStar('rb.colors', C.host.x, C.host.y + 2, C.host.z); npcSay(C.host, 'Восемь раундов! Звезда твоя!'); }
+    if (C.round >= CB_MAX) { cbEnd('win'); return; }
+    popup('Раунд ' + C.round + '!', P.pos.x, P.pos.y + PH + 1, P.pos.z, 'gold');
+    C.phase = 'rest'; C.t = 1.1;
+    for (const s of C.tiles) { s.active = true; s.mesh.visible = true; }
+    cbBoard(C, 0xffffff);
+  }
+  function cbUpdate(dt) {
+    const C = ISL.cb;
+    C.board.material.emissiveIntensity = C.on ? .9 + Math.sin(time * 6) * .3 : .3;
+    if (!C.on) return;
+    for (const b of C.bots) cbBot(C, b, dt);
+    C.t -= dt;
+    if (C.phase === 'count') {
+      const k = Math.ceil(C.t);
+      if (k < C.tick && k >= 1 && k <= 3) { C.tick = k; toast(String(k), 'Цветные плитки'); Snd.sfx.tock(false); }
+      if (C.t <= 0) cbRound(C);
+    } else if (C.phase === 'pick') { if (C.t <= 0) cbDrop(C); }
+    else if (C.phase === 'drop') { if (C.t <= 0) cbSurvived(C); }
+    else if (C.t <= 0) cbRound(C);
+    // stepping off the square is out too
+    if (C.on && G.state === 'playing' && P.onGround && P.pos.y > -1 && (P.pos.x < C.x0 - .3 || P.pos.x > C.x1 + .3 || P.pos.z < C.z0 - .3 || P.pos.z > C.z1 + .3)) cbEnd('left');
+  }
+  function cbEnd(why) {
+    const C = ISL.cb;
+    if (!C || !C.on) return;
+    C.on = false; C.phase = 'idle';
+    const lived = why === 'win' ? C.round : Math.max(0, C.round - 1);
+    if (why === 'fall') C.back = { x: C.x0 + 16, y: 0, z: C.z1 + 5, face: Math.PI }; // beside the square, off the red pad (or it would start again)
+    const rows = [['★', netName(), why === 'win' ? 'все раунды' : 'раундов: ' + lived, true]];
+    for (const b of C.bots) { rows.push([b.state === 'out' ? '✗' : '✓', b.def.name, b.state === 'out' ? 'раундов: ' + Math.max(0, b.out - 1) : 'ещё на поле', false]); b.rig.root.visible = false; }
+    C.bots = [];
+    cbPaint(C, true); cbBoard(C, 0xffffff);
+    Snd.startMusic(L.def.music);
+    showResult({ head: 'Цветные плитки · итоги', big: why === 'win' ? 'Победа! Все ' + CB_MAX + ' раундов!' : why === 'left' ? 'Ты ушёл с поля' : lived ? 'Раундов: ' + lived : 'Эх, в первом же раунде!',
+      rows, yes: 'Ещё раз', onYes: cbStart });
+  }
+  function cbBotMake(C, i, def, x, z) {
+    let h = C.pool[i];
+    if (!h) { h = C.pool[i] = buildHero(); L.group.add(h.root); dressHero(h, def.look, false, false); }
+    h.root.visible = true; h.root.position.set(x, 0, z);
+    return { def, rig: h, x, y: 0, z, vy: 0, tx: x, tz: z, wait: 0, spd: 0, face: Math.random() * 6, state: 'in', out: 0, J: {}, T: null, anim: 0, moving: false };
+  }
+  // a bot runs for the nearest tile of the colour called, after a moment to think; from the third round on, now and then
+  // (more often in the fast rounds, and the weaker it plays) it runs for a wrong one
+  function cbBotPick(C, b) {
+    const s = b.def.skill, miss = C.round > 2 && Math.random() < Math.min(.5, .02 + C.round * .045 * (1.1 - s));
+    let best = null, bd = Infinity;
+    for (const t of C.tiles) {
+      if ((t.ci === C.ci) === miss) continue;
+      const cx = (t.min.x + t.max.x) / 2, cz = (t.min.z + t.max.z) / 2, d = Math.hypot(cx - b.x, cz - b.z) + Math.random() * 3;
+      if (d < bd) { bd = d; best = t; }
+    }
+    b.tx = (best.min.x + best.max.x) / 2 + (Math.random() - .5) * 2; b.tz = (best.min.z + best.max.z) / 2 + (Math.random() - .5) * 2;
+    b.wait = .2 + Math.random() * (1 - s * .6); b.spd = 3.6 + s * 3;
+  }
+  function cbBot(C, b, dt) {
+    const h = b.rig;
+    if (b.state === 'out') return;
+    const t = cbTileAt(C, b.x, b.z);
+    if (b.state === 'in' && !(t && t.active)) { b.state = 'fall'; b.vy = 0; }
+    if (b.state === 'fall') {
+      b.vy -= 30 * dt; b.y += b.vy * dt;
+      if (b.y < -3.5) {
+        b.state = 'out'; b.out = C.round; rbBreak(h); h.root.visible = false;
+        Snd.at(b.x, b.y, b.z).oof(); popup(b.def.name + ': уф!', b.x, .8, b.z, 'gold');
+      }
+    } else {
+      b.wait -= dt;
+      const dx = b.tx - b.x, dz = b.tz - b.z, d = Math.hypot(dx, dz);
+      b.moving = b.wait <= 0 && d > .15 && C.phase === 'pick';
+      if (b.moving) { const v = Math.min(b.spd, d * 5); b.x += dx / d * v * dt; b.z += dz / d * v * dt; b.face = angleDamp(b.face, Math.atan2(dx, dz), 12, dt); }
+      b.x = clamp(b.x, C.x0 + .4, C.x1 - .4); b.z = clamp(b.z, C.z0 + .4, C.z1 - .4);
+    }
+    // the pose: running, standing about, arms up in a fall
+    h.root.position.set(b.x, b.y, b.z); h.root.rotation.y = b.face;
+    const T0 = b.T || (b.T = Object.assign({}, POSE0));
+    for (const k in POSE0) T0[k] = POSE0[k];
+    if (b.state === 'fall') { T0.shLx = T0.shRx = -2.8; T0.hipL = -.5; T0.kneeL = 1; T0.hipR = .2; T0.kneeR = .6; }
+    else if (b.moving) {
+      b.anim += dt * (2.4 + b.spd * 1.7);
+      const s = Math.sin(b.anim), c = Math.cos(b.anim);
+      T0.hipL = s * .8; T0.hipR = -s * .8; T0.kneeL = .2 + 1.2 * Math.max(0, -c); T0.kneeR = .2 + 1.2 * Math.max(0, c); T0.shLx = -s * .7; T0.shRx = s * .7; T0.bob = Math.abs(c) * .08;
+    }
+    rigPose(h, b.J, T0, dt, 18);
   }
 
   // ================= the guns, and the Duel Arena's bots and duels =================
@@ -14721,6 +15579,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     h.hips.position.set(0, .52 - drop + J.bob, 0); h.hips.rotation.y = J.hipsY;
     h.torso.rotation.set(J.torsoX, J.twist, J.torsoZ);
     h.head.rotation.set(J.headX, J.headY, J.headZ);
+    blockyFace(h);
   }
   // a sniper's scope glinting in the sun: a flare that keeps its size on the screen (slot 0: the bot; 1…: friends)
   const glints = [];
@@ -15033,11 +15892,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
       const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
       if (!inside) pd.armed = true;
-      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT) {
+      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT && !cbOn()) {
         pd.armed = false;
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
         else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
         else if (pd.kind === 'craft') ntCraftPad();
+        else if (pd.kind === 'cb') cbStart(); else if (pd.kind === 'rbwarp') rbContinue(); else if (pd.kind === 'rbhome') rbHome();
         else if (pd.kind === 'duel' || pd.kind === 'snipe') ftStart(pd.kind === 'duel' ? 'arena' : 'snipe');
       }
     }
@@ -15049,7 +15909,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!inside) { pt.armed = true; continue; }
       if (!pt.armed || G.state !== 'playing') continue;
       pt.armed = false;
-      const busy = duelOn() || survOn() || cupOn() || tbOn() || !!FT; // a game with friends (or the survival game, the cup, a tank battle, a duel) keeps everyone in this world until it is over
+      const busy = duelOn() || survOn() || cupOn() || tbOn() || !!FT || cbOn(); // a game with friends (or the survival game, the cup, a tank battle, a duel) keeps everyone in this world until it is over
       if (open && !busy) { enterGate(pt); continue; }
       P.vel.set(pt.nx * 7, 7, pt.nz * 7); P.onGround = false; P.noCut = true; G.shake = Math.max(G.shake, .2);
       Snd.sfx.locked();
@@ -15195,6 +16055,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { id: 'chicken', name: 'Чикен Ган', price: 0, sub: 'Бесплатно! Белые перья, гребешок, клюв и хвост', sw: [0xffffff, 0xe8352a],
       shirt: 0xffffff, over: 0xf4f1ea, scarf: 0xe8352a, scarf2: 0xffffff, glove: 0xffffff, shoe: 0xf29a1c, cap: 0xffffff, dark: 0xe8352a,
       face: { skin: 0xfbfaf6, nose: 0xffb52e, blush: 0xffc4c0, hair: 0xffffff, brow: 0xc9c3b6, sock: 0xffb52e } },
+    { id: 'noob', name: 'Нубик', price: 0, sub: 'Бесплатно! Жёлтый, синий и зелёный, как нуб из Роблокса', sw: [0xf5cd30, 0x2d7cf0],
+      shirt: 0x2d7cf0, over: 0x4fae4a, scarf: 0xf5cd30, scarf2: 0x2d7cf0, glove: 0xf5cd30, shoe: 0x4fae4a, cap: 0x2d7cf0, dark: 0x1f5ab0,
+      face: { skin: 0xf5cd30, nose: 0xe8bc20, blush: 0xf0a830, hair: 0x6a3f22, brow: 0x3a2414 } },
     { id: 'forest', name: 'Лесник', price: 60, shirt: 0xf2d27a, over: 0x3f8f3a, scarf: 0xf0503a, scarf2: 0xffe45c, glove: 0x9a6038, shoe: 0x5a3a22, cap: 0x3faa48, dark: 0x2f7d34 },
     { id: 'explorer', name: 'Искатель кладов', price: 80, shirt: 0xf2e6cf, over: 0x9a6a3c, scarf: 0xf0503a, scarf2: 0xffd23f, glove: 0xc98d52, shoe: 0x5a3a22, cap: 0xd9b163, dark: 0xb8903f },
     { id: 'pirate', name: 'Пират', price: 90, shirt: 0xffffff, over: 0x2b2f4a, scarf: 0xf0503a, scarf2: 0xffffff, glove: 0xf4ecdc, shoe: 0x2b2f4a, cap: 0x2b2f4a, dark: 0x1c1e2e },
@@ -15302,6 +16165,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const sk = h.skins[h.model];
     if (sk && sk.userData.cap) sk.userData.cap.visible = suit || !hide;
     h.helmet.visible = h.pack.visible = suit;
+    blockyLook(h, !!(L && L.def.blocky), s, c, fire); // everyone is built of blocks in the Roblox world
   }
   function applyLook() {
     dressHero(hero, { skin: SAVE.skin, cap: SAVE.cap, hat: SAVE.hat }, P.fire, !!(L && L.def.suit));
@@ -16372,6 +17236,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     let [face, rate] = heroPose(t, dt, spd, turn);
     if (gunOn() && G.state !== 'dying') gunArms(t, gunCur(), gunAim(), GN.swingT, GN.throwT, GN.recoil, GN.draw); // the gun along the aim
+    if (P.climbT > 0 && !P.onGround && G.state === 'playing') climbPose(t); // up a truss
     if (P.veh || P.riding || ISL.carry) t.gripL = t.gripR = 1; // handlebars, a wheel, a saddle, a delivery over the head
     if (!(P.onGround || G.state === 'title') || P.spinT > 0 || P.pound || P.throwT > 0 || P.waveT > 0) { idleT = 0; idleAll = 0; fidget = null; }
     if (G.state !== 'dying' && G.state !== 'title' && face !== 'hurt' && (G.state === 'goal' || P.happyT > 0) && !teeter) face = face === 'cheer' ? 'cheer' : 'happy';
@@ -16478,6 +17343,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     setM(hero.frown, MOUTH.frown, .05, .045, .05);
     setM(hero.open, MOUTH.open, 1, 1, 1);
     setM(hero.grin, MOUTH.grin, 1, 1, 1);
+    blockyFace(hero);
   }
   function updateBlob() {
     if (!hero.root.visible || G.state === 'dying' || P.swim || P.sand) { blob.visible = false; return; }
@@ -16559,6 +17425,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function updateDying(dt) {
     G.stateT += dt;
+    if (G.dieKind === 'oof') { // fell apart in the Roblox world: back on the last spawn pad touched (or beside Color Block)
+      if (G.stateT > 1.4) { const back = ISL.cb && ISL.cb.back; if (back) ISL.cb.back = null; hubRespawn(true, true); if (back) { placePlayer(back, back.face); updateCam(0, true); } }
+      return;
+    }
     if (G.dieKind === 'fall') { P.vel.y = Math.max(P.vel.y - GRAV * dt, TERM); P.pos.y += P.vel.y * dt; }
     else if (G.stateT > .5) {
       if (!G.dieJump) { G.dieJump = true; P.vel.y = 13; }
@@ -16643,7 +17513,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     applySize(); P.lastSafe = { x: pt.x, y: pt.y, z: pt.z };
     P.pound = null; P.spinT = 0; P.spinCd = 0; P.spinAir = false; P.poundJT = 0; P.flipT = 0; P.throwT = 0; P.fireCd = 0;
     resetIdle(); P.jumpN = 0; P.landedT = 1; P.skidT = 0; P.wallT = 0; P.wallLock = 0; P.wallSlide = false; P.wallKickT = 0; P.inFan = false;
-    P.swim = false; P.swimT = 0; P.swimK = 0; P.dashCd = 0; P.cheerT = 0; P.dive = false; P.jetT = 0; P.dashHitT = 0; P.rent = ''; P.waveT = 0;
+    P.swim = false; P.swimT = 0; P.swimK = 0; P.dashCd = 0; P.cheerT = 0; P.dive = false; P.jetT = 0; P.dashHitT = 0; P.rent = ''; P.waveT = 0; P.climbT = 0;
     G.chain = 0; G.chainT = 0; G.hitStop = 0; G.kick = 0; comboEl.classList.remove('show');
     hero.root.visible = true; hero.root.rotation.set(0, facing, 0);
     cam.yaw = wrapPi(facing - Math.PI); cam.yawGoal = null; cam.pitch = .38;
@@ -16703,10 +17573,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // falling in an open world costs nothing: the hero is back at the last flag he touched (in a race with friends, at the
   // last ring he flew through, on the race's ride)
-  function hubRespawn(quiet) {
+  function hubRespawn(quiet, keepMusic) {
     const c = ISL.cp, back = duelSpot() || cupSpot(), pt = back || (c ? cpSpawn(c) : L.start);
     const dragon = P.veh && P.veh.wings && L.def.dragons ? P.vehId : ''; // in Dragon Peaks the dragon comes back with the hero
-    setBig(false, false); placePlayer(pt, back ? back.face : undefined);
+    setBig(false, false); placePlayer(pt, back ? back.face : c && c.face !== undefined ? c.face : undefined);
     for (const f of L.lost) if (f.state === 'follow') { f.x = pt.x; f.y = pt.y; f.z = pt.z; }
     ISL.trail.length = 0;
     if (ISL.race && ISL.race.on) resetRace();
@@ -16715,7 +17585,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (back) { if (cupOn()) mountDragon(SAVE.dragon || 'drRed'); else duelMount(); }
     else if (dragon) mountDragon(dragon);
     updateRideBtn();
-    Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : tbOn() || FT ? 'battle' : ntOn() ? ntSong() : L.def.music);
+    if (!keepMusic) Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : tbOn() || FT ? 'battle' : ntOn() ? ntSong() : L.def.music);
     if (!quiet) toast('Ой!', back ? 'Назад к кольцу' : c ? 'Начнём от флажка' : 'Начнём сначала');
   }
   function startGame(key = 'island', mode = false) {
@@ -17055,6 +17925,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnModeTanks').addEventListener('click', () => startGame('tanks', true));
   $('btnModeNights').addEventListener('click', () => startGame('forest', true));
   $('btnModeDuels').addEventListener('click', () => startGame('duels', true));
+  $('btnModeRoblox').addEventListener('click', () => startGame('roblox', true));
   // a fresh start wipes the saved stars; it asks for a second tap first
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
@@ -17136,7 +18007,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); keys.clear(); } });
 
   // ================= HUD =================
-  const H = { score: $('hScore'), coins: $('hCoins'), world: $('hWorld'), time: $('hTime'), lives: $('hLives'), stars: $('hStars') };
+  const H = { score: $('hScore'), coins: $('hCoins'), world: $('hWorld'), time: $('hTime'), lives: $('hLives'), stars: $('hStars'), stage: $('hStage') };
   const trackEl = $('track');
   const hudCache = {};
   function setHud(k, v) { if (hudCache[k] !== v) { hudCache[k] = v; H[k].textContent = v; } }
@@ -17145,6 +18016,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (L.def.hub) {
       setHud('stars', starCount() + '/' + TOTAL_STARS);
       setHud('coins', String(SAVE.bank).padStart(3, '0'));
+      const rb = !!L.def.blocky; // the Roblox world shows the obby stage reached, the way an obby's leaderboard does
+      if (hudCache.rb !== rb) { hudCache.rb = rb; $('hStageCell').hidden = !rb; }
+      if (rb) setHud('stage', SAVE.rbStage + '/' + RB_STAGES);
       const tl = challengeLeft(), race = tl !== null;
       if (hudCache.race !== race) { hudCache.race = race; hudEl.classList.toggle('race', race); }
       if (race) setHud('time', String(Math.max(0, Math.ceil(tl))));
@@ -17172,7 +18046,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 7, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 8, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
@@ -17486,8 +18360,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     r.position.set(g.px, g.py, g.pz); r.rotation.set(v[10], v[0], v[1]); r.scale.setScalar(v[2]);
     for (let i = 0; i < NET_CH.length; i++) g.nodes[i][NET_CH[i][2]] = v[NET_PRE + i];
     for (let i = 0; i < NET_VIS.length; i++) g.visNodes[i].visible = !!(g.vis & (1 << i));
-    const fire = !!(g.flags & NF_FIRE), suit = !!L.def.suit, key = g.look.skin + '|' + g.look.cap + '|' + g.look.hat + '|' + fire + '|' + suit;
+    const fire = !!(g.flags & NF_FIRE), suit = !!L.def.suit, key = g.look.skin + '|' + g.look.cap + '|' + g.look.hat + '|' + fire + '|' + suit + '|' + !!L.def.blocky;
     if (g.dress !== key) { g.dress = key; dressHero(h, g.look, fire, suit); }
+    blockyFace(h); // the face drawn on a blocky head follows the friend's
     const gw = g.rideNow ? '' : g.gun || ''; // what the friend has in hand (nothing on a ride)
     if (h.guns ? h.guns.id !== gw : gw) { rigGun(h, gw); h.guns.back.visible = false; }
     const gd = GUNS[gw];
@@ -18520,6 +19395,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateSprings(dt);
     updateFx(dt);
     if (L.def.hub) updateIsland(dt);
+    if (L.def.blocky) updateRoblox(dt);
     if (P.inv > 0) P.inv -= dt;
     P.dashCd -= dt; P.cheerT -= dt;
     if (P.growT > 0) P.growT -= dt;
@@ -18529,7 +19405,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       glow(P.pos.x + Math.sin(a) * R, P.pos.y + PH * .5, P.pos.z + Math.cos(a) * R, 0xbff6ff, 1, .3, 0, 0, .25, .3);
       P.spinT -= dt; if (P.spinT <= 0) { P.spinT = 0; P.spinCd = .12; }
     } else if (P.spinCd > 0) P.spinCd -= dt;
-    P.poundJT -= dt; P.flipT -= dt; P.fireCd -= dt; P.throwT -= dt; P.waveT -= dt; P.breathCd -= dt;
+    P.poundJT -= dt; P.flipT -= dt; P.climbT -= dt; P.fireCd -= dt; P.throwT -= dt; P.waveT -= dt; P.breathCd -= dt;
     P.landedT += dt; P.skidT -= dt; P.wallT -= dt; P.wallLock -= dt; P.wallKickT -= dt; P.rideCd -= dt;
   }
 
