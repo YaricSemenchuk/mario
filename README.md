@@ -265,11 +265,13 @@ the minigun's rattle), and under the water every sound is muffled.
     a textured model of his own (`models/mario.glb`, about 0.9 MB, loaded when first worn), skinned at load onto the
     built hero's joints, so he runs, jumps, swims, rides, holds the guns and shows to friends like the built one. His
     fingers have joints of their own too: they close into a fist round a gun, handlebars, a wheel or a delivery and hang
-    a little bent otherwise. A shop hat that takes the cap's place hides his cap and sits on his hair; ears and a flower go
+    a little bent otherwise. On the rides with bars or a steering wheel the arms reach the grips by themselves, so
+    any hero's hands, whatever the arms' length, hold them. A shop hat that takes the cap's place hides his cap and sits on his hair; ears and a flower go
     on the cap, glasses on his eyes. Until the model has loaded, or if it cannot, the built hero stands in for him in his
     colours
   - rides, called with the ride button (V on a keyboard) in the open worlds: a scooter, a go-kart that bowls enemies
-    over, a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
+    over (a red racing kart with a number 1 on its nose, twin chrome exhausts, wheels that roll and steer and a
+    steering wheel that turns into the corners), a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
     the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with five turrets, and five
