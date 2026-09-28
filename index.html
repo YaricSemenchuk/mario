@@ -2196,15 +2196,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       [CYL, 0xf0503a, M4(-.26, 1.14, .44, .04, .12, .04, 0, 0, Math.PI / 2)], [CYL, 0xf0503a, M4(.26, 1.14, .44, .04, .12, .04, 0, 0, Math.PI / 2)],
       [SPH_HI, 0xfff2c0, M4(0, .92, .55, .07, .07, .05)], [BOX, 0x2b2f4a, M4(0, .22, -.58, .3, .04, .12, .5, 0, 0)],
     ]),
-    kart: mergedGeo([
-      [BOX, 0xf0503a, M4(0, .32, 0, 1.0, .22, 1.6)], [BOX, 0xf0503a, M4(0, .34, .92, .76, .18, .4)], [BOX, 0x2b2f4a, M4(0, .24, 1.12, 1.0, .12, .1)],
-      [BOX, 0xffd23f, M4(-.53, .34, -.1, .1, .2, 1.1)], [BOX, 0xffd23f, M4(.53, .34, -.1, .1, .2, 1.1)],
-      [BOX, 0x2b2f4a, M4(0, .5, -.38, .56, .16, .5)], [BOX, 0x2b2f4a, M4(0, .78, -.62, .56, .5, .1, -.2, 0, 0)],
-      [CYL, 0xffffff, M4(0, .44, .82, .17, .02, .17)], [CYL, 0x4262ff, M4(0, .455, .82, .1, .02, .1)],
-      ...wheel(-.6, .27, .6, .27, .22), ...wheel(.6, .27, .6, .27, .22), ...wheel(-.6, .3, -.6, .3, .26), ...wheel(.6, .3, -.6, .3, .26),
-      [CYL, 0x3b3f50, M4(0, .62, .3, .03, .45, .03, .7, 0, 0)], [TORUS, 0x2b2f4a, M4(0, .76, .18, .42, .42, .9, -.7, 0, 0)],
-      [BOX, 0x2b2f4a, M4(-.36, .9, -.86, .05, .3, .05)], [BOX, 0x2b2f4a, M4(.36, .9, -.86, .05, .3, .05)], [BOX, 0x4262ff, M4(0, 1.06, -.88, 1.0, .06, .28)],
-    ]),
     board: mergedGeo([
       [BOX, 0x4262ff, M4(0, .06, 0, .38, .05, 1.2)], [SPH_HI, 0x4262ff, M4(0, .1, .62, .19, .05, .16, -.4, 0, 0)], [SPH_HI, 0x4262ff, M4(0, .1, -.62, .19, .05, .16, .4, 0, 0)],
       [BOX, 0xffd23f, M4(0, .088, 0, .385, .008, .14)], [BOX, 0xffffff, M4(0, .088, .38, .385, .008, .06)], [BOX, 0xffffff, M4(0, .088, -.38, .385, .008, .06)],
@@ -2212,9 +2203,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     ]),
     jetski: mergedGeo([
       [SPH_HI, 0x4262ff, M4(0, .3, 0, .52, .28, 1.08)], [SPH_HI, 0xffd23f, M4(0, .3, 0, .53, .06, 1.09)], [SPH_HI, 0xffffff, M4(0, .44, .08, .44, .2, .9)],
-      [SPH_HI, 0x2b2f4a, M4(0, .62, -.36, .22, .12, .48)], [CYL, 0x3b3f50, M4(0, .72, .45, .05, .42, .05, .45, 0, 0)],
-      [CYL, 0xb8bfcc, M4(0, .92, .54, .028, .64, .028, 0, 0, Math.PI / 2)],
-      [CYL, 0xf0503a, M4(-.3, .92, .54, .045, .12, .045, 0, 0, Math.PI / 2)], [CYL, 0xf0503a, M4(.3, .92, .54, .045, .12, .045, 0, 0, Math.PI / 2)],
+      [SPH_HI, 0x2b2f4a, M4(0, .62, -.36, .22, .12, .48)], limb(0, .5, .66, 0, 1.03, .39, .05, 0x3b3f50),
+      [CYL, 0xb8bfcc, M4(0, 1.04, .38, .028, .6, .028, 0, 0, Math.PI / 2)],
+      [CYL, 0xf0503a, M4(-.28, 1.04, .38, .045, .12, .045, 0, 0, Math.PI / 2)], [CYL, 0xf0503a, M4(.28, 1.04, .38, .045, .12, .045, 0, 0, Math.PI / 2)],
       [SPH_HI, 0x9fd8ff, M4(0, .66, .72, .2, .1, .14, -.3, 0, 0)],
     ]),
     pogo: mergedGeo([
@@ -2286,6 +2277,91 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       [BOX, 0xffb347, M4(0, 2.56, -.12, 1.75, .06, 1.75)], [BOX, 0xe08a2a, M4(0, 2.52, -.12, 1.8, .05, 1.8)],
       ...[[-.5, -.6], [.3, -.72], [.62, .1], [-.2, .2], [.1, .62], [-.62, .5], [.55, -.4], [-.34, -.22], [.28, .32], [-.64, -.2]].map(([x, z]) => [SPH_HI, 0x6b4226, M4(x, 2.59, z - .12, .13, .02, .1)]),
     ]),
+  };
+  // The go-kart, like a real racing kart: a low chrome tube frame, red side pods and a red nose fairing with a white stripe
+  // down it and a number plate (a black 1 on a white disc in a red ring), fat rounded bumpers, a black bucket seat, the
+  // engine beside it with two chrome exhausts flaring up behind, wide black tyres on red rims. The wheels (GEO.kart.wheel,
+  // front and rear) and the steering wheel (GEO.kart.steer) are meshes of their own, so they roll and steer (rideModel,
+  // spinRide), and the hands hold the steering wheel at its sides. KART: the steering wheel's middle, its tilt towards the
+  // driver and its radius; the axles (x, y, z) and the wheels' radii and widths
+  const KART = { steer: [0, .93, .36], tilt: .78, r: .17, front: [.64, .25, .66, .25, .26], rear: [.66, .3, -.62, .3, .34] };
+  GEO.rides.kart = (() => {
+    const R = 0xe3262b, W = 0xffffff, K = 0x24262c, CH = 0xd2d7e0, GR = 0x4a4f5c, XV = new T.Vector3(1, 0, 0);
+    // the number plate lies on the nose's slope: `on` puts a point of the plate's own plane (x, height, z) into the kart
+    const PL = new T.Vector3(0, .435, .879), PT = .63, on = (x, h, z) => new T.Vector3(x, h, z).applyAxisAngle(XV, PT).add(PL);
+    const flat = (col, x, z, sx, sz, turn = 0) => { const p = on(x, .012, z); return [BOX, col, M4(p.x, p.y, p.z, sx, .006, sz, PT, turn, 0)]; };
+    const disc = (col, r, h) => { const a = on(0, h - .005, 0), b = on(0, h + .005, 0); return limb(a.x, a.y, a.z, b.x, b.y, b.z, r, col); };
+    // an exhaust: a pipe from the engine up and back, flaring into a megaphone with a dark mouth and a chrome lip
+    const pipe = (x) => {
+      const a = new T.Vector3(x, .42, -.62), b = new T.Vector3(x, .86, -.8), d = b.clone().sub(a).normalize();
+      const tip = b.clone().addScaledVector(d, -.11), wide = tip.clone().addScaledVector(d, .45), lip = wide.clone().addScaledVector(d, -.03), in0 = wide.clone().addScaledVector(d, .004);
+      return [limb(a.x, a.y, a.z, b.x, b.y, b.z, .032, CH), limb(wide.x, wide.y, wide.z, tip.x, tip.y, tip.z, .085, CH, CONE),
+        limb(lip.x, lip.y, lip.z, wide.x, wide.y, wide.z, .092, 0xaab1be), limb(wide.x, wide.y, wide.z, in0.x, in0.y, in0.z, .075, 0x0c0d10)];
+    };
+    return mergedGeo([
+      // the frame: a floor pan, chrome side rails and struts, the axles and the chain's sprocket
+      [BOX, GR, M4(0, .12, -.02, .7, .035, 1.5)],
+      ...[-1, 1].flatMap((s) => [
+        [CYL, CH, M4(s * .38, .16, -.02, .028, 1.56, .028, Math.PI / 2, 0, 0)],
+        limb(s * .38, .16, .7, s * .2, .21, .98, .024, CH), limb(s * .38, .16, -.78, s * .3, .3, -.96, .024, CH),
+        limb(s * .38, .17, .2, s * .52, .24, .2, .02, CH), limb(s * .38, .17, -.2, s * .52, .24, -.2, .02, CH),
+        // a side pod between the wheels: red, with a white stripe round it
+        [SPH_HI, R, M4(s * .6, .27, .02, .13, .12, .4)], [SPH_HI, W, M4(s * .6, .285, .02, .133, .03, .405)],
+        // the pedals, and the seat's struts
+        [BOX, CH, M4(s * .1, .24, .56, .07, .1, .02, -.4, 0, 0)], limb(s * .18, .16, -.3, s * .18, .46, -.3, .02, CH),
+      ]),
+      [CYL, CH, M4(0, KART.front[1], KART.front[2], .025, 1.2, .025, 0, 0, Math.PI / 2)],
+      [CYL, CH, M4(0, KART.rear[1], KART.rear[2], .035, 1.24, .035, 0, 0, Math.PI / 2)],
+      [DONUT, K, M4(.3, KART.rear[1], KART.rear[2], .07, .07, .06, 0, Math.PI / 2, 0)],
+      // the nose: a red body under a fairing with a white stripe down its middle, the plate on its slope
+      [BOX, R, M4(0, .25, .76, .46, .13, .44)],
+      [SPH_HI, R, M4(0, .4, .74, .21, .1, .36, .55, 0, 0)], [SPH_HI, W, M4(0, .404, .74, .06, .104, .362, .55, 0, 0)],
+      disc(R, .085, 0), disc(W, .07, .006),
+      flat(INK, .005, 0, .022, .1), flat(INK, -.016, -.034, .018, .047, -1.01), flat(INK, .005, .05, .06, .016),
+      // the bumpers: fat red bars with rounded ends, white stripes, black inserts at the front
+      [CYL, R, M4(0, .21, 1.04, .09, .98, .09, 0, 0, Math.PI / 2)], [SPH_HI, R, M4(-.49, .21, 1.04, .09, .09, .09)], [SPH_HI, R, M4(.49, .21, 1.04, .09, .09, .09)],
+      [CYL, W, M4(-.05, .21, 1.04, .092, .04, .092, 0, 0, Math.PI / 2)], [CYL, W, M4(.05, .21, 1.04, .092, .04, .092, 0, 0, Math.PI / 2)],
+      [BOX, K, M4(-.3, .21, 1.125, .15, .05, .02)], [BOX, K, M4(.3, .21, 1.125, .15, .05, .02)],
+      [CYL, R, M4(0, .3, -1.0, .07, .9, .07, 0, 0, Math.PI / 2)], [SPH_HI, R, M4(-.45, .3, -1.0, .07, .07, .07)], [SPH_HI, R, M4(.45, .3, -1.0, .07, .07, .07)],
+      [CYL, W, M4(0, .3, -1.0, .072, .08, .072, 0, 0, Math.PI / 2)],
+      // the steering column, from the nose up to the steering wheel's middle
+      limb(KART.steer[0], KART.steer[1], KART.steer[2], 0, .49, .8, .022, CH),
+      // the seat: a black bucket, the cushion under the driver, bolsters at the sides, a tall back with a slot in its head
+      [SPH_HI, K, M4(0, .47, -.1, .25, .07, .24)], [SPH_HI, K, M4(0, .76, -.34, .24, .3, .07, -.22, 0, 0)],
+      [SPH_HI, K, M4(-.23, .56, -.16, .05, .12, .22)], [SPH_HI, K, M4(.23, .56, -.16, .05, .12, .22)],
+      [BOX, 0x0c0d10, M4(0, .99, -.315, .1, .035, .012, -.22, 0, 0)],
+      // the engine by the seat's right side, and its two exhausts
+      [BOX, GR, M4(-.33, .36, -.56, .22, .2, .3)], [BOX, R, M4(-.33, .49, -.56, .2, .06, .26)], [CYL, CH, M4(-.33, .36, -.4, .06, .04, .06, Math.PI / 2, 0, 0)],
+      ...pipe(-.4), ...pipe(-.24),
+    ]);
+  })();
+  GEO.kart = (() => {
+    const R = 0xe3262b, K = 0x24262c, CH = 0xd2d7e0, WCYL = shared(new T.CylinderGeometry(1, 1, 1, 24));
+    // a wheel round its axle (x): a fat tyre, a red rim with white lips, a chrome hub
+    const wheel = (r, w) => mergedGeo([
+      [DONUT, K, M4(0, 0, 0, r / 1.42, r / 1.42, w / .84, 0, Math.PI / 2, 0)],
+      [WCYL, R, M4(0, 0, 0, r * .6, w * .78, r * .6, 0, 0, Math.PI / 2)],
+      [TORUS, 0xffffff, M4(-w * .39, 0, 0, r * 1.15, r * 1.15, r * 1.15, 0, Math.PI / 2, 0)], [TORUS, 0xffffff, M4(w * .39, 0, 0, r * 1.15, r * 1.15, r * 1.15, 0, Math.PI / 2, 0)],
+      [CYL, CH, M4(0, 0, 0, r * .2, w * .86, r * .2, 0, 0, Math.PI / 2)], [SPH_HI, CH, M4(-w * .43, 0, 0, r * .09, r * .09, r * .09)], [SPH_HI, CH, M4(w * .43, 0, 0, r * .09, r * .09, r * .09)],
+    ]);
+    // the steering wheel facing +z, its top up: a black rim with a red piece on top, three spokes and a chrome hub
+    const rim = shared(new T.TorusGeometry(1, .15, 8, 36)), top = shared(new T.TorusGeometry(1, .17, 8, 10, 1));
+    return {
+      wheel: { f: wheel(KART.front[3], KART.front[4]), r: wheel(KART.rear[3], KART.rear[4]) },
+      steer: mergedGeo([
+        [rim, K, M4(0, 0, 0, KART.r, KART.r, KART.r)], [top, R, M4(0, 0, 0, KART.r, KART.r, KART.r, 0, 0, Math.PI / 2 - .5)],
+        [BOX, K, M4(-.09, 0, 0, .15, .022, .016)], [BOX, K, M4(.09, 0, 0, .15, .022, .016)], [BOX, K, M4(0, -.09, 0, .022, .15, .016)],
+        [CYL, CH, M4(0, 0, 0, .045, .05, .045, Math.PI / 2, 0, 0)], [SPH_HI, R, M4(0, 0, .026, .026, .026, .012)],
+      ]),
+    };
+  })();
+  // Where the hands hold a ride, in the ride's own space, the -x hand first: the bars' grips, or the sides of a steering
+  // wheel (a ring at x, y, z of radius r, tipped by rx; a little above its middle). The kart's are on its steering
+  // wheel, which turns (rideModel)
+  const wheelGrips = (x, y, z, r, rx, a = 1.2) => [-1, 1].map((k) => new T.Vector3(k * r * Math.sin(a), r * Math.cos(a), 0).applyAxisAngle(new T.Vector3(1, 0, 0), rx).add(new T.Vector3(x, y, z)).toArray());
+  const RIDE_GRIPS = {
+    scooter: [[-.26, 1.14, .44], [.26, 1.14, .44]], jetski: [[-.28, 1.04, .38], [.28, 1.04, .38]],
+    rover: wheelGrips(0, .9, .36, .187, -.8), stonecar: wheelGrips(0, 1, .56, .229, -.9),
   };
   // a stone roller of the stone car, turning round x
   GEO.roller = mergedGeo([[CYL, 0x9a96ac, M4(0, 0, 0, .45, 1.7, .45, 0, 0, Math.PI / 2)], [CYL, 0xb4b0c4, M4(-.86, 0, 0, .36, .03, .36, 0, 0, Math.PI / 2)],
@@ -3047,7 +3123,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // the arms' joints as built, for when a model (which moves them) comes off; the model worn and its skins, by id
     const armRest = arms.map((a) => [a.sh.position.clone(), a.el.position.clone(), a.wr.position.clone()]);
     return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, wear, helmet, pack, mask,
-      armRest, model: '', armOut: 0, skins: {} };
+      armRest, model: '', armOut: 0, skins: {}, gripAt: .08, reachK: 0 }; // gripAt: how far past the wrist the hand holds (the mitten's middle)
   }
   // Heroes made by artists (GLB files) that a costume can put on in place of the built one (SKINS' `model`). The file is
   // baked to the hero's space: y up, facing +z, feet at 0, in metres, the arms straight out to the sides. It is skinned
@@ -3208,6 +3284,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       a.fk.position.set((i ? 1 : -1) * cfg.fingers.up, -cfg.fingers.at, 0); a.ft.position.set(0, -cfg.fingers.mid, 0);
     });
     h.armOut = cfg ? cfg.out : 0;
+    h.gripAt = cfg ? cfg.fingers.at * .8 : .08;
     if (cfg && !h.skins[id]) h.skins[id] = skinModel(h, id);
     for (const k in h.skins) h.skins[k].visible = k === id;
     for (const k in h.hats) {
@@ -3236,6 +3313,27 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     h.body.add(g);
     return g;
+  }
+  // Hands on a ride's grips (the bars, a steering wheel), whatever the arms' lengths: each arm turns at the shoulder and
+  // bends at the elbow so that its hand's grip (h.gripAt past the wrist, the hand straight on) lands on its grip, the elbow
+  // bending out to the side and down. k blends it in from the pose. Runs after the rest of the pose, the body's too
+  const _ikV = new T.Vector3(), _ikU = new T.Vector3(), _ikZ = new T.Vector3(), _ikX = new T.Vector3(), _ikP = new T.Vector3(), _ikM = new T.Matrix4(), _ikQ = new T.Quaternion();
+  function reachGrips(h, grips, k) {
+    h.root.updateMatrixWorld(true);
+    h.arms.forEach((a, i) => {
+      const v = a.sh.parent.worldToLocal(grips[i].getWorldPosition(_ikV)).sub(a.sh.position); // shoulder to grip, in the torso's space
+      const la = a.el.position.length(), lb = a.wr.position.length() + h.gripAt;
+      const d = clamp(v.length(), Math.abs(la - lb) + .01, la + lb - .001);
+      v.normalize();
+      const ca = clamp((la * la + d * d - lb * lb) / (2 * la * d), -1, 1), ce = clamp((la * la + lb * lb - d * d) / (2 * la * lb), -1, 1);
+      _ikP.set(i ? 1 : -1, -.8, -.2); _ikP.addScaledVector(v, -_ikP.dot(v)).normalize(); // where the elbow goes
+      _ikU.copy(v).multiplyScalar(ca).addScaledVector(_ikP, Math.sqrt(1 - ca * ca)); // the upper arm
+      _ikZ.copy(v).addScaledVector(_ikU, -v.dot(_ikU)).normalize(); // the way the forearm bends from it
+      _ikX.crossVectors(_ikZ, _ikU);
+      _ikQ.setFromRotationMatrix(_ikM.makeBasis(_ikX, _ikU.negate(), _ikZ));
+      a.sh.quaternion.slerp(_ikQ, k);
+      a.el.rotation.x = lerp(a.el.rotation.x, Math.acos(ce) - Math.PI, k); a.wr.rotation.x = lerp(a.wr.rotation.x, 0, k);
+    });
   }
   // how far a model's arm hangs out from the side: all of it with the arm down, none with it held forward or up
   const armOut = (h, x) => h.armOut * Math.max(0, Math.cos(x));
@@ -15042,7 +15140,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // New ones go at the end: a friend's packet names the ride by its place in this list (RIDE_IDS).
   const RIDES = {
     scooter: { name: 'Самокат', price: 90, sub: 'Быстрый и вёрткий', spd: 11.5, acc: 34, jump: 1, air: 0, y: .22, pose: 'stand' },
-    kart: { name: 'Карт', price: 160, sub: 'Самый быстрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, pose: 'sit', bump: true, motor: 1 },
+    kart: { name: 'Карт', price: 160, sub: 'Самый быстрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, seatZ: -.08, pose: 'sit', bump: true, motor: 1 },
     board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, surfs: ['snow', 'glacier', 'sand', 'canyon'], acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
     jetski: { name: 'Водный скутер', price: 140, sub: 'Мчится по воде, на суше медленный', spd: 6.5, water: 14.5, acc: 26, jump: .95, air: 0, y: .3, pose: 'sit', floats: true, motor: 1.4 },
     pogo: { name: 'Пого-палка', price: 110, sub: 'Сама прыгает и давит даже колючек', spd: 7.5, acc: 30, jump: 1.25, air: 0, y: .38, pose: 'pogo', pogo: true },
@@ -15286,13 +15384,24 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       u.rollers = [.95, -.95].map((z) => { const r = new T.Mesh(GEO.roller, MAT.char); r.position.set(0, .45, z); r.castShadow = true; g.add(r); return r; });
       u.roll = 0; u.lp = null;
     } else if (id === 'tank') tankParts(g, 'tank');
-    else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
+    else if (id === 'kart') { // wheels that roll (the front ones on pivots that steer) and a steering wheel that turns
+      u.kw = []; u.front = [];
+      for (const [A, geo] of [[KART.front, GEO.kart.wheel.f], [KART.rear, GEO.kart.wheel.r]]) for (const k of [-1, 1]) {
+        const m = new T.Mesh(geo, MAT.char), at = new T.Vector3(k * A[0], A[1], A[2]); m.castShadow = true; u.kw.push([m, A[3]]);
+        if (A === KART.front) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
+      }
+      const sp = new T.Group(); sp.position.set(...KART.steer); sp.rotation.x = KART.tilt; g.add(sp);
+      u.steer = new T.Mesh(GEO.kart.steer, MAT.char); u.steer.castShadow = true; sp.add(u.steer);
+      u.grips = [-1, 1].map((k) => { const o = new T.Object3D(); o.position.set(k * KART.r * Math.sin(1.35), KART.r * Math.cos(1.35), 0); u.steer.add(o); return o; });
+      Object.assign(u, { st: 0, lp: null, ly: 0 });
+    } else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
       u.wings = GEO.wings[id].map((geo, i) => {
         const pv = new T.Group(); pv.position.set((i ? -1 : 1) * WING_AT[0], WING_AT[1], WING_AT[2]);
         const w = new T.Mesh(geo, MAT.char); w.castShadow = true; pv.add(w); g.add(pv); return pv;
       });
       Object.assign(u, { spread: 0, ph: Math.random() * 6, air: false, work: 0, flapT: 0 });
     }
+    if (RIDE_GRIPS[id]) u.grips = RIDE_GRIPS[id].map((p) => { const o = new T.Object3D(); o.position.fromArray(p); g.add(o); return o; });
     return g;
   }
   // the hero's KV-44 (and a friend's) carries the rocket pods and the grenade launcher on its big turret, a rocket in every
@@ -15367,6 +15476,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const u = g.userData;
     if (u.rotor) { u.rotor.rotation.y += dt * 26 * k; u.tail.rotation.x += dt * 34 * k; }
     if (u.hull) { u.hull.rotation.y += dt * 1.4; u.beam.material.opacity = .2 + Math.sin(time * 7) * .05; }
+    if (u.kw) { // the kart's wheels roll with the way it goes; the front ones and the steering wheel turn into its turns
+      const p = g.position, yaw = g.rotation.y;
+      if (u.lp) {
+        const fwd = (p.x - u.lp.x) * Math.sin(yaw) + (p.z - u.lp.z) * Math.cos(yaw);
+        for (const [m, r] of u.kw) m.rotation.x += fwd / r;
+        u.st = damp(u.st, dt > 0 ? clamp(wrapPi(yaw - u.ly) / dt * .3, -1, 1) : 0, 8, dt);
+      } else u.lp = new T.Vector3();
+      u.lp.copy(p); u.ly = yaw;
+      for (const f of u.front) f.rotation.y = u.st * .45;
+      u.steer.rotation.z = -u.st * 1.4;
+    }
     if (u.rollers) {
       const p = g.position;
       if (u.lp) u.roll += ((p.x - u.lp.x) * Math.sin(g.rotation.y) + (p.z - u.lp.z) * Math.cos(g.rotation.y)) / .45; else u.lp = new T.Vector3();
@@ -16215,6 +16335,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const nod = spring(SPR.nod, 0, 90, 9, dt);
     hero.head.rotation.set(J.headX + nod * .5, J.headY, J.headZ);
     hero.neck.rotation.x = nod * .3;
+    // on a ride with grips the hands hold them
+    const grips = P.veh && !P.riding && G.state !== 'dying' ? rideGroup(P.vehId).userData.grips : null;
+    hero.reachK = grips ? Math.min(1, hero.reachK + dt * 6) : 0;
+    if (grips) reachGrips(hero, grips, hero.reachK);
     const vy = G.state === 'playing' && !P.riding ? P.vel.y : 0;
     if (P.landT > .2) SPR.tuft.v -= P.landK * 12;
     hero.tuft.rotation.x = spring(SPR.tuft, clamp(vy * .03, -.5, .6) - clamp(accel * .01, -.3, .3), 140, 5, dt);
