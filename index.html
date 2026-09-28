@@ -2964,11 +2964,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const el = joint(sh, 0, -.18, 0);
       part(SPH_HI, 'shirt', el, 0, 0, 0, .072, .072, .072);
       part(CYL, 'shirt', el, 0, -.07, 0, .07, .14, .07);
-      const wr = joint(el, 0, -.15, 0);
+      const wr = joint(el, 0, -.15, 0), fk = joint(wr, 0, -.1, 0), ft = joint(fk, 0, -.05, 0); // fk, ft: a model's knuckles and finger middles
       part(CYL, 'mitt', wr, 0, .015, 0, .1, .05, .1);
       part(SPH_HI, 'mitt', wr, 0, -.075, .005, .12, .12, .11);
       part(SPH_HI, 'mitt', wr, -s * .075, -.05, .06, .045, .065, .045, .3, 0, -s * .3);
-      return { sh, el, wr };
+      return { sh, el, wr, fk, ft };
     });
     // neck and head
     const neck = joint(torso, 0, .47, 0);
@@ -3044,7 +3044,205 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const mask = new T.Mesh(GEO.mask, MAT.char); mask.visible = false; head.add(mask);
     const shield = new T.Mesh(SPH, new T.MeshBasicMaterial({ color: 0x8ff3ff, transparent: true, opacity: .24, depthWrite: false }));
     shield.position.y = .85; shield.scale.setScalar(1.02); shield.visible = false; root.add(shield);
-    return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, wear, helmet, pack, mask };
+    // the arms' joints as built, for when a model (which moves them) comes off; the model worn and its skins, by id
+    const armRest = arms.map((a) => [a.sh.position.clone(), a.el.position.clone(), a.wr.position.clone()]);
+    return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, wear, helmet, pack, mask,
+      armRest, model: '', armOut: 0, skins: {} };
+  }
+  // Heroes made by artists (GLB files) that a costume can put on in place of the built one (SKINS' `model`). The file is
+  // baked to the hero's space: y up, facing +z, feet at 0, in metres, the arms straight out to the sides. It is skinned
+  // here onto the rig's own joints, so whatever moves the built hero moves it too, and the built hero's parts (the face
+  // too) hide. `head`: the meshes that go with the head whole; `feet`: the ones whose lower part is the shoes; `hands`:
+  // the ones that are hands whole; `cap`: its cap, which goes under a shop hat that takes the cap's place. `arm`: where
+  // the model's shoulder sits (in the torso's space) and how long its upper arm and forearm are, which the rig's arms take
+  // while it is on; `fingers`: where the knuckles are past the wrist (`at`, and `up` towards the back of the hand, which
+  // faces up in the model), how far on the fingers bend again (`mid`), and how far forward the thumb starts (it stays with
+  // the palm); `out`: how far the arms hang out from the sides, past a round belly; `hat`: how far down the shop hats go
+  // in head space: onto the model's cap (`at`), onto its bare head for the hats that take the cap's place (`bare`), and
+  // for the ones named, onto its eyes and ears
+  const HERO_MODELS = {
+    mario: { url: 'models/mario.glb', head: ['cap', 'hair', 'eye', 'skin'], feet: ['shoe'], hands: ['glove'], cap: 'cap',
+      arm: { sh: [.25, .348, -.011], el: .137, wr: .137 }, fingers: { at: .251, up: .047, mid: .075, thumb: .13 }, out: .4,
+      hat: { at: -.14, bare: -.1, shades: -.05, phones: -.08 } },
+  };
+  const heroModels = {}; // by id: { ready, failed, parts: [[geometry, material, mesh name]] }
+  const heroModelWait = new Map(); // rigs dressed in a model still on its way, with how: dressed again when it comes
+  // a model's state, loading it the first time it is asked for (the loader too: the game starts without it)
+  function heroModel(id) {
+    let st = heroModels[id];
+    if (st) return st;
+    st = heroModels[id] = { ready: false, failed: false, parts: [] };
+    const cfg = HERO_MODELS[id];
+    import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(cfg.url)).then((gltf) => {
+      gltf.scene.updateMatrixWorld(true);
+      gltf.scene.traverse((o) => { if (o.isMesh) st.parts.push([heroModelGeo(o, cfg), addRim(o.material), o.name]); });
+      st.ready = true;
+    }).catch((e) => { st.failed = true; st.parts = []; console.warn('hero model ' + id + ' did not load', e); }).then(() => {
+      const wait = [...heroModelWait]; heroModelWait.clear();
+      for (const [h, how] of wait) dressHero(h, ...how);
+    });
+    return st;
+  }
+  // the joints a model's skin follows, in this order: hips, torso, neck, head, each leg's hip, knee and ankle, each arm's
+  // shoulder, elbow and wrist, each hand's knuckles and finger middles (legs[0] and arms[0] are on the -x side)
+  const heroBones = (h) => [h.hips, h.torso, h.neck, h.head, ...h.legs.flatMap((l) => [l.hip, l.knee, l.ankle]), ...h.arms.flatMap((a) => [a.sh, a.el, a.wr]),
+    ...h.arms.flatMap((a) => [a.fk, a.ft])];
+  const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  // One mesh of a model as a plain geometry in the body's space, with its skin: which joints each vertex follows and how
+  // much, by where it is on a body standing with its arms out. The head's meshes go with the head (their bottom with the
+  // neck); along each arm the shoulder, elbow and wrist take over in turn, then the fingers (the thumb stays with the
+  // palm); below the crotch the legs (the belly's front
+  // and the seat stay with the hips), the knee halfway down, the shoes on the ankles; above that the hips, then the torso,
+  // and the collar goes with the neck. Joints hand over smoothly, so the cloth bends instead of breaking at them.
+  // Which leg (and arm) a vertex goes with is its side of the middle, but a piece below the crotch that keeps to one side
+  // goes whole with that leg (a shoe may poke a little past the middle). A model may also join the legs where they touch:
+  // each leg gets its own copy of a thin triangle along that seam, the vertices from the other leg copied onto it, and a
+  // wider one goes to the side its middle is on, so the legs part cleanly instead of stretching a sheet between them.
+  function heroModelGeo(o, cfg) {
+    const src = o.geometry, tmp = new T.BufferGeometry();
+    for (const k of ['position', 'normal', 'uv']) {
+      const a = src.getAttribute(k);
+      if (!a) continue;
+      const f = new Float32Array(a.count * a.itemSize), get = [a.getX, a.getY, a.getZ, a.getW];
+      for (let i = 0; i < a.count; i++) for (let j = 0; j < a.itemSize; j++) f[i * a.itemSize + j] = get[j].call(a, i);
+      tmp.setAttribute(k, new T.BufferAttribute(f, a.itemSize));
+    }
+    tmp.applyMatrix4(o.matrixWorld);
+    const p = tmp.getAttribute('position').array, n0 = p.length / 3, NB = 20, w = new Float32Array(NB);
+    const A = cfg.arm, sx = A.sh[0], ex = sx + A.el, wx = ex + A.wr, name = o.name, FG = cfg.fingers, kx = wx + FG.at, mx = kx + FG.mid;
+    const head = cfg.head.includes(name), foot = cfg.feet.includes(name), hand = cfg.hands.includes(name);
+    // the joints' shares for vertex i, its arm and leg on side sd (0: -x); true when it goes with its leg alone
+    const skinAt = (i, sd) => {
+      const x = p[i * 3], y = p[i * 3 + 1], z = p[i * 3 + 2], ax = Math.abs(x);
+      w.fill(0);
+      if (head) { const k = smooth(.95, 1.04, y); w[3] = k; w[2] = 1 - k; return false; }
+      const arm = hand ? 1 : smooth(sx - .02, sx + .05, ax) * smooth(.8, .85, y) * (1 - smooth(1.06, 1.1, y));
+      if (arm > 0) {
+        const b = sd ? 13 : 10, e = smooth(ex - .03, ex + .03, ax), r = smooth(wx - .025, wx + .025, ax);
+        const f = sd ? 18 : 16, thumb = 1 - smooth(FG.thumb - .01, FG.thumb + .015, z), k = smooth(kx - .015, kx + .015, ax) * thumb, m = smooth(mx - .015, mx + .015, ax) * thumb;
+        w[b] += arm * (1 - e); w[b + 1] += arm * e * (1 - r); w[b + 2] += arm * r * (1 - k); w[f] += arm * r * k * (1 - m); w[f + 1] += arm * r * k * m;
+      }
+      const rest = 1 - arm, nk = smooth(.99, 1.06, y), hk = smooth(1.08, 1.16, y), low = rest * (1 - nk);
+      w[3] += rest * nk * hk; w[2] += rest * nk * (1 - hk);
+      const yz = y + (y > .3 ? Math.max(0, Math.abs(z) - .12) * 1.5 : 0), leg = 1 - smooth(.44, .54, yz), b = sd ? 7 : 4;
+      if (foot && y < .5) w[b + 2] += low * leg;
+      else { const t = smooth(.27, .33, y); w[b] += low * leg * t; w[b + 1] += low * leg * (1 - t); }
+      const t = smooth(.56, .66, y);
+      w[1] += low * (1 - leg) * t; w[0] += low * (1 - leg) * (1 - t);
+      return low * leg > .999;
+    };
+    const idx = src.index ? Array.from(src.index.array) : Array.from({ length: n0 }, (_, i) => i);
+    const side = new Uint8Array(n0), alone = new Uint8Array(n0), extra = [], copies = new Map(), CROTCH = .44;
+    const ids = new Map(), wid = new Int32Array(n0); // vertices at one spot (split by the texture's seams) are one
+    for (let i = 0; i < n0; i++) {
+      const k = Math.round(p[i * 3] * 1e4) + ',' + Math.round(p[i * 3 + 1] * 1e4) + ',' + Math.round(p[i * 3 + 2] * 1e4);
+      if (!ids.has(k)) ids.set(k, ids.size);
+      wid[i] = ids.get(k);
+    }
+    const par = new Int32Array(ids.size).map((_, i) => i), top = (x) => { while (par[x] !== x) x = par[x] = par[par[x]]; return x; };
+    for (let t = 0; t < idx.length; t += 3) {
+      const [a, b, c] = [idx[t], idx[t + 1], idx[t + 2]];
+      if (Math.max(p[a * 3 + 1], p[b * 3 + 1], p[c * 3 + 1]) <= CROTCH) { par[top(wid[b])] = top(wid[a]); par[top(wid[c])] = top(wid[a]); }
+    }
+    const piece = new Map(); // a piece below the crotch: [vertices well left of the middle, well right, the sum of x]
+    for (let i = 0; i < n0; i++) {
+      if (p[i * 3 + 1] > CROTCH) continue;
+      const r = top(wid[i]), x = p[i * 3], c = piece.get(r) || [0, 0, 0];
+      if (x < -.03) c[0]++; else if (x > .03) c[1]++;
+      c[2] += x; piece.set(r, c);
+    }
+    for (let i = 0; i < n0; i++) {
+      const c = p[i * 3 + 1] <= CROTCH && piece.get(top(wid[i]));
+      side[i] = c && !(c[0] && c[1]) ? (c[2] < 0 ? 0 : 1) : p[i * 3] < 0 ? 0 : 1;
+      alone[i] = skinAt(i, side[i]) ? 1 : 0;
+    }
+    const onto = (v, cs) => {
+      if (side[v] === cs || !alone[v]) return v;
+      let nv = copies.get(v * 2 + cs);
+      if (nv === undefined) { nv = n0 + extra.length; extra.push(v); copies.set(v * 2 + cs, nv); }
+      return nv;
+    };
+    for (let t = 0, nt = idx.length; t < nt; t += 3) {
+      const tri = [idx[t], idx[t + 1], idx[t + 2]];
+      if (side[tri[0]] === side[tri[1]] && side[tri[1]] === side[tri[2]]) continue;
+      const xs = tri.map((v) => p[v * 3]), cs = xs[0] + xs[1] + xs[2] < 0 ? 0 : 1;
+      if (Math.max(...xs.map(Math.abs)) > .03) { for (let k = 0; k < 3; k++) idx[t + k] = onto(tri[k], cs); continue; }
+      for (let k = 0; k < 3; k++) idx[t + k] = onto(tri[k], 0);
+      idx.push(...tri.map((v) => onto(v, 1)));
+    }
+    const n = n0 + extra.length, geo = new T.BufferGeometry(), from = (i) => (i < n0 ? i : extra[i - n0]);
+    for (const k in tmp.attributes) {
+      const a = tmp.attributes[k].array, sz = tmp.attributes[k].itemSize, f = new Float32Array(n * sz);
+      f.set(a);
+      for (let i = n0; i < n; i++) for (let j = 0; j < sz; j++) f[i * sz + j] = a[from(i) * sz + j];
+      geo.setAttribute(k, new T.BufferAttribute(f, sz));
+    }
+    geo.setIndex(idx);
+    const si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) {
+      skinAt(from(i), i < n0 ? side[i] : 1 - side[from(i)]);
+      // the four strongest, adding up to one
+      let sum = 0;
+      for (let k = 0; k < 4; k++) {
+        let bi = 0;
+        for (let j = 1; j < NB; j++) if (w[j] > w[bi]) bi = j;
+        si[i * 4 + k] = bi; sw[i * 4 + k] = Math.max(0, w[bi]); sum += sw[i * 4 + k]; w[bi] = -1;
+      }
+      for (let k = 0; k < 4; k++) sw[i * 4 + k] /= sum || 1;
+    }
+    geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4));
+    geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
+    return shared(geo);
+  }
+  // put a model on a rig (its id) or take it off (''): the built hero's materials hide, the arms take the model's
+  // joints, the hats move onto its cap
+  function wearModel(h, id) {
+    if (h.model === id) return;
+    h.model = id;
+    const cfg = HERO_MODELS[id] || null;
+    for (const k in h.m) h.m[k].visible = !cfg;
+    h.arms.forEach((a, i) => {
+      const r = h.armRest[i], A = cfg && cfg.arm;
+      if (!A) { a.sh.position.copy(r[0]); a.el.position.copy(r[1]); a.wr.position.copy(r[2]); return; }
+      a.sh.position.set((i ? 1 : -1) * A.sh[0], A.sh[1], A.sh[2]); a.el.position.set(0, -A.el, 0); a.wr.position.set(0, -A.wr, 0);
+      a.fk.position.set((i ? 1 : -1) * cfg.fingers.up, -cfg.fingers.at, 0); a.ft.position.set(0, -cfg.fingers.mid, 0);
+    });
+    h.armOut = cfg ? cfg.out : 0;
+    if (cfg && !h.skins[id]) h.skins[id] = skinModel(h, id);
+    for (const k in h.skins) h.skins[k].visible = k === id;
+    for (const k in h.hats) {
+      const bare = HATS.some((x) => x.id === k && x.hide);
+      h.hats[k].position.y = !cfg ? 0 : cfg.hat[k] !== undefined ? cfg.hat[k] : bare ? cfg.hat.bare : cfg.hat.at;
+    }
+  }
+  // the model's meshes on this rig's joints. The bind pose is the rig at rest with its arms turned straight out to the
+  // sides, in the body's space; the meshes go under the body, so they blink with it
+  function skinModel(h, id) {
+    const bones = heroBones(h), inv = bones.map((b) => {
+      const m = new T.Matrix4();
+      for (let o = b; o !== h.body; o = o.parent) {
+        const at = o === h.hips ? new T.Vector3(0, .52, 0) : o.position, l = new T.Matrix4().makeTranslation(at.x, at.y, at.z);
+        const i = h.arms.findIndex((a) => a.sh === o);
+        if (i >= 0) l.multiply(new T.Matrix4().makeRotationZ((i ? 1 : -1) * Math.PI / 2));
+        m.premultiply(l);
+      }
+      return m.invert();
+    });
+    const skel = new T.Skeleton(bones, inv), g = new T.Group();
+    for (const [geo, mat, name] of heroModels[id].parts) {
+      const m = new T.SkinnedMesh(geo, mat);
+      m.bind(skel, new T.Matrix4()); m.castShadow = true; m.frustumCulled = false; g.add(m);
+      if (name === HERO_MODELS[id].cap) g.userData.cap = m;
+    }
+    h.body.add(g);
+    return g;
+  }
+  // how far a model's arm hangs out from the side: all of it with the arm down, none with it held forward or up
+  const armOut = (h, x) => h.armOut * Math.max(0, Math.cos(x));
+  // a model's fingers: a fist round what the hand holds (1), a little bent when it holds nothing (0). arms[0] is the gun
+  // hand, the poses' L; its fingers curl towards the palm, which faces the body when the arm hangs
+  function rigFingers(h, l, r) {
+    h.arms.forEach((a, i) => { const g = i ? r : l, s = i ? 1 : -1; a.fk.rotation.z = -s * (.25 + 1.2 * g); a.ft.rotation.z = -s * (.3 + 1.25 * g); });
   }
   const hero = buildHero();
   scene.add(hero.root);
@@ -10189,7 +10387,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // Progress is saved: stars (world ones by name, level ones as 'l:<level id>'), the wallet of badges, what each collection
   // quest has found so far (red badges, lost ones, ingredients, switches), finished quests, and what came from the shop:
   // perks (each can be switched off), costumes, caps, hats and rides.
-  const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'classic',
+  const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'mario',
     caps: ['auto', 'classic'], cap: 'auto', hats: [], hat: '', rides: [], ride: '',
     // the best survival game (waves lasted through, seconds), the dragon last picked at the roost, the best tank battle (waves,
     // tanks knocked out), how many times Leviathan has been beaten
@@ -10209,6 +10407,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   if (SAVE.frogs) { SAVE.sets.frogs = SAVE.frogs; delete SAVE.frogs; }
   if (!SAVE.caps.includes('auto')) SAVE.caps.unshift('auto');
   if (SAVE.cap === 'classic') SAVE.cap = 'auto';
+  // Mario became the main hero (2026-09-28): a save still in the classic costume puts him on, once (the classic stays in the shop)
+  if (!SAVE.marioOn) { if (SAVE.skin === 'classic') SAVE.skin = 'mario'; SAVE.marioOn = 1; }
   // players from before the island keep the levels they had opened
   for (let i = 0; i < store.get('unlocked', 1) - 1 && i < LEVELS.length; i++) if (!SAVE.stars.includes('l:' + LEVELS[i].id)) SAVE.stars.push('l:' + LEVELS[i].id);
   const saveGame = () => store.set('save', SAVE);
@@ -13839,6 +14039,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- the pose: arms out along the aim, a swing, a throw ----------
   function gunArms(t, w, pitch, swingT, throwT, recoil, drawK) {
     if (!w) return;
+    if (w.kind !== 'jet') t.gripL = 1; // the jetpack is on the back
+    if (w.two) t.gripR = 1;
     const up = -Math.PI / 2 - pitch;
     t.twist = 0; t.hipsY = 0; t.torsoX = Math.min(t.torsoX, .1); t.headX = -pitch * .6; t.headY = 0;
     if (w.kind === 'melee' || w.kind === 'throw' || w.kind === 'heal' || w.kind === 'jet') {
@@ -14316,8 +14518,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     h.legs[0].hip.rotation.set(J.hipL, 0, -J.sprL); h.legs[1].hip.rotation.set(J.hipR, 0, J.sprR);
     h.legs[0].knee.rotation.x = J.kneeL; h.legs[1].knee.rotation.x = J.kneeR;
     h.legs[0].ankle.rotation.x = J.ankL; h.legs[1].ankle.rotation.x = J.ankR;
-    h.arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz); h.arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz);
+    h.arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz - armOut(h, J.shLx)); h.arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz + armOut(h, J.shRx));
     h.arms[0].el.rotation.x = J.elL; h.arms[1].el.rotation.x = J.elR; h.arms[0].wr.rotation.x = J.wrL; h.arms[1].wr.rotation.x = J.wrR;
+    rigFingers(h, J.gripL, J.gripR);
     const legH = (a, kn, sp) => (.2 * Math.cos(a) + .19 * Math.cos(a + kn)) * Math.cos(sp);
     const drop = .39 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR));
     h.hips.position.set(0, .52 - drop + J.bob, 0); h.hips.rotation.y = J.hipsY;
@@ -14787,6 +14990,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // Free ones (price 0) are everyone's from the start; `sw` is the shop's two swatch colours, `sub` its line
   const SKINS = [
     { id: 'classic', name: 'Классика', price: 0, shirt: 0xff8a2a, over: 0x2c3f93, scarf: 0x4262ff, scarf2: 0xffffff, glove: 0xffffff, shoe: 0x7a4524, cap: 0x16a39c, dark: 0x0f7f79 },
+    // the main hero: a model of his own (HERO_MODELS), the colours are for the built hero until it has loaded
+    { id: 'mario', name: 'Марио', price: 0, sub: 'Главный герой: кепка с буквой M, усы и синий комбинезон', sw: [0xe0302a, 0x2f4fb0], model: 'mario',
+      shirt: 0xe0302a, over: 0x2f4fb0, scarf: 0xe0302a, scarf2: 0xffffff, glove: 0xffffff, shoe: 0x6a3a1c, cap: 0xe0302a, dark: 0xb02018,
+      face: { hair: 0x3a2414, brow: 0x3a2414 } },
     { id: 'grinch', name: 'Гринч', price: 0, sub: 'Бесплатно! Зелёный мех, жёлтые глаза и колпак Санты', sw: [0x8cbf3f, 0xd8302a],
       shirt: 0xd8302a, over: 0xa81d18, scarf: 0xffffff, scarf2: 0xd8302a, glove: 0x8cbf3f, shoe: 0x2b2f4a, cap: 0xd8302a, dark: 0xffffff,
       face: { skin: 0x8cbf3f, nose: 0x76a82e, blush: 0x7aaa30, hair: 0x6f9a26, brow: 0x4f7a1a, white: 0xf2e24a, iris: 0xd8302a, sock: 0x8cbf3f } },
@@ -14885,6 +15092,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // chicken's comb) takes the cap's place, and goes like the cap under a shop hat; under the glass helmet the cap comes back
   function dressHero(h, look, fire, suit) {
     const s = skinDef(look.skin), c = capDef(look.cap, look.skin), m = h.m;
+    // a costume with a model of its own wears it once it has loaded; until then the built hero in its colours
+    const md = s.model ? heroModel(s.model) : null;
+    if (md && !md.ready && !md.failed) heroModelWait.set(h, [look, fire, suit]); else heroModelWait.delete(h);
+    wearModel(h, md && md.ready ? s.model : '');
     m.shirt.color.setHex(s.shirt); m.over.color.setHex(fire ? 0xfff1dc : s.over); m.scarf.color.setHex(s.scarf); m.scarf2.color.setHex(s.scarf2);
     m.mitt.color.setHex(s.glove); m.shoe.color.setHex(s.shoe);
     for (const k in HERO_FACE) m[k].color.setHex(s.face && s.face[k] !== undefined ? s.face[k] : HERO_FACE[k]);
@@ -14893,6 +15104,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (const id in h.hats) h.hats[id].visible = !suit && !!hat && hat.id === id;
     for (const id in h.wear) for (const at in h.wear[id]) h.wear[id][at].visible = id === s.id && (at !== 'top' || top);
     h.capG.visible = suit || (!hide && !top);
+    const sk = h.skins[h.model];
+    if (sk && sk.userData.cap) sk.userData.cap.visible = suit || !hide;
     h.helmet.visible = h.pack.visible = suit;
   }
   function applyLook() {
@@ -15669,7 +15882,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // a stretch, a foot tap, a wave at the camera) and eventually a nap. Scarf, cowlick and head ride on springs.
   const spinAngle = () => (P.spinT > 0 ? (1 - P.spinT / SPIN_T) * Math.PI * 4 : 0);
   const POSE0 = { hipL: 0, hipR: 0, sprL: .03, sprR: .03, kneeL: .08, kneeR: .08, ankL: 0, ankR: 0, shLx: 0, shRx: 0, shLz: .12, shRz: .12,
-    shLy: 0, shRy: 0, elL: -.25, elR: -.25, wrL: 0, wrR: 0, twist: 0, torsoX: 0, torsoZ: 0, hipsY: 0, headX: 0, headY: 0, headZ: 0,
+    shLy: 0, shRy: 0, elL: -.25, elR: -.25, wrL: 0, wrR: 0, gripL: 0, gripR: 0, twist: 0, torsoX: 0, torsoZ: 0, hipsY: 0, headX: 0, headY: 0, headZ: 0,
     bob: 0, sway: 0, lean: 0, bank: 0 };
   const POSE = Object.assign({}, POSE0), TGT = Object.assign({}, POSE0);
   const spring = (o, target, k, damping, dt) => { o.v += (target - o.x) * k * dt; o.v *= Math.exp(-damping * dt); o.x += o.v * dt; return o.x; };
@@ -15942,6 +16155,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     let [face, rate] = heroPose(t, dt, spd, turn);
     if (gunOn() && G.state !== 'dying') gunArms(t, gunCur(), gunAim(), GN.swingT, GN.throwT, GN.recoil, GN.draw); // the gun along the aim
+    if (P.veh || P.riding || ISL.carry) t.gripL = t.gripR = 1; // handlebars, a wheel, a saddle, a delivery over the head
     if (!(P.onGround || G.state === 'title') || P.spinT > 0 || P.pound || P.throwT > 0 || P.waveT > 0) { idleT = 0; idleAll = 0; fidget = null; }
     if (G.state !== 'dying' && G.state !== 'title' && face !== 'hurt' && (G.state === 'goal' || P.happyT > 0) && !teeter) face = face === 'cheer' ? 'cheer' : 'happy';
     else if (P.hurtT > 0 && face === 'normal') face = 'hurt';
@@ -15967,9 +16181,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     legs[0].hip.rotation.set(J.hipL, 0, -J.sprL); legs[1].hip.rotation.set(J.hipR, 0, J.sprR);
     legs[0].knee.rotation.x = J.kneeL; legs[1].knee.rotation.x = J.kneeR;
     legs[0].ankle.rotation.x = J.ankL; legs[1].ankle.rotation.x = J.ankR;
-    arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz); arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz);
+    arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz - armOut(hero, J.shLx)); arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz + armOut(hero, J.shRx));
     arms[0].el.rotation.x = J.elL; arms[1].el.rotation.x = J.elR;
     arms[0].wr.rotation.x = J.wrL; arms[1].wr.rotation.x = J.wrR;
+    rigFingers(hero, J.gripL, J.gripR);
     // the hips drop so the lower foot stays on the ground when knees bend
     const legH = (h, kn, sp) => (.2 * Math.cos(h) + .19 * Math.cos(h + kn)) * Math.cos(sp);
     const drop = (P.onGround || G.state === 'title') && !P.riding && !P.veh ? .39 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR)) : 0;
@@ -17054,6 +17269,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (g.dress !== key) { g.dress = key; dressHero(h, g.look, fire, suit); }
     const gw = g.rideNow ? '' : g.gun || ''; // what the friend has in hand (nothing on a ride)
     if (h.guns ? h.guns.id !== gw : gw) { rigGun(h, gw); h.guns.back.visible = false; }
+    const gd = GUNS[gw];
+    rigFingers(h, g.rideNow || (gd && gd.kind !== 'jet') ? 1 : 0, g.rideNow || (gd && gd.two) ? 1 : 0);
     const shown = r.visible, dist = Math.hypot(g.px - P.pos.x, g.py - P.pos.y, g.pz - P.pos.z);
     r.visible = shown && dist < (scene.fog ? scene.fog.far + 20 : 260); // past the fog there is nothing to see
     netRide(g, g.rideNow);
