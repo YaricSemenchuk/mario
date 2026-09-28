@@ -99,7 +99,10 @@ the minigun's rattle), and under the water every sound is muffled.
   camera looks. A sight (a ring with ticks where the shell would burst, and a dotted line out of the gun to it) shows the
   aim all the time: red on a target, dim while the gun reloads. A shell bursts on whatever it meets and knocks over what
   stands close by, and it shoots cannonballs down
-- The KV-44: the long green tank of the cartoons with five turrets, the hero standing in the hatch of the big one. It is
+- The KV-44: the long tank of the cartoons, battle-worn: riveted olive and grey armour with rust and shell dents, stepped
+  up in blocks like a fortress, angry yellow eyes on the block under the big turret, a white 44 and a crown on its sides,
+  a very long gun with a muzzle brake and twelve small turrets on the steps (four of them turn and fire, the rest stand
+  guard). The hero stands in the hatch of the big turret. It is
   slower and turns more slowly than the tank, and its whole hull keeps clear of walls (where it cannot turn it backs up a
   little). The action button fires a salvo: the big gun, then the small turrets one after another (they all turn with
   the big one), and loading them all again takes a while. It also carries a grenade launcher on the roof of the big turret
@@ -124,8 +127,8 @@ the minigun's rattle), and under the water every sound is muffled.
 - The battle with Leviathan (Tank Range): the purple pad on the tank ground puts the hero in a KV-44 of his own and wakes
   Leviathan, a huge dark tank with angry
   glowing eyes, spikes on its nose, a big turret with a pair of guns and three small turrets. It rises out of an
-  underground hangar by the far wall (once the hero has made room) and three KV-44s roll in to help: long green tanks
-  with five turrets each, red stars and friendly eyes, which drive round it by themselves and fire salvos at it and at
+  underground hangar by the far wall (once the hero has made room) and three KV-44s roll in to help: the same
+  battle-worn KV-44s, which drive round it by themselves and fire salvos at it and at
   the grumpy tanks, and whose armour cannonballs clang off, so they make good cover. Leviathan turns to the hero, fires
   fans of five cannonballs (glowing first), its small turrets fire at the hero and at the KV-44s, and its mortar drops
   shells round the hero on red rings. At two thirds and a third of its armour (the bar at the top) it calls up two
@@ -274,7 +277,7 @@ the minigun's rattle), and under the water every sound is muffled.
     steering wheel that turns into the corners), a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
-    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with five turrets, and five
+    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with twelve turrets, and five
     dragons that fly (listed last).
     A hit knocks the hero off (a dragon only slows down, a tank's armour takes it). Blue pads lend a ride for free (the jet
     ski at the piers, the rover on the Moon, the stone car in Dino Valley, the dragons at their perches, tanks and KV-44s on
