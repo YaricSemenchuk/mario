@@ -22,13 +22,13 @@ the kart, the jet ski and the moon rover hum louder and higher as they speed up,
 a flying dragon, every gun of the Duel Arena has a voice of its own (the sniper's crack, the shotgun's boom, a bow's twang,
 the minigun's rattle), and under the water every sound is muffled.
 
-- Twelve open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
+- Thirteen open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
   Promo Island sits between them: a village with a fountain, houses and a windmill, a beach with a pier, a lake under
   a waterfall cliff (with a cave behind the water), a vegetable garden, a lighthouse on a plateau, a forest on terraces
   and a sky island above it. The hero swims (the action button is a stroke forward, a jump leaps out of the water) and
   walks up and down slopes
-- Behind the island's gates lie eleven more worlds, each with its own folk and quests; the first four have ten stars and
-  doors to their levels, the next two are open worlds of ten quests each, and the last five are open from the start:
+- Behind the island's gates lie twelve more worlds, each with its own folk and quests; the first four have ten stars and
+  doors to their levels, the next two are open worlds of ten quests each, and the last six are open from the start:
   - the Desert: an oasis and a bazaar, the Sphinx, the Great Pyramid with a tomb inside, a mesa climbed by riding a
     wandering dust devil, a field of quicksand (the hero sinks and has to jump out), dunes and a melon patch
   - Ice Peaks: a penguin village of igloos, a skating rink, a steaming hot spring, the Ice Mountain with a crystal cave,
@@ -231,7 +231,28 @@ the minigun's rattle), and under the water every sound is muffled.
     shots; a win pays badges (more for a stronger opponent), a loss a few. Eight stars: the first win on the arena, a win
     3:0, beating the champion, a sniper duel won, a head shot in a sniper duel, all eight targets of the range in 40
     seconds, the top of the sniper tower and the red badges. "🎯 Дуэли" on the title goes straight to the arena's gate
-- Stars: 111 in the worlds and one for every level cleared, 125 in all. They come from folk and secrets: lost ones to bring
+  - the Roblox world (Мир Роблокс): a green baseplate floating in the sky, everything built of bricks with studs on top
+    (a normal-mapped stud texture, a quarter metre per stud), block trees, brick houses with stepped roofs, other
+    baseplates drifting far off. Everyone there is blocky, the hero and friends too: whatever the costume (Mario's model
+    included), the rig wears Roblox-style blocks on its own joints (upper and lower arms and legs, hands, feet, two torso
+    blocks, a round head with a drawn face that smiles, grins, says "oof" and blinks, a block cap in the cap's colours), and
+    the folk are blocky too (a noob, Mama Noobie, Brick the builder, DJ Blok, Speedy, Professor Spring). The Roblox
+    mechanics:
+    - the obby: twelve stages over the void, each starting on a grey spawn pad with its number (cubes going up, strips of
+      glowing red kill brick, bricks swinging over a gap, a truss to climb, fading bricks, a kill bar sweeping a square, a
+      conveyor running back, a launch pad, narrow beams, sliding kill walls, steps with lava and a last truss to the gold
+      finish). A kill brick or the void makes the hero fall apart into his blocks with an "oof", and he is back on the last
+      spawn pad touched; the furthest stage is kept (the HUD's "Этап"), and a blue pad at the obby's start goes straight to
+      it
+    - trusses: walk into one to climb it
+    - gear givers: the gravity coil (jumps more than twice as high, slow falls) and the speed coil (half as fast again),
+      held in the hand; walking into the giver again puts it back
+    - Color Block (Цветные плитки): a colour lights up on the board, every tile of another colour drops into the void after
+      a countdown that shrinks each round; five bots with Roblox-ish names play too and fall apart when they miss
+    - Brick's tower: platforms round a column two laps up (fading ones, lava thirds), a spawn pad halfway, the star on top
+    - Seven stars: the obby, the tower, eight rounds of Color Block, the sky platform (only with the gravity coil), Speedy's
+      rings, Mama Noobie's five little noobs and the red badges. "🧱 Роблокс" on the title goes straight to the spawn
+- Stars: 118 in the worlds and one for every level cleared, 132 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a
@@ -254,16 +275,16 @@ the minigun's rattle), and under the water every sound is muffled.
 - The World Gates open with stars: five on the island's square (the first leads to the Green levels, the others into the
   worlds at 3, 8, 15 and 24 stars), the Sea Gate at the end of the pier (30) and the Star Gate on a cloud islet above the
   forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley, the Dragon Gate, the Tank Gate and, at the
-  cape by the sea, the Forest Gate and, at its very end, the Duel Gate, open from the start.
+  cape by the sea, the Forest Gate, the Duel Gate and, at its very end, the Roblox Gate, open from the start.
   Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front of its door
 - Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in five tabs (the Tank
   tab is under the tank, below, and the Guns tab under the guns, above):
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
     the hero's head, Iskra always along, a spare heart and a mushroom in the pocket for the levels, an hourglass with
     a minute more; and goods for right now (a shield, a mushroom, the fire pepper, one star on the island)
-  - skins: sixteen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
-    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Three costumes are free from the
-    start: the Grinch (green fur, yellow eyes, Santa's coat, belt and floppy hat) and the Chicken Gun chicken (white
+  - skins: seventeen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
+    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Four costumes are free from the
+    start: the Noob (yellow, blue and green, as on Roblox), the Grinch (green fur, yellow eyes, Santa's coat, belt and floppy hat) and the Chicken Gun chicken (white
     feathers, a red comb, a beak and a tail), whose hat and comb take the cap's place, and Mario, the main hero a new
     game starts with (a save still in the classic costume puts him on once; the classic hero stays in the shop). Mario is
     a textured model of his own (`models/mario.glb`, about 0.9 MB, loaded when first worn), skinned at load onto the
