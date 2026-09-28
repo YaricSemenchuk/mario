@@ -101,11 +101,12 @@ the minigun's rattle), and under the water every sound is muffled.
   stands close by, and it shoots cannonballs down
 - The KV-44: the long tank of the cartoons, battle-worn: riveted olive and grey armour with rust and shell dents, stepped
   up in blocks like a fortress, angry yellow eyes on the block under the big turret, a white 44 and a crown on its sides,
-  a very long gun with a muzzle brake and twelve small turrets on the steps (four of them turn and fire, the rest stand
-  guard). The hero stands in the hatch of the big turret. It is
+  a very long gun with a muzzle brake and twelve small turrets on the steps, every one turning with the big turret and
+  firing. The hero stands in the hatch of the big turret. It is
   slower and turns more slowly than the tank, and its whole hull keeps clear of walls (where it cannot turn it backs up a
-  little). The action button fires a salvo: the big gun, then the small turrets one after another (they all turn with
-  the big one), and loading them all again takes a while. It also carries a grenade launcher on the roof of the big turret
+  little). The action button fires a salvo: the big gun, then all twelve small turrets one after another (they all turn
+  with the big one; theirs are light shells, four of which do to a tank what one of the big gun's does, so the salvo
+  hits as hard as it did with four turrets), and loading them all again takes a while. It also carries a grenade launcher on the roof of the big turret
   and a rocket pod on each side of it, each on a button of its own (C and R on desktop) that darkens while it loads: the
   grenade launcher lobs four grenades in a high arc onto the target (over walls, too) or onto the ground ahead, and the
   pods send off eight rockets that turn by themselves to the targets round the tank and burst on them. Its thick armour
