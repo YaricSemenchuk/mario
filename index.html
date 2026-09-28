@@ -2729,8 +2729,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // The long tanks of the battle with Leviathan. The KV-44 of the cartoons, battle-worn: a long riveted tank in olive and
   // grey armour with rust and shell dents, on ten road wheels a side, stepped up in blocks like a fortress. On top the big
   // turret with a very long gun and a muzzle brake; angry yellow eyes on the block under it, a white 44 and a crown on its
-  // sides; twelve small turrets on the steps (four of them turn and fire, the rest stand guard). Three of them come to
-  // help. Leviathan: a huge
+  // sides; twelve small turrets on the steps, every one turning and firing. Three of them come to help. Leviathan: a huge
   // dark tank with red trim, spikes on its nose and skirts, a big turret with a pair of guns and angry eyes that glow (meshes
   // of their own), and three small turrets round it. Every turret turns on its own and every gun kicks back. Front is +z;
   // BIG_TANKS says where the parts go and how big the whole tank is (sc), its half width and length and its height.
@@ -2781,10 +2780,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // rivets along the steps' edges and the deck's front
       ...kvRivets(c, [-.72, 1.37, 1.47], [.72, 1.37, 1.47], 10), ...kvRivets(c, [-.58, 1.79, .69], [.58, 1.79, .69], 8),
       ...kvRivets(c, [-1.05, .93, 2.83], [1.05, .93, 2.83], 12),
-      // the static small turrets: three on each side of the deck, one on each back corner of the first step
-      ...[-1, 1].flatMap((k) => [[k * .98, .92, 1.2, k * .5], [k * .98, .92, 0, k * 1.35], [k * .98, .92, -1.2, k * 1.9], [k * .62, 1.36, -1.75, k * 2.3]]
-        .flatMap(([x, y, z, yaw]) => [...kvMiniParts(c), ...miniGunParts(c).map(([g, col, m]) => [g, col, M4(0, .2, .5).multiply(m)])]
-          .map(([g, col, m]) => [g, col, M4(x, y, z, .45, .45, .45, 0, yaw, 0).multiply(m)]))),
     ];
     for (const k of [-1, 1]) p.push(
       // the tracks: the top and bottom runs with their links, the sprockets fore and aft
@@ -2888,7 +2883,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // the steps the big turret stands on, which the hero can climb: half width, bottom, top, back, front
       tiers: [[.8, .92, 1.36, -2.1, 1.5], [.65, 1.36, 1.78, -1.3, .7]],
       big: { at: [0, 1.78, -.3], gun: [0, .3, .9], muzzle: [[0, 0, 3.05]] },
-      minis: [{ at: [0, .92, 2.2], size: .75 }, { at: [0, 1.36, -1.72], size: .65, yaw: Math.PI }, { at: [-.64, 1.36, 1.25], size: .46 }, { at: [.64, 1.36, 1.25], size: .46 }] },
+      // the small turrets: fore on the deck, aft and at the front corners of the first step, three down each side of the
+      // deck and one at each back corner of the first step (yaw: where each looks while the tank stands still)
+      minis: [{ at: [0, .92, 2.2], size: .75 }, { at: [0, 1.36, -1.72], size: .65, yaw: Math.PI }, { at: [-.64, 1.36, 1.25], size: .46 }, { at: [.64, 1.36, 1.25], size: .46 },
+        ...[-1, 1].flatMap((k) => [[k * .98, .92, 1.2, k * .5], [k * .98, .92, 0, k * 1.35], [k * .98, .92, -1.2, k * 1.9], [k * .62, 1.36, -1.75, k * 2.3]]
+          .map(([x, y, z, yaw]) => ({ at: [x, y, z], size: .45, yaw })))] },
     levi: { c: LEVI_C, sc: 2.3, hw: 1.7, hd: 2.6, h: 2.4, hull: leviHullParts, turret: leviTurretParts, gun: leviGunParts,
       wheels: [-1.65, -1, -.33, .33, 1, 1.65], wx: 1.25, wy: .34, ws: 1.3,
       big: { at: [0, 1.34, -.35], gun: [0, .26, 1.2], muzzle: [[-.3, 0, 2.81], [.3, 0, 2.81]] },
@@ -9266,7 +9265,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (!e.alive || f.y < e.y - .2 || f.y > e.y + e.h + .2) continue;
         if (e.hd ? hullGap(e, f.x, f.z) > reach : Math.abs(e.x - f.x) > e.hw + reach || Math.abs(e.z - f.z) > e.hw + reach) continue; // a long tank anywhere along its hull
         if (e.levi) e.hitAt = f; // (where the sparks fly)
-        knockEnemy(e, f.vx, f.vz, 200, !f.ally);
+        if (f.shell) shellKnock(e, f, f.vx, f.vz, 200); else knockEnemy(e, f.vx, f.vz, 200, !f.ally);
         if (f.dmg > 1 && e.alive && e.tank) { if (e.levi) e.hitAt = f; knockEnemy(e, f.vx, f.vz, 200, !f.ally); }
         hit = true; f.hitE = e; break;
       }
@@ -11497,7 +11496,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else P.nadeQ = P.rkQ = 0;
     if (P.salvo.length) { // a KV-44's salvo, shot after shot
       P.salvoT -= dt;
-      if (!P.veh.hull) P.salvo.length = 0; else if (P.salvoT <= 0) { P.salvoT = .13; kvShot(P.salvo.shift()); }
+      if (!P.veh.hull) P.salvo.length = 0; else if (P.salvoT <= 0) { P.salvoT = .1; kvShot(P.salvo.shift()); }
     }
     P.aimT -= dt;
     let at = P.aimAt ? P.aimAt() : null;
@@ -11541,12 +11540,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     }
     Snd.sfx.cannon(); G.shake = Math.max(G.shake, .16);
   }
-  // The KV-44's salvo: the big gun, then the small turrets one after another (the round one fore or aft that looks the
-  // way the gun does, and the two little ones), all at what the gun is aimed at; loading them all again takes a while.
-  // The small turrets turn with the big one. kvMuzzle: where the end of a gun is (k: -1 the big one, else a small one).
+  // The KV-44's salvo: the big gun, then all twelve small turrets one after another, all at what the gun is aimed at;
+  // loading them all again takes a while. The small turrets turn with the big one and fire light shells (LIGHT_SHELL:
+  // four of them do to a tank what one of the big gun's does), so the salvo hits as hard as it did with four turrets.
+  // kvMuzzle: where the end of a gun is (k: -1 the big one, else a small one).
   function kvFire() {
     P.tankCd = TANK_RELOADS[tankMod(0)] * 2.2; P.throwT = .3;
-    P.salvo = [-1, Math.abs(wrapPi(P.aim - P.facing)) > Math.PI / 2 ? 1 : 0, 2, 3]; P.salvoT = 0;
+    P.salvo = [-1, ...BIG_TANKS.kv44.minis.map((_, i) => i)]; P.salvoT = 0;
   }
   function kvMuzzle(k) {
     const D = BIG_TANKS.kv44, sc = D.sc, q = k < 0 ? null : D.minis[k], [ax, ay, az] = q ? q.at : D.big.at;
@@ -11556,7 +11556,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function kvShot(k) {
     const u = rideGroup(P.vehId).userData, [mx, my, mz] = kvMuzzle(k), at = P.aimAt ? P.aimAt() : null;
     const yaw = at ? Math.atan2(at[0] - mx, at[2] - mz) : P.aim, pitch = at ? clamp(Math.atan2(at[1] - my, Math.hypot(at[0] - mx, at[2] - mz)), -.4, .5) : 0, cp = Math.cos(pitch);
-    shellOut(mx, my, mz, Math.sin(yaw) * cp * SHELL_V, Math.sin(pitch) * SHELL_V, Math.cos(yaw) * cp * SHELL_V, false, tankMod(1) >= 3, tankMod(1) >= 1 ? 3.3 : SHELL_R);
+    shellOut(mx, my, mz, Math.sin(yaw) * cp * SHELL_V, Math.sin(pitch) * SHELL_V, Math.cos(yaw) * cp * SHELL_V, false, k < 0 && tankMod(1) >= 3, (tankMod(1) >= 1 ? 3.3 : SHELL_R) * (k < 0 ? 1 : .7));
+    if (k >= 0) L.fireballs[L.fireballs.length - 1].light = LIGHT_SHELL;
     if (k < 0) { u.recoil = 1; Snd.sfx.cannon(); G.shake = Math.max(G.shake, .2); } else { u.minis[k].recoil = 1; Snd.at(mx, my, mz).cannon(); }
   }
   // ---------- the KV-44's grenade launcher and rocket pods ----------
@@ -11653,6 +11654,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // a shell out of a gun (ours, or a friend's that only flies and bursts), with the flash and the smoke; a fiery one hits
   // twice as hard, and `blast` is how far its burst reaches
+  // a light shell (a KV-44's small turret) takes that much of a hit off a tank; the rest of a hit waits for the next ones
+  const LIGHT_SHELL = .25;
+  function shellKnock(e, f, dx, dz, pts) {
+    if (f.light && e.tank) {
+      e.chip = (e.chip || 0) + f.light;
+      if (e.chip < .999) { emit(f.x, f.y, f.z, 0xfff3a0, 4, 3, 1, 4, .2, .15); if (e.levi) e.hitAt = null; return; }
+      e.chip -= 1;
+    }
+    knockEnemy(e, dx, dz, pts, !f.ally);
+  }
   function shellOut(x, y, z, vx, vy, vz, ghost, hot = false, blast = SHELL_R) {
     const m = new T.Mesh(hot ? GEO.shellHot : GEO.shell, MAT.char); m.rotation.order = 'YXZ'; m.rotation.set(-Math.atan2(vy, Math.hypot(vx, vz)), Math.atan2(vx, vz), 0);
     m.position.set(x, y, z); L.group.add(m);
@@ -11672,7 +11683,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!e.alive || e === f.hitE || f.y < e.y - 1.2 || f.y > e.y + e.h + 1.2) continue;
       if (e.hd ? hullGap(e, f.x, f.z) > R * .5 : Math.hypot(e.x - f.x, e.z - f.z) > R + e.hw * .5) continue;
       if (e.levi) e.hitAt = f;
-      knockEnemy(e, e.x - f.x, e.z - f.z, 100, !f.ally);
+      shellKnock(e, f, e.x - f.x, e.z - f.z, 100);
     }
     for (const b of L.balls) if (!b.dead && Math.hypot(b.x - f.x, b.z - f.z) < R && Math.abs(b.y - f.y) < 2) { if (f.ally) popBallQuiet(b); else popBall(b, 100); }
   }
@@ -12101,7 +12112,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // fires a salvo once its big gun points at it with nothing in between: the big gun, then two small ones. Cannonballs
   // clang off their armour, so they make good cover. When Leviathan goes up they cheer, then drive back to the base,
   // where the three stand by the hangars between the battles.
-  const KV_SPOTS = [[-16, 34], [0, 34], [14, 33.5]], KV_SPD = 4.4;
+  const KV_SPOTS = [[-16, 34], [0, 34], [14, 33.5]], KV_SPD = 4.4, KV_MUZZLE = BIG_TANKS.kv44.big.muzzle[0][2]; // (the big gun's end, in its own units)
   function kvArrive() {
     const S = ISL.tb, D = BIG_TANKS.kv44;
     if (S.allies.length) return;
@@ -12134,10 +12145,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return best;
   }
   // a KV-44's shell: like the hero's, but what it knocks out is not the hero's doing
-  function kvShell(x, y, z, tp) {
+  function kvShell(x, y, z, tp, light = 0) {
     const dx = tp[0] - x, dz = tp[2] - z, h = Math.hypot(dx, dz) || 1, pitch = clamp(Math.atan2(tp[1] - y, h), -.4, .5), cp = Math.cos(pitch);
-    shellOut(x, y, z, dx / h * cp * SHELL_V, Math.sin(pitch) * SHELL_V, dz / h * cp * SHELL_V, false);
-    L.fireballs[L.fireballs.length - 1].ally = true;
+    shellOut(x, y, z, dx / h * cp * SHELL_V, Math.sin(pitch) * SHELL_V, dz / h * cp * SHELL_V, false, false, light ? SHELL_R * .7 : SHELL_R);
+    Object.assign(L.fireballs[L.fireballs.length - 1], { ally: true, light });
     Snd.at(x, y, z).cannon();
   }
   function updateAlly(e, dt) {
@@ -12189,26 +12200,25 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       m.t.rotation.y = wrapPi(m.aim - e.face);
       m.recoil = Math.max(0, m.recoil - dt * 4); m.gun.position.z = .5 - m.recoil * .3;
     }
-    // a salvo: the big gun once it points at the target with nothing in between, then two of the small ones
+    // a salvo: the big gun once it points at the target with nothing in between, then every small one that looks at it
     if (playing && tg && !cheering && e.cool <= 0 && !e.salvo.length && Math.hypot(tp[0] - e.x, tp[2] - e.z) < 44 &&
       Math.abs(wrapPi(Math.atan2(tp[0] - e.x, tp[2] - e.z) - e.aim)) < .08) {
-      u.gun.localToWorld(_lv.set(0, 0, 1.87));
+      u.gun.localToWorld(_lv.set(0, 0, KV_MUZZLE));
       if (clearShot(_lv.x, _lv.y, _lv.z, tp[0], tp[1], tp[2])) {
-        const a = (Math.random() * 4) | 0;
-        e.salvo = [-1, a, (a + 1 + ((Math.random() * 3) | 0)) % 4]; e.salvoT = 0; e.cool = 3.6 + Math.random() * 1.4;
+        e.salvo = [-1, ...e.minis.map((_, i) => i)]; e.salvoT = 0; e.cool = 3.6 + Math.random() * 1.4;
       } else { e.cool = .6; e.goalT = 0; } // something in the way: round it
     }
     if (e.salvo.length) {
       e.salvoT -= dt;
       if (e.salvoT <= 0) {
         const k = e.salvo.shift(), m = k < 0 ? null : e.minis[k];
-        e.salvoT = .28;
+        e.salvoT = m ? .14 : .28;
         if (!tg || !tg.alive || cheering) e.salvo.length = 0;
-        else if (!m) { u.gun.localToWorld(_lv.set(0, 0, 1.87)); kvShell(_lv.x, _lv.y, _lv.z, tp); u.recoil = 1; }
+        else if (!m) { u.gun.localToWorld(_lv.set(0, 0, KV_MUZZLE)); kvShell(_lv.x, _lv.y, _lv.z, tp); u.recoil = 1; }
         else {
           const [mx, mz] = miniAt(e, m);
           m.gun.localToWorld(_lv.set(0, 0, 1.08));
-          if (Math.abs(wrapPi(Math.atan2(tp[0] - mx, tp[2] - mz) - m.aim)) < .25 && clearShot(_lv.x, _lv.y, _lv.z, tp[0], tp[1], tp[2])) { kvShell(_lv.x, _lv.y, _lv.z, tp); m.recoil = 1; }
+          if (Math.abs(wrapPi(Math.atan2(tp[0] - mx, tp[2] - mz) - m.aim)) < .25 && clearShot(_lv.x, _lv.y, _lv.z, tp[0], tp[1], tp[2])) { kvShell(_lv.x, _lv.y, _lv.z, tp, LIGHT_SHELL); m.recoil = 1; }
         }
       }
     }
@@ -15253,7 +15263,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // turret is that far behind the middle); the action button fires a salvo out of its turrets (kvFire), and it has a
     // grenade launcher and rocket pods on buttons of their own (launchers: nadeFire, rocketFire). Its whole hull
     // (half width and length) keeps clear of walls; hw is only the part the hero's own box covers
-    kv44: { name: 'КВ-44', price: 500, sub: 'Двенадцать башен, гранатомёт и ракетница! Красная кнопка даёт залп из пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2.71,
+    kv44: { name: 'КВ-44', price: 500, sub: 'Двенадцать башен, гранатомёт и ракетница! Красная кнопка даёт залп из всех пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2.71,
       pose: 'hatch', cannon: true, bump: true, hw: 1.3, hull: [BIG_TANKS.kv44.hw * BIG_TANKS.kv44.sc, BIG_TANKS.kv44.hd * BIG_TANKS.kv44.sc], turn: 1.9,
       seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread', launchers: true },
   };
@@ -17489,7 +17499,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (g.ride) {
       const rg = g.ride.g, u = rg.userData; rg.visible = r.visible;
       rg.rotation.set(v[4], v[5], v[6]); rg.scale.set(1, v[7] || 1, 1);
-      if (u.turret) u.turret.rotation.y = wrapPi(v[0] - v[5]); // a tank's gun looks where its driver looks
+      if (u.turret) u.turret.rotation.y = wrapPi(v[0] - v[5]); // a tank's gun looks where its driver looks (a KV-44's small ones too)
+      if (u.minis) for (const m of u.minis) m.t.rotation.y = u.turret.rotation.y;
       if (u.skirts && u.look !== g.tk) applyTankLook(rg, g.tk.split('').map(Number));
       if (u.wings) { // a dragon: the rider is on its saddle, tipped with it; in the air its wings are spread
         _tc.set(0, RIDES[RIDE_IDS[g.rideNow - 1]].y, .3).applyEuler(rg.rotation); rg.position.set(g.px - _tc.x, g.py - _tc.y, g.pz - _tc.z);
