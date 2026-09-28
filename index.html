@@ -2700,7 +2700,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return [[TANK_CYL, c.dark, M4(0, 0, .75, .1, 1.5, .1, Math.PI / 2, 0, 0)], [TANK_CYL, c.trim, M4(0, 0, 1.12, .115, .1, .115, Math.PI / 2, 0, 0)],
       [TANK_CYL, c.dark, M4(0, 0, 1.52, .15, .26, .15, Math.PI / 2, 0, 0)], [TANK_CYL, 0x1c1e2e, M4(0, 0, 1.655, .08, .02, .08, Math.PI / 2, 0, 0)]];
   }
-  const tankWheelParts = (c) => [[TANK_CYL, 0x5a5f70, M4(0, 0, 0, .24, .36, .24, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(0, 0, 0, .11, .37, .11, 0, 0, Math.PI / 2)],
+  const tankWheelParts = (c) => [[TANK_CYL, c.wheel || 0x5a5f70, M4(0, 0, 0, .24, .36, .24, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(0, 0, 0, .11, .37, .11, 0, 0, Math.PI / 2)],
     [BOX, 0x2b2f4a, M4(0, 0, 0, .38, .05, .4)]];
   GEO.rides.tank = mergedGeo(tankHullParts(TANK_LOOK.tank));
   GEO.tankHull = {}; GEO.tankTurret = {}; GEO.tankGun = {}; GEO.tankWheel = {};
@@ -2726,42 +2726,126 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   GEO.tankPipes = mergedGeo([-1, 1].flatMap((s) => [[TANK_CYL, 0xb8bfcc, M4(s * .66, 1.2, -1.22, .08, .76, .08)], [TANK_CYL, 0x3b3f50, M4(s * .66, 1.6, -1.22, .1, .05, .1)]]));
   GEO.tankBoost = mergedGeo([-1, 1].flatMap((s) => [[TANK_CYL, 0xf0503a, M4(s * .52, .66, -1.62, .2, .72, .2, Math.PI / 2, 0, 0)], [TANK_CYL, 0xffffff, M4(s * .52, .66, -1.5, .205, .1, .205, Math.PI / 2, 0, 0)],
     [TANK_CYL, 0xffffff, M4(s * .52, .66, -1.78, .205, .1, .205, Math.PI / 2, 0, 0)], [CONE, 0x3b3f50, M4(s * .52, .66, -2.06, .19, .22, .19, Math.PI / 2, 0, 0)]]));
-  // The long tanks of the battle with Leviathan. The KV-44 of the cartoons: a long green tank on eight road wheels a side,
-  // with five turrets (a tall boxy one in the middle on a plinth, round ones fore and aft, two little ones by the big one),
-  // red stars on its skirts and its nose and friendly eyes over the big gun; three of them come to help. Leviathan: a huge
+  // The long tanks of the battle with Leviathan. The KV-44 of the cartoons, battle-worn: a long riveted tank in olive and
+  // grey armour with rust and shell dents, on ten road wheels a side, stepped up in blocks like a fortress. On top the big
+  // turret with a very long gun and a muzzle brake; angry yellow eyes on the block under it, a white 44 and a crown on its
+  // sides; twelve small turrets on the steps (four of them turn and fire, the rest stand guard). Three of them come to
+  // help. Leviathan: a huge
   // dark tank with red trim, spikes on its nose and skirts, a big turret with a pair of guns and angry eyes that glow (meshes
   // of their own), and three small turrets round it. Every turret turns on its own and every gun kicks back. Front is +z;
   // BIG_TANKS says where the parts go and how big the whole tank is (sc), its half width and length and its height.
-  const KV44_C = { body: 0x5f8f42, dark: 0x46703a, trim: 0xe8403a, track: 0x2b2f4a, hub: 0xffd23f };
   const LEVI_C = { body: 0x4a4560, dark: 0x302c42, trim: 0xe8403a, track: 0x1c1e2e, hub: 0xe8403a };
+  // the KV-44's colours: olive drab armour and grey blocks, dark olive, rust, the tracks, the road wheels and their hubs,
+  // rivets, white paint
+  const KV44_C = { body: 0x4d5a2b, dark: 0x343c1f, gray: 0x5e6267, grayD: 0x45494e, trim: 0x7a4424, track: 0x28292b, wheel: 0x3f4624, hub: 0x55602f,
+    rivet: 0x2a2f1a, stencil: 0xcfd1c6 };
+  // wear on the KV-44's armour: flat things on a face that looks along z (f 'z') or x (f 'x'), a across and b up, turned by t
+  // in the face; rust; a shell's dent (a dark hole with cracks round it); rivets, alone and in rows
+  const kvDecal = (col, f, x, y, z, a, b, t = 0) => (f === 'z' ? [BOX, col, M4(x, y, z, a, b, .012, 0, 0, t)] : [BOX, col, M4(x, y, z, .012, b, a, t, 0, 0)]);
+  const kvRust = (f, x, y, z, a, b, t = 0, k = 0) => kvDecal(k ? 0x76482a : 0x654027, f, x, y, z, a, b, t);
+  const kvDent = (f, x, y, z) => [kvDecal(0x141518, f, x, y, z, .06, .06, .8), ...[.3, 1.9, 3.4, 4.9].map((q) => {
+    const du = Math.cos(q) * .07, dv = Math.sin(q) * .07;
+    return f === 'z' ? kvDecal(0x8f928a, f, x + du, y + dv, z, .08, .014, q) : kvDecal(0x8f928a, f, x, y + dv, z + du, .08, .014, -q);
+  })];
+  const kvRivet = (c, x, y, z) => [BOX, c.rivet, M4(x, y, z, .032, .032, .032)];
+  const kvRivets = (c, a, b, n) => Array.from({ length: n }, (_, i) => kvRivet(c, lerp(a[0], b[0], i / (n - 1)), lerp(a[1], b[1], i / (n - 1)), lerp(a[2], b[2], i / (n - 1))));
+  // a stroke of white paint on a side face (x, side s) from (u0, v0) to (u1, v1) in the face as seen from that side
+  // (u to the right, v up) round the middle (y, z)
+  const kvPaint = (c, s, x, y, z, u0, v0, u1, v1, w = .03) => {
+    const du = u1 - u0, dv = v1 - v0;
+    return kvDecal(c.stencil, 'x', s * x, y + (v0 + v1) / 2, z - s * (u0 + u1) / 2, Math.hypot(du, dv) + w * .6, w, Math.atan2(-dv, -s * du));
+  };
   function kvHullParts(c) {
     const p = [
-      [BOX, c.dark, M4(0, .46, 0, 1.4, .56, 5.3)], [BOX, c.body, M4(0, .82, -.05, 2.2, .2, 5.8)], [BOX, c.body, M4(0, .6, 2.9, 1.44, .4, .5, -.6, 0, 0)],
-      [BOX, c.dark, M4(0, .62, -3, 1.44, .34, .14)], [BOX, c.body, M4(0, 1.04, -.3, 1.5, .24, 1.7)],
-      [BOX, c.trim, M4(0, .925, 2.62, 2.21, .02, .16)], [BOX, c.trim, M4(0, .925, -2.72, 2.21, .02, .16)], [STAR5, c.trim, M4(0, .74, 3.1, .16, .16, .16, -.6, 0, 0)],
-      [SPH_HI, 0xfff2c0, M4(-.6, .84, 2.93, .12, .11, .06)], [SPH_HI, 0xfff2c0, M4(.6, .84, 2.93, .12, .11, .06)],
-      [CYL, 0x3b3f50, M4(-.5, .86, -3.1, .09, .24, .09, Math.PI / 2, 0, 0)], [CYL, 0x3b3f50, M4(.5, .86, -3.1, .09, .24, .09, Math.PI / 2, 0, 0)],
+      // the hull between the tracks, the sloped nose, the back plate, the deck over the tracks
+      [BOX, c.dark, M4(0, .46, 0, 1.4, .56, 5.3)], [BOX, c.gray, M4(0, .6, 2.9, 1.44, .4, .5, -.6, 0, 0)], [BOX, c.grayD, M4(0, .62, -3, 1.44, .34, .14)],
+      [BOX, c.body, M4(0, .82, -.05, 2.3, .2, 5.8)],
+      // the first step: a long grey block with a sloped front; the second, under the big turret, with the face
+      [BOX, c.gray, M4(0, 1.14, -.3, 1.6, .44, 3.6)], [BOX, c.gray, M4(0, 1.06, 1.62, 1.6, .3, .36, -.55, 0, 0)],
+      [BOX, c.grayD, M4(0, 1.57, -.3, 1.3, .42, 2)], [BOX, c.gray, M4(0, 1.57, .705, 1.2, .36, .03)],
+      // the exhausts at the back
+      [CYL, 0x2a2c2e, M4(-.5, .86, -3.1, .09, .24, .09, Math.PI / 2, 0, 0)], [CYL, 0x2a2c2e, M4(.5, .86, -3.1, .09, .24, .09, Math.PI / 2, 0, 0)],
+      // angry yellow eyes in dark slits, black pupils, heavy brows sloping down to the middle, cracks round them
+      ...[-1, 1].flatMap((k) => [
+        [BOX, 0x15171a, M4(k * .28, 1.6, .716, .42, .2, .03, 0, 0, k * .18)], [SPH_HI, 0xffd21f, M4(k * .28, 1.595, .725, .18, .085, .025, 0, 0, k * .18)],
+        [SPH_HI, 0x101012, M4(k * .25, 1.59, .745, .03, .065, .01, 0, 0, k * .18)], [SPH_HI, 0xffffff, M4(k * .31, 1.62, .748, .018, .012, .006)],
+        [BOX, c.gray, M4(k * .3, 1.71, .745, .5, .09, .08, 0, 0, k * .36)],
+        kvDecal(0x1c1d20, 'z', k * .55, 1.47, .724, .13, .012, -k * .6), kvDecal(0x1c1d20, 'z', k * .08, 1.44, .724, .1, .012, k * .9),
+      ]),
+      ...kvDent('z', .5, 1.42, .724), ...kvDent('z', -.52, 1.45, .724), ...kvDent('z', 0, 1.74, .724),
+      // grey plates laid on the deck, rust here and there
+      [BOX, c.gray, M4(0, .925, 2.5, 1.9, .02, .6)], ...[-1, 1].flatMap((k) => [[BOX, c.gray, M4(k * .98, .925, -2.1, .3, .02, 1.3)], [BOX, c.grayD, M4(k * .98, .925, .6, .3, .02, .9)]]),
+      [BOX, 0x654027, M4(.5, .937, 2.4, .4, .006, .18, 0, .3, 0)], [BOX, 0x76482a, M4(-.9, .937, -.9, .16, .006, .5, 0, -.2, 0)],
+      // the grilles on the deck at the back
+      ...[-1, 1].flatMap((k) => [[BOX, 0x1c1e20, M4(k * .45, .925, -2.55, .5, .01, .5)], ...[-.2, -.1, 0, .1, .2].map((d) => [BOX, c.grayD, M4(k * .45, .935, -2.55 + d, .5, .012, .03)])]),
+      // rivets along the steps' edges and the deck's front
+      ...kvRivets(c, [-.72, 1.37, 1.47], [.72, 1.37, 1.47], 10), ...kvRivets(c, [-.58, 1.79, .69], [.58, 1.79, .69], 8),
+      ...kvRivets(c, [-1.05, .93, 2.83], [1.05, .93, 2.83], 12),
+      // the static small turrets: three on each side of the deck, one on each back corner of the first step
+      ...[-1, 1].flatMap((k) => [[k * .98, .92, 1.2, k * .5], [k * .98, .92, 0, k * 1.35], [k * .98, .92, -1.2, k * 1.9], [k * .62, 1.36, -1.75, k * 2.3]]
+        .flatMap(([x, y, z, yaw]) => [...kvMiniParts(c), ...miniGunParts(c).map(([g, col, m]) => [g, col, M4(0, .2, .5).multiply(m)])]
+          .map(([g, col, m]) => [g, col, M4(x, y, z, .45, .45, .45, 0, yaw, 0).multiply(m)]))),
     ];
-    for (const s of [-1, 1]) p.push(
-      [BOX, c.track, M4(s * .92, .72, 0, .46, .08, 5.3)], [BOX, c.track, M4(s * .92, .06, 0, .46, .09, 5)],
-      [TANK_CYL, c.track, M4(s * .92, .38, 2.62, .34, .46, .34, 0, 0, Math.PI / 2)], [TANK_CYL, c.track, M4(s * .92, .38, -2.62, .34, .46, .34, 0, 0, Math.PI / 2)],
-      [TANK_CYL, c.hub, M4(s * 1.155, .38, 2.62, .14, .02, .14, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(s * 1.155, .38, -2.62, .14, .02, .14, 0, 0, Math.PI / 2)],
-      [BOX, c.body, M4(s * 1.18, .58, 0, .05, .3, 4.9)], [BOX, c.trim, M4(s * 1.2, .72, 0, .02, .04, 4.92)],
-      ...[-1.5, 1.5].map((z) => [STAR5, c.trim, M4(s * 1.215, .56, z, .15, .15, .15, 0, s * Math.PI / 2, 0)]));
+    for (const k of [-1, 1]) p.push(
+      // the tracks: the top and bottom runs with their links, the sprockets fore and aft
+      [BOX, c.track, M4(k * .92, .72, 0, .46, .08, 5.3)], [BOX, c.track, M4(k * .92, .06, 0, .46, .09, 5)],
+      ...Array.from({ length: 26 }, (_, i) => [BOX, 0x1c1d1f, M4(k * .92, .77, -2.5 + i * .2, .47, .025, .07)]),
+      [TANK_CYL, c.track, M4(k * .92, .38, 2.62, .34, .46, .34, 0, 0, Math.PI / 2)], [TANK_CYL, c.track, M4(k * .92, .38, -2.62, .34, .46, .34, 0, 0, Math.PI / 2)],
+      [TANK_CYL, c.hub, M4(k * 1.155, .38, 2.62, .14, .02, .14, 0, 0, Math.PI / 2)], [TANK_CYL, c.hub, M4(k * 1.155, .38, -2.62, .14, .02, .14, 0, 0, Math.PI / 2)],
+      // armour plates hanging over the tracks' fronts
+      ...[.78, .92, 1.06].map((x) => [BOX, c.gray, M4(k * x, .46, 2.97, .13, .42, .05, -.35, 0, 0)]),
+      // the skirts over the tracks: four plates a side, grey and olive in turn, riveted, rusty and dented
+      ...[-1.95, -.65, .65, 1.95].flatMap((z, i) => [[BOX, i % 2 ? c.body : c.gray, M4(k * 1.18, .56, z, .05, .32, 1.24)],
+        ...kvRivets(c, [k * 1.21, .69, z - .55], [k * 1.21, .69, z + .55], 6), ...kvRivets(c, [k * 1.21, .43, z - .55], [k * 1.21, .43, z + .55], 6)]),
+      kvRust('x', k * 1.21, .5, -1.7, .4, .1, .15), kvRust('x', k * 1.21, .6, .9, .3, .08, -.1, 1), ...kvDent('x', k * 1.21, .56, 1.3), ...kvDent('x', k * 1.21, .6, -.4),
+      // the first step's sides: a vent, rust, dents, rivets along the top
+      [BOX, 0x1c1e20, M4(k * .805, 1.14, .75, .01, .22, .4)], ...[-.14, -.07, 0, .07, .14].map((d) => [BOX, c.grayD, M4(k * .81, 1.14 + d * .8, .75, .012, .03, .4)]),
+      kvRust('x', k * .806, 1.02, -1.3, .6, .12, .1), kvRust('x', k * .806, 1.25, -.2, .35, .08, -.2, 1), ...kvDent('x', k * .806, 1.2, .1), ...kvDent('x', k * .806, 1.05, -1.8),
+      ...kvRivets(c, [k * .81, 1.33, -2.05], [k * .81, 1.33, 1.45], 16),
+      // the second step's sides: olive plates with a white 44 and a crown, rivets
+      [BOX, c.body, M4(k * .665, 1.57, -.4, .04, .34, 1.5)], ...kvRivets(c, [k * .69, 1.72, -1.1], [k * .69, 1.72, -.66], 3), ...kvRivets(c, [k * .69, 1.72, -.14], [k * .69, 1.72, .3], 3),
+      ...[[-.18, 0], [.18, 0]].flatMap(([u]) => [[u + .05, -.13, u + .05, .13], [u - .1, -.03, u + .1, -.03], [u - .1, -.03, u + .02, .13]]
+        .map(([u0, v0, u1, v1]) => kvPaint(c, k, .689, 1.5, -.4, u0, v0, u1, v1))),
+      ...[[-.14, .17, .14, .17], [-.14, .17, -.12, .25], [0, .17, 0, .27], [.14, .17, .12, .25], [-.12, .25, -.06, .2], [.12, .25, .06, .2]]
+        .map(([u0, v0, u1, v1]) => kvPaint(c, k, .689, 1.5, -.4, u0, v0, u1, v1, .022)),
+      kvRust('x', k * .689, 1.42, -.95, .3, .06, .2));
     return p;
+  }
+  // a small turret of the KV-44 (radius half a metre before it is sized): round, riveted, a grey band, a mantlet in front
+  function kvMiniParts(c) {
+    return [[TANK_CYL, c.dark, M4(0, .03, 0, .52, .06, .52)], [TANK_CYL, c.body, M4(0, .2, 0, .47, .32, .5)], [SPH_HI, c.body, M4(0, .36, 0, .47, .1, .5)],
+      [TANK_CYL, c.gray, M4(0, .1, 0, .48, .06, .51)], [TANK_CYL, c.dark, M4(0, .45, -.12, .16, .03, .16)], [BOX, c.grayD, M4(0, .2, .48, .24, .2, .12)],
+      ...Array.from({ length: 8 }, (_, i) => kvRivet(c, Math.sin(i * Math.PI / 4) * .475, .28, Math.cos(i * Math.PI / 4) * .5))];
   }
   function kvTurretParts(c) {
     const p = [
+      // the ring, the body with its sloped front, the roof, a stepped overhang at the back, the mantlet
       [TANK_CYL, c.dark, M4(0, .04, 0, .74, .08, .74)], [BOX, c.body, M4(0, .52, -.08, 1.34, .88, 1.46)], [BOX, c.body, M4(0, .5, .72, 1.18, .78, .2, -.18, 0, 0)],
-      [BOX, c.dark, M4(0, .98, -.08, 1.38, .07, 1.5)], [TANK_CYL, c.track, M4(0, 1.03, 0, .3, .05, .3)], [TANK_CYL, c.body, M4(-.42, 1.26, 0, .32, .04, .32, 0, 0, 1.9)],
-      [BOX, c.dark, M4(0, .3, .86, .56, .34, .2)], ...eyesAt(.3, .74, .84, 1.9),
-      [CYL, 0x3b3f50, M4(.5, 1.45, -.6, .016, .9, .016)], [SPH_HI, c.trim, M4(.5, 1.91, -.6, .045, .045, .045)],
+      [BOX, c.dark, M4(0, .98, -.08, 1.38, .07, 1.5)], [BOX, c.dark, M4(0, .6, -.93, 1.1, .56, .3)], [BOX, c.grayD, M4(0, .3, .9, .62, .42, .22)],
+      // the hatch the hero stands in, its lid open
+      [TANK_CYL, c.track, M4(0, 1.03, 0, .3, .05, .3)], [TANK_CYL, c.body, M4(0, 1.22, -.4, .27, .04, .27, 1.9, 0, 0)],
+      // the commander's cupola at the front left, with a machine gun looking ahead; periscopes
+      [TANK_CYL, c.body, M4(-.45, 1.1, .12, .19, .18, .19)], [SPH_HI, c.body, M4(-.45, 1.19, .12, .19, .07, .19)], [BOX, 0x1c1e20, M4(-.45, 1.13, .31, .1, .04, .03)],
+      [BOX, 0x2a2c2e, M4(-.45, 1.22, .2, .05, .06, .12)], [TANK_CYL, 0x2a2c2e, M4(-.45, 1.23, .45, .018, .42, .018, Math.PI / 2, 0, 0)],
+      [BOX, c.dark, M4(-.05, 1.04, .45, .12, .06, .07)], [BOX, c.dark, M4(.2, 1.04, .45, .12, .06, .07)],
+      // a railing on the back step, and the antenna
+      ...[[.12, -.8], [.56, -.8], [.12, -1.04], [.56, -1.04]].map(([x, z]) => [CYL, 0x2a2c2e, M4(x, 1, z, .012, .22, .012)]),
+      ...[1, 1.1].flatMap((y) => [[CYL, 0x2a2c2e, M4(.34, y, -.8, .01, .44, .01, 0, 0, Math.PI / 2)], [CYL, 0x2a2c2e, M4(.34, y, -1.04, .01, .44, .01, 0, 0, Math.PI / 2)],
+        [CYL, 0x2a2c2e, M4(.56, y, -.92, .01, .24, .01, Math.PI / 2, 0, 0)]]),
+      [CYL, 0x2a2c2e, M4(.5, 1.45, -.6, .016, .9, .016)],
+      // rivets round the front and the mantlet, along the roof's edges
+      ...kvRivets(c, [-.55, .89, .76], [.55, .89, .76], 8), ...kvRivets(c, [-.28, .5, 1.015], [.28, .5, 1.015], 5), ...kvRivets(c, [-.28, .1, 1.015], [.28, .1, 1.015], 5),
+      ...kvDent('z', .4, .72, .79), kvRust('z', -.35, .62, .805, .3, .08, .2),
     ];
-    for (const s of [-1, 1]) p.push([STAR5, c.trim, M4(s * .675, .55, -.1, .22, .22, .22, 0, s * Math.PI / 2, 0)]);
+    for (const k of [-1, 1]) p.push(...kvRivets(c, [k * .675, .93, -.75], [k * .675, .93, .6], 9), ...kvRivets(c, [k * .675, .1, -.75], [k * .675, .1, .6], 9),
+      kvRust('x', k * .675, .4, .35, .4, .1, .15, 1), ...kvDent('x', k * .675, .72, -.3));
     return p;
   }
-  const kvGunParts = (c) => [[TANK_CYL, c.dark, M4(0, 0, .85, .11, 1.7, .11, Math.PI / 2, 0, 0)], [TANK_CYL, c.trim, M4(0, 0, 1.2, .125, .1, .125, Math.PI / 2, 0, 0)],
-    [TANK_CYL, c.dark, M4(0, 0, 1.72, .16, .28, .16, Math.PI / 2, 0, 0)], [TANK_CYL, 0x1c1e2e, M4(0, 0, 1.865, .085, .02, .085, Math.PI / 2, 0, 0)]];
+  // the very long gun: a thick sleeve at the mantlet, the barrel with two bands, a muzzle brake with slots in its sides
+  const kvGunParts = (c) => [[TANK_CYL, c.grayD, M4(0, 0, .35, .17, .6, .17, Math.PI / 2, 0, 0)], [TANK_CYL, c.body, M4(0, 0, 1.6, .1, 2.2, .1, Math.PI / 2, 0, 0)],
+    ...[1.05, 1.9].map((z) => [TANK_CYL, c.grayD, M4(0, 0, z, .12, .08, .12, Math.PI / 2, 0, 0)]), [BOX, 0x7b4526, M4(0, .09, 1.45, .06, .03, .3)],
+    [TANK_CYL, c.grayD, M4(0, 0, 2.86, .16, .36, .16, Math.PI / 2, 0, 0)], ...[-1, 1].flatMap((k) => [2.8, 2.93].map((z) => [BOX, 0x121315, M4(k * .15, 0, z, .04, .1, .07)])),
+    [TANK_CYL, 0x121315, M4(0, 0, 3.045, .09, .02, .09, Math.PI / 2, 0, 0)]];
   function leviHullParts(c) {
     const p = [
       [BOX, c.dark, M4(0, .5, 0, 1.9, .64, 4.1)], [BOX, c.body, M4(0, .94, -.05, 3, .26, 4.6)], [BOX, c.body, M4(0, .68, 2.25, 1.96, .5, .62, -.6, 0, 0)],
@@ -2799,10 +2883,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     [TANK_CYL, c.trim, M4(0, .2, 0, .49, .06, .53)], [TANK_CYL, c.track, M4(0, .44, -.1, .18, .03, .18)], [BOX, c.dark, M4(0, .2, .5, .2, .16, .1)]];
   const miniGunParts = (c) => [[TANK_CYL, c.dark, M4(0, 0, .5, .065, 1, .065, Math.PI / 2, 0, 0)], [TANK_CYL, c.dark, M4(0, 0, 1.02, .09, .12, .09, Math.PI / 2, 0, 0)]];
   const BIG_TANKS = {
-    kv44: { c: KV44_C, sc: 1.15, hw: 1.22, hd: 3.1, h: 2.2, hull: kvHullParts, turret: kvTurretParts, gun: kvGunParts,
-      wheels: [-2.15, -1.535, -.92, -.305, .305, .92, 1.535, 2.15], wx: .92, wy: .3, ws: 1,
-      big: { at: [0, 1.16, -.3], gun: [0, .3, .9], muzzle: [[0, 0, 1.87]] },
-      minis: [{ at: [0, .92, 1.75], size: .85 }, { at: [0, .92, -2.15], size: .85, yaw: Math.PI }, { at: [-.72, .92, .95], size: .55 }, { at: [.72, .92, .95], size: .55 }] },
+    kv44: { c: KV44_C, sc: 1.15, hw: 1.22, hd: 3.1, h: 2.9, hull: kvHullParts, turret: kvTurretParts, gun: kvGunParts, mini: kvMiniParts,
+      wheels: Array.from({ length: 10 }, (_, i) => -2.16 + i * .48), wx: .92, wy: .26, ws: .82,
+      // the steps the big turret stands on, which the hero can climb: half width, bottom, top, back, front
+      tiers: [[.8, .92, 1.36, -2.1, 1.5], [.65, 1.36, 1.78, -1.3, .7]],
+      big: { at: [0, 1.78, -.3], gun: [0, .3, .9], muzzle: [[0, 0, 3.05]] },
+      minis: [{ at: [0, .92, 2.2], size: .75 }, { at: [0, 1.36, -1.72], size: .65, yaw: Math.PI }, { at: [-.64, 1.36, 1.25], size: .46 }, { at: [.64, 1.36, 1.25], size: .46 }] },
     levi: { c: LEVI_C, sc: 2.3, hw: 1.7, hd: 2.6, h: 2.4, hull: leviHullParts, turret: leviTurretParts, gun: leviGunParts,
       wheels: [-1.65, -1, -.33, .33, 1, 1.65], wx: 1.25, wy: .34, ws: 1.3,
       big: { at: [0, 1.34, -.35], gun: [0, .26, 1.2], muzzle: [[-.3, 0, 2.81], [.3, 0, 2.81]] },
@@ -2812,7 +2898,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   for (const k in BIG_TANKS) {
     const D = BIG_TANKS[k];
     GEO.bigHull[k] = mergedGeo(D.hull(D.c)); GEO.bigTurret[k] = mergedGeo(D.turret(D.c)); GEO.bigGun[k] = mergedGeo(D.gun(D.c));
-    GEO.miniTurret[k] = mergedGeo(miniTurretParts(D.c)); GEO.miniGun[k] = mergedGeo(miniGunParts(D.c)); GEO.tankWheel[k] = mergedGeo(tankWheelParts(D.c));
+    GEO.miniTurret[k] = mergedGeo((D.mini || miniTurretParts)(D.c)); GEO.miniGun[k] = mergedGeo(miniGunParts(D.c)); GEO.tankWheel[k] = mergedGeo(tankWheelParts(D.c));
     // all its road wheels in one, for a tank that stands still
     GEO.bigWheels[k] = mergedGeo([-1, 1].flatMap((s) => D.wheels.flatMap((z) => tankWheelParts(D.c).map(([g, col, m]) => [g, col, M4(s * D.wx, D.wy, z, D.ws, D.ws, D.ws).multiply(m)]))));
   }
@@ -2827,7 +2913,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   GEO.kvPods = mergedGeo([
     ...[-1, 1].flatMap((s) => [[BOX, KV44_C.dark, M4(s * .72, .62, -.12, .14, .14, .46)], [BOX, KV44_C.body, M4(s * .93, .62, -.12, .3, .42, 1)],
       [BOX, KV44_C.dark, M4(s * .93, .62, .39, .32, .44, .04)], [BOX, KV44_C.dark, M4(s * .93, .62, -.63, .32, .44, .04)],
-      [BOX, KV44_C.trim, M4(s * .93, .835, -.12, .31, .025, 1.01)], [STAR5, KV44_C.trim, M4(s * 1.085, .6, -.15, .13, .13, .13, 0, s * Math.PI / 2, 0)]]),
+      [BOX, KV44_C.trim, M4(s * .93, .835, -.12, .31, .025, 1.01)], [STAR5, KV44_C.stencil, M4(s * 1.085, .6, -.15, .13, .13, .13, 0, s * Math.PI / 2, 0)]]),
     ...KV_TUBES.map(([x, y, z]) => [TANK_CYL, 0x1c1e2e, M4(x, y, z + .005, .065, .02, .065, Math.PI / 2, 0, 0)]),
     [TANK_CYL, KV44_C.dark, M4(KV_GL.at[0], 1.03, KV_GL.at[2], .12, .04, .12)], [TANK_CYL, 0x3b3f50, M4(KV_GL.at[0], 1.12, KV_GL.at[2], .045, .18, .045)],
   ]);
@@ -7931,6 +8017,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       g.position.set(x, 0, -19); g.rotation.y = Math.PI; L.group.add(g); ISL.tb.parked.push(g);
       addSolid(x - D.hw * k, 0, -19 - D.hd * k, x + D.hw * k, .93 * k, -19 + D.hd * k, 'hard');
       addSolid(x - .7 * k, 0, -19 - tz * k - .8 * k, x + .7 * k, (ty + 1.02) * k, -19 - tz * k + .8 * k, 'hard');
+      for (const [w, y0, y1, z0, z1] of D.tiers) addSolid(x - w * k, y0 * k, -19 - z1 * k, x + w * k, y1 * k, -19 - z0 * k, 'hard');
     }
     B.sign(12.5, 0, 14, ['КВ-44']);
     B.pad('rent', 24, 0, 15, 'kv44'); B.sign(27.5, 0, 12.5, ['КВ-44', 'напрокат']);
@@ -15166,7 +15253,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // turret is that far behind the middle); the action button fires a salvo out of its turrets (kvFire), and it has a
     // grenade launcher and rocket pods on buttons of their own (launchers: nadeFire, rocketFire). Its whole hull
     // (half width and length) keeps clear of walls; hw is only the part the hero's own box covers
-    kv44: { name: 'КВ-44', price: 500, sub: 'Пять башен, гранатомёт и ракетница! Красная кнопка даёт залп из всех пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2,
+    kv44: { name: 'КВ-44', price: 500, sub: 'Двенадцать башен, гранатомёт и ракетница! Красная кнопка даёт залп из пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2.71,
       pose: 'hatch', cannon: true, bump: true, hw: 1.3, hull: [BIG_TANKS.kv44.hw * BIG_TANKS.kv44.sc, BIG_TANKS.kv44.hd * BIG_TANKS.kv44.sc], turn: 1.9,
       seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread', launchers: true },
   };
