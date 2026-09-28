@@ -4962,9 +4962,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       portal(x, d, top, wi) { this.gate(x, d, top, 'world', wi); },
       levelDoor(li, x, d, top, yaw = 0, front = 9.5) { this.gate(x, d, top, 'level', li, yaw, front); },
       warp(hub, x, d, top, yaw = 0, front = 9.5) { this.gate(x, d, top, 'warp', hub, yaw, front); },
-      sign(x, d, top, lines, yaw = 0) {
+      sign(x, top, d, lines, yaw = 0) {
         const z = -d, m = new T.Mesh(SIGN_GEO, std({ map: signTex(lines), roughness: .8 }));
-        near.add(BOX, 0x7a4f2c, M4(x, top + .7, z, .16, 1.4, .16));
+        near.add(BOX, 0x7a4f2c, M4(x - Math.sin(yaw) * .13, top + .7, z - Math.cos(yaw) * .13, .16, 1.4, .16)); // the post behind the board
         m.position.set(x, top + 1.55, z); m.rotation.y = yaw; m.castShadow = true; add(m);
         addSolid(x - .12, top, z - .12, x + .12, top + 1.2, z + .12, 'hard');
       },
