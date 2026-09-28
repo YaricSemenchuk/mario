@@ -1,7 +1,8 @@
 # Super Hop 3D
 
 A 3D platformer that runs in any mobile or desktop browser. Plain HTML with
-WebGL via Three.js 0.186 (ES modules from jsDelivr), no build step: the whole game lives in `index.html`.
+WebGL via Three.js 0.186 (ES modules from jsDelivr), no build step: the whole game lives in `index.html`, and the
+main hero's model in `models/mario.glb`.
 
 Rendering uses PBR materials with a soft rim light on characters, an image-based sky environment
 (horizon glow, a low sun on the evening levels, stars in the dark ones), neutral tone mapping, soft
@@ -256,10 +257,17 @@ the minigun's rattle), and under the water every sound is muffled.
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
     the hero's head, Iskra always along, a spare heart and a mushroom in the pocket for the levels, an hourglass with
     a minute more; and goods for right now (a shield, a mushroom, the fire pepper, one star on the island)
-  - skins: fifteen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
-    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Two costumes are free from the
+  - skins: sixteen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
+    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Three costumes are free from the
     start: the Grinch (green fur, yellow eyes, Santa's coat, belt and floppy hat) and the Chicken Gun chicken (white
-    feathers, a red comb, a beak and a tail); their hat and comb take the cap's place
+    feathers, a red comb, a beak and a tail), whose hat and comb take the cap's place, and Mario, the main hero a new
+    game starts with (a save still in the classic costume puts him on once; the classic hero stays in the shop). Mario is
+    a textured model of his own (`models/mario.glb`, about 0.9 MB, loaded when first worn), skinned at load onto the
+    built hero's joints, so he runs, jumps, swims, rides, holds the guns and shows to friends like the built one. His
+    fingers have joints of their own too: they close into a fist round a gun, handlebars, a wheel or a delivery and hang
+    a little bent otherwise. A shop hat that takes the cap's place hides his cap and sits on his hair; ears and a flower go
+    on the cap, glasses on his eyes. Until the model has loaded, or if it cannot, the built hero stands in for him in his
+    colours
   - rides, called with the ride button (V on a keyboard) in the open worlds: a scooter, a go-kart that bowls enemies
     over, a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
@@ -360,3 +368,10 @@ python3 -m http.server 8000
 ```
 
 Then open http://localhost:8000.
+
+## Credits
+
+The Mario model is ["Mario obj"](https://sketchfab.com/3d-models/mario-obj-c549d24b60f74d8f85c7a5cbd2f55d0f) by
+[MatiasH290](https://sketchfab.com/matias029), licensed under
+[CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). Changes: turned to stand y up in metres, textures shrunk to
+512 px JPEG, positions and normals quantized. Mario is a character of Nintendo.
