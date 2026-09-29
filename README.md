@@ -70,8 +70,8 @@ the minigun's rattle), and under the water every sound is muffled.
     and ranger Fyr the hedgehog; all round it the forest in rings behind a wall of fog, four wolves' dens out in the rings
     with a trail of ribboned posts to each, chests, berry bushes and bunnies. The whole world is the game of the 99 nights
     (below)
-  - the Duel Arena: a western plain of sand in a ring of red canyon rock, where the hero carries guns (below) and nothing
-    rides. A lobby with the gate home, the gun shop of Kurok the cat and a sniper tower climbed on platforms; the arena in
+  - the Duel Arena: a western plain of sand in a ring of red canyon rock, where the hero carries guns (below) and rides
+    only between the duels. A lobby with the gate home, the gun shop of Kurok the cat and a sniper tower climbed on platforms; the arena in
     the middle (steel walls round a steel floor, a raised deck with two ramps, pillars, low walls, crates, sandbags and
     barrels to hide behind, a barrier across the way in) where Sergeant Toptygin runs the duels against the bots; the sniper
     canyon to the west, two walled ledges about seventy metres apart across a gorge with a dry creek, three blocks of cover
@@ -89,7 +89,7 @@ the minigun's rattle), and under the water every sound is muffled.
   fire, ice, leaves, lightning or stars, a puff that pops balloons, knocks enemies over and lights beacons. Diving speeds
   it up, it lands when it comes down slowly and only touches the ground when fast. A hit only slows it. The camera swings
   round behind it. Five dragons with their own speed, turning and climbing; each can be bought in the shops and then
-  flies in every open world. "🐉 Драконы" on the title goes straight to the roost
+  flies everywhere, in every world and level. "🐉 Драконы" on the title goes straight to the roost
 - The dragons' cup (Dragon Peaks): two laps of a ring course high among the islands, round the Wind Spire and through the
   canyon, against three dragons ridden by Ping, Kvak and Murr, who follow the rings by themselves (a little faster when
   behind, slower when well ahead). Every ring gives a gust of speed; first place brings a star and wakes the golden dragon
@@ -209,11 +209,16 @@ the minigun's rattle), and under the water every sound is muffled.
   slides over it, the crosshair slows down over an opponent, and a shot that only just misses the middle goes in; on a
   computer a click takes the mouse for aiming (Esc gives it back), the left button fires, 1–4 or the wheel pick a slot
 - Fights between friends anywhere: outside the duels every friend in the same world or level can be shot, stabbed or blown
-  up with the guns, as in the Duel Arena's duels (whether a shot hit is for the shooter's screen to say). While a friend who
-  can shoot is near (or health is short), a bar above the gun bar shows the hero's 100 of health, coming back by itself five
-  seconds after the last hit, and how many friends he has knocked out. At none left the hero is knocked out (a puff of
-  smoke; everyone there hears who did it), and three seconds later is back at the last flag he touched, whole, with a
-  moment when nothing can hurt him. Friends on a ride or the dino, or with the game paused, cannot be hit; nor anyone in a
+  up, as in the Duel Arena's duels (whether a shot hit is for the shooter's screen to say). Everything that fights counts:
+  the guns, a tank's shells, a KV-44's salvo, grenades and rockets (the gun and the launchers turn to friends too), a
+  dragon's breath, the pepper's fireballs, and a ride that bowls enemies over driven fast into a friend (it knocks them
+  flying). Friends see the shells, grenades, rockets, breath and fire fly. Friends on a ride or the dino are hit too: the
+  shots go for the ride as well as the rider, and a tank's armour takes half of a hit (a KV-44's two thirds). While a
+  friend is near and the hero has the guns out or sits on a tank or a dragon (or health is short), a bar above the gun
+  bar shows the hero's 100 of health, coming back by itself five seconds after the last hit, and how many friends he has
+  knocked out. At none left the hero is knocked out (a puff of smoke, a burst for the ride he was on, which is gone;
+  everyone there hears who did it), waits unseen where he was, and three seconds later is back at the last flag he
+  touched, whole, with a moment when nothing can hurt him. Friends with the game paused cannot be hit; nor anyone in a
   game with friends, a duel with a bot, the survival game, the dragons' cup or a tank battle
 - Duels against the bots (the Duel Arena): a red pad starts one, a barrier closes the way in and the hero and the opponent
   stand at their spots with 100 health each. A knock-out wins a round (a puff of smoke; so does more health left when the
@@ -294,13 +299,18 @@ the minigun's rattle), and under the water every sound is muffled.
     any hero's hands, whatever the arms' length, hold them. A shop hat that takes the cap's place hides his cap and sits on his hair; ears and a flower go
     on the cap, glasses on his eyes. Until the model has loaded, or if it cannot, the built hero stands in for him in his
     colours
-  - rides, called with the ride button (V on a keyboard) in the open worlds: a scooter, a go-kart that bowls enemies
+  - rides, called with the ride button (V on a keyboard) in every open world and every level, and in the Duel Arena
+    between the duels (a duel is fought on foot; in a level the hero gets off at the flag, and on a ride that flies or
+    floats down only the bottom of the level is a fall): a scooter, a go-kart that bowls enemies
     over (a red racing kart with a number 1 on its nose, twin chrome exhausts, wheels that roll and steer and a
     steering wheel that turns into the corners), a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
     the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with twelve turrets, and five
     dragons that fly (listed last).
+    "Транспорт и оружие" in the pause card, in any world or level, opens a garage with the rides the hero has (a tap puts
+    him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon) and the
+    guns' set.
     A hit knocks the hero off (a dragon only slows down, a tank's armour takes it). Blue pads lend a ride for free (the jet
     ski at the piers, the rover on the Moon, the stone car in Dino Valley, the dragons at their perches, tanks and KV-44s on
     the Tank Range) until the hero gets off it

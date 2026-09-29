@@ -205,6 +205,8 @@
   #gunHp small { font: 800 12px/1 var(--ui); color: var(--gold); }
   #gunHp small:empty { display: none; }
   @media (orientation: portrait) { body.touch #gunHp { bottom: calc(env(safe-area-inset-bottom, 0px) + 266px); } }
+  /* on a ride a phone held sideways has the KV-44's buttons down there: the health goes higher */
+  @media (orientation: landscape) { body.touch.on-ride #gunHp { bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); } }
   /* in the Dark Forest the sack is along the bottom: the gun bar and the health go above it */
   body.nights #gunBar, body.nights #gunDraw { bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); }
   body.nights #gunHp { bottom: calc(env(safe-area-inset-bottom, 0px) + 136px); }
@@ -439,6 +441,7 @@
   .swatch.duo { background-clip: padding-box; }
   /* the shop: five tabs over a list that scrolls on its own, so the card fits a phone held sideways */
   .shop-tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .shop-tabs.garage { grid-template-columns: repeat(2, 1fr); }
   .shop-tab {
     min-width: 0; padding: 9px 2px 8px; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, .6); border: 3px solid var(--ink); border-radius: 12px;
     font: 800 12px/1 var(--ui); letter-spacing: .02em; text-transform: uppercase; box-shadow: 0 3px 0 var(--ink); overflow-wrap: anywhere;
@@ -738,6 +741,7 @@
     </div>
     <div class="card-actions">
       <button class="btn btn-main" id="btnResume" type="button">Продолжить</button>
+      <button class="btn" id="btnGarage" type="button">Транспорт и оружие</button>
       <button class="btn" id="btnPauseNet" type="button">Играть с друзьями</button>
       <button class="btn" id="btnRestart" type="button">Начать уровень заново</button>
       <button class="btn" id="btnToIsland" type="button">На остров</button>
@@ -9711,6 +9715,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const m = new T.Mesh(SPH, MAT.fireball); m.scale.setScalar(.22); m.position.set(x, y, z); L.group.add(m);
     L.fireballs.push({ m, x, y, z, vx: dx * FIRE_V, vy: -1, vz: dz * FIRE_V, life: 1.7, bounces: 0 });
     Snd.sfx.fire(); glow(x, y, z, 0xffa13a, 6, 2.5, .5, 0, .25, .3);
+    gunNet('b', false, { p: [x, y, z], v: [dx * FIRE_V, -1, dz * FIRE_V], c: '' });
   }
   // a dragon's breath: a puff of fire (ice, leaves, lightning, stars) that flies straight on from its mouth, aimed a little
   // towards a target ahead. It pops balloons, knocks enemies over and lights the beacons it passes
@@ -9720,17 +9725,19 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     let dx = Math.sin(P.facing) * cp, dy = fl ? Math.sin(P.flyPitch) : 0, dz = Math.cos(P.facing) * cp;
     const hx = P.pos.x + dx * 2.4, hy = P.pos.y + 2.2 + dy * 2.4, hz = P.pos.z + dz * 2.4;
     let best = .9;
-    for (const e of L.enemies) {
-      if (!e.alive) continue;
-      const ex = e.x - hx, ey = e.y + e.h * .5 - hy, ez = e.z - hz, d = Math.hypot(ex, ey, ez);
-      if (d < 2 || d > 45) continue;
+    const toward = (x, y, z) => {
+      const ex = x - hx, ey = y - hy, ez = z - hz, d = Math.hypot(ex, ey, ez);
+      if (d < 2 || d > 45) return;
       const k = (ex * dx + ey * dy + ez * dz) / d;
       if (k > best) { best = k; dx = ex / d; dy = ey / d; dz = ez / d; }
-    }
+    };
+    for (const e of L.enemies) if (e.alive) toward(e.x, e.y + e.h * .5, e.z);
+    if (pvpOn()) for (const g of net.peers.values()) if (pvpTarget(g, netLoc())) toward(g.px, g.py + .6, g.pz);
     P.breathCd = .26; P.throwT = .2;
     const v = (fl ? P.flySpd : 0) + 32, m = new T.Mesh(SPH, B.mat); m.scale.setScalar(.34); m.position.set(hx, hy, hz); L.group.add(m);
     L.fireballs.push({ m, x: hx, y: hy, z: hz, vx: dx * v, vy: dy * v, vz: dz * v, life: 1.1, bounces: 0, air: true, cols: B.cols });
     Snd.sfx.breath(); glow(hx, hy, hz, B.cols[0], 12, 3.5, 0, 0, .3, .4);
+    gunNet('b', false, { p: [hx, hy, hz], v: [dx * v, dy * v, dz * v], c: P.veh.wings.breath });
   }
   function killFireball(i, fizz) {
     const f = L.fireballs[i];
@@ -9776,6 +9783,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         for (const b of q.list) if (!b.lit && b.bulb.getWorldPosition(_bv).distanceTo(_fv.set(f.x, f.y, f.z)) < (f.shell ? 1.4 : 1.8)) { lightBeacon(q, b); if (f.shell) { hit = true; break; } }
       }
       if (!hit && f.shell && duelTanking()) hit = shellHitsFriend(f);
+      else if (!hit && !f.ally && pvpOn()) hit = fireHitsFriend(f);
       const reach = f.shell ? .45 : f.air ? .6 : .25;
       if (!hit) for (const e of L.enemies) {
         if (!e.alive || f.y < e.y - .2 || f.y > e.y + e.h + .2) continue;
@@ -10306,6 +10314,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function updatePlayer(dt) {
     P.prevY = P.pos.y;
     P.wasGround = P.onGround;
+    if (P.koT > 0 && !FT && !duelGunning()) { // knocked out by a friend: waiting unseen, not falling to a lost life
+      P.vel.set(0, 0, 0); input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false; return;
+    }
     const g = P.onGround ? P.ground : null, V = P.veh;
     if (!V || !V.wings || P.onGround || P.swim) P.flyOn = false;
     // a dragon flies once it takes off, or walks off an edge; put down just over the ground, it lands first
@@ -10519,8 +10530,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (L.lavas.length) { const ly = lavaAt(P.pos.x, P.pos.z); if (ly !== null && P.pos.y < ly + .08) { lavaBurn(ly); if (G.state !== 'playing') return; } }
     if (P.sand && P.pos.y < qy - 1.45 * wsc) { popup('Засосало!', P.pos.x, qy + 1.6, P.pos.z, 'gold'); Snd.sfx.sink(); die('fall'); return; }
     const inLava = L.lavaY !== null && P.pos.y < L.lavaY + .05;
-    // in the open worlds a long drop is just a drop (into the sea at worst), so Iskra does not snatch the hero back
-    const lost = inLava || P.pos.y < L.killY || (!L.def.hub && P.lastSafe && P.pos.y < P.lastSafe.y - 9.5);
+    // in the open worlds a long drop is just a drop (into the sea at worst), so Iskra does not snatch the hero back; in a
+    // level on a ride that flies or floats down only the bottom counts
+    const flier = !!P.veh && !!(P.veh.wings || P.veh.fly || P.veh.hover || P.veh.glide);
+    const lost = inLava || P.pos.y < L.killY || (!L.def.hub && !flier && P.lastSafe && P.pos.y < P.lastSafe.y - 9.5);
     if (lost && G.star && G.starCharge && P.lastSafe) { P.pound = null; starRescue(); }
     else if (inLava) {
       glow(P.pos.x, L.lavaY + .3, P.pos.z, 0xffa12e, 24, 5, 3, 6, .7, .35); puff(P.pos.x, L.lavaY + .5, P.pos.z, 0x5a4a50, 8, 2, 1.5, 1, 1.2);
@@ -11999,6 +12012,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (duelTanking()) for (const id of duel.players) {
       const g = net.peers.get(id), on = () => g.rig && g.rig.root.visible;
       if (id !== duelMe() && g && on()) add(g.px, g.py + .1, g.pz, () => (on() ? [g.px, g.py + .1, g.pz, 1.3, g.py - RIDES.tank.y] : null));
+    } else if (pvpOn()) for (const g of net.peers.values()) { // the friends here, on foot or on a ride
+      const at = () => (pvpTarget(g, netLoc()) ? [g.px, g.py + (g.rideNow ? .3 : .9), g.pz, g.rideNow ? 1.3 : .8, g.py + Math.min(0, g.cur[3])] : null);
+      if (at()) add(g.px, g.py + .9, g.pz, at);
     }
     list.sort((a, b) => a.s - b.s);
     for (const c of list.slice(0, 4)) { const p = c.get(); if (clearShot(x0, y0, z0, p[0], p[1], p[2])) return c.get; }
@@ -12057,6 +12073,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const v = [Math.sin(P.aim) * cp * SHELL_V, Math.sin(pitch) * SHELL_V, Math.cos(P.aim) * cp * SHELL_V];
       shellOut(mx, my, mz, v[0], v[1], v[2], false, tankMod(1) >= 3, tankMod(1) >= 1 ? 3.3 : SHELL_R);
       if (duelTanking()) duelSay({ t: 'shot', p: [mx, my, mz].map(round2), v: v.map(round2) });
+      else shellNet(L.fireballs[L.fireballs.length - 1], 0);
     }
     Snd.sfx.cannon(); G.shake = Math.max(G.shake, .16);
   }
@@ -12078,6 +12095,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const yaw = at ? Math.atan2(at[0] - mx, at[2] - mz) : P.aim, pitch = at ? clamp(Math.atan2(at[1] - my, Math.hypot(at[0] - mx, at[2] - mz)), -.4, .5) : 0, cp = Math.cos(pitch);
     shellOut(mx, my, mz, Math.sin(yaw) * cp * SHELL_V, Math.sin(pitch) * SHELL_V, Math.cos(yaw) * cp * SHELL_V, false, k < 0 && tankMod(1) >= 3, (tankMod(1) >= 1 ? 3.3 : SHELL_R) * (k < 0 ? 1 : .7));
     if (k >= 0) L.fireballs[L.fireballs.length - 1].light = LIGHT_SHELL;
+    shellNet(L.fireballs[L.fireballs.length - 1], k < 0 ? 0 : 1);
     if (k < 0) { u.recoil = 1; Snd.sfx.cannon(); G.shake = Math.max(G.shake, .2); } else { u.minis[k].recoil = 1; Snd.at(mx, my, mz).cannon(); }
   }
   // ---------- the KV-44's grenade launcher and rocket pods ----------
@@ -12106,6 +12124,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (const e of L.enemies) if (e.alive) add(e.x, e.y + e.h * .5, e.z, () => (e.alive ? [e.x, e.y + e.h * .5, e.z] : null));
     const q = ISL.beacons;
     if (q && q.style === 'target' && !questDone(q.star)) for (const b of q.list) if (!b.lit) add(b.x, b.y + TARGET_Y, b.z, () => (b.lit ? null : [b.x, b.y + TARGET_Y, b.z]));
+    if (pvpOn()) for (const g of net.peers.values()) if (pvpTarget(g, netLoc())) add(g.px, g.py + .5, g.pz, () => (pvpTarget(g, netLoc()) ? [g.px, g.py + .5, g.pz] : null));
     return list.sort((a, b) => a.s - b.s).map((c) => c.get);
   }
   // the ground `d` metres out from the tank, `off` to the side of the gun (or where the tank stands, over a drop)
@@ -12131,9 +12150,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const [ox, oz] = NADE_SPREAD[i % NADE_SPREAD.length], c = Math.cos(P.aim), s = Math.sin(P.aim);
     const tx = p[0] + ox * c + oz * s, tz = p[2] - ox * s + oz * c, dx = tx - mx, dz = tz - mz;
     const ft = clamp(.5 + Math.hypot(dx, dz) / 20, .55, 2.1), vx = dx / ft, vz = dz / ft, vy = (p[1] - my) / ft + NADE_G * ft / 2; // (lands in ft seconds)
-    const m = new T.Mesh(GEO.grenade, MAT.char); m.rotation.order = 'YXZ'; m.rotation.y = Math.atan2(vx, vz); m.position.set(mx, my, mz); m.castShadow = true; L.group.add(m);
-    L.fireballs.push({ m, x: mx, y: my, z: mz, vx, vy, vz, life: ft + 1.2, bounces: 0, air: true, shell: true, nade: true, grav: NADE_G, dmg: 1, blast: NADE_R });
+    nadeOut(mx, my, mz, vx, vy, vz, ft + 1.2, false);
     u.glKick = 1; P.throwT = .2;
+    shellNet(L.fireballs[L.fireballs.length - 1], 2);
+  }
+  // a grenade out of the launcher (ours, or a friend's ghost)
+  function nadeOut(mx, my, mz, vx, vy, vz, life, ghost) {
+    const m = new T.Mesh(GEO.grenade, MAT.char); m.rotation.order = 'YXZ'; m.rotation.y = Math.atan2(vx, vz); m.position.set(mx, my, mz); m.castShadow = true; L.group.add(m);
+    L.fireballs.push({ m, x: mx, y: my, z: mz, vx, vy, vz, life, bounces: 0, air: true, shell: true, nade: true, grav: NADE_G, dmg: 1, blast: NADE_R, ghost });
     flashAt(mx, my, mz, 0xffe07a, 1.4, .08); puff(mx, my, mz, 0xe8e6ee, 3, 1.4, .4, .4, .7);
     Snd.at(mx, my, mz).nade();
   }
@@ -12152,10 +12176,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!p) { get = null; p = kvGround(17 + (i % 3) * 4, (((i * 5) % 8) / 7 - .5) * .6); }
     const yaw = P.aim + side * .14, pitch = .7, v = ROCKET_V * .45;
     const vx = Math.sin(yaw) * Math.cos(pitch) * v, vy = Math.sin(pitch) * v, vz = Math.cos(yaw) * Math.cos(pitch) * v;
-    const m = new T.Mesh(GEO.rocket, MAT.char); m.scale.setScalar(1.3); m.rotation.order = 'YXZ'; m.position.set(mx, my, mz); L.group.add(m);
-    L.fireballs.push({ m, x: mx, y: my, z: mz, vx, vy, vz, life: 4.5, bounces: 0, air: true, shell: true, rocket: true, get, tx: p[0], ty: p[1], tz: p[2], spd: v, age: 0, dmg: 1, blast: ROCKET_R });
+    rocketOut(mx, my, mz, vx, vy, vz, get, p, false);
     const [bx, by, bz] = kvPoint(tube[0], tube[1], -.75); // the back of the pod blows smoke
-    flashAt(mx, my, mz, 0xffb03a, 1.3, .08); glow(mx, my, mz, 0xff9a2a, 5, 2, .5, 0, .2, .3); puff(bx, by, bz, 0xe8e6ee, 2, 1.2, .4, .45, .55);
+    puff(bx, by, bz, 0xe8e6ee, 2, 1.2, .4, .45, .55);
+    shellNet(L.fireballs[L.fireballs.length - 1], 3);
+  }
+  // a rocket out of its tube towards a target that `get` follows, or else to the spot p (ours, or a friend's ghost)
+  function rocketOut(mx, my, mz, vx, vy, vz, get, p, ghost) {
+    const m = new T.Mesh(GEO.rocket, MAT.char); m.scale.setScalar(1.3); m.rotation.order = 'YXZ'; m.position.set(mx, my, mz); L.group.add(m);
+    L.fireballs.push({ m, x: mx, y: my, z: mz, vx, vy, vz, life: 4.5, bounces: 0, air: true, shell: true, rocket: true, get, tx: p[0], ty: p[1], tz: p[2], spd: Math.hypot(vx, vy, vz), age: 0,
+      dmg: 1, blast: ROCKET_R, ghost });
+    flashAt(mx, my, mz, 0xffb03a, 1.3, .08); glow(mx, my, mz, 0xff9a2a, 5, 2, .5, 0, .2, .3);
     Snd.at(mx, my, mz).rocket();
   }
   // A rocket climbs straight out of its pod for a moment, then turns to its target, harder the longer it flies, and speeds
@@ -12206,6 +12237,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       shellKnock(e, f, e.x - f.x, e.z - f.z, 100);
     }
     for (const b of L.balls) if (!b.dead && Math.hypot(b.x - f.x, b.z - f.z) < R && Math.abs(b.y - f.y) < 2) { if (f.ally) popBallQuiet(b); else popBall(b, 100); }
+    if (!f.ally && pvpOn()) pvpBlast(f.x, f.y, f.z, R, f.nade || f.rocket ? PVP_NADE : f.light ? PVP_LIGHT : PVP_SHELL * (f.hot ? 1.5 : 1));
   }
 
   // ---------- the grumpy tanks ----------
@@ -14714,7 +14746,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     return Math.max(lo, 0);
   }
   // Who a shot can hit: [x, feet y, z, size] and what it is. The hero's shots: the bots, the friends in a duel with guns
-  // (anywhere else every friend here on foot), and the worlds' own foes and bosses; a bot's shots: the hero.
+  // (anywhere else every friend here, on a ride too: friendMark), and the worlds' own foes and bosses; a bot's shots: the hero.
   function gunMarks(mine) {
     const out = [];
     if (!mine) { if (FT && FT.phase === 'fight' && P.koT <= 0 && hero.root.visible) out.push({ x: P.pos.x, y: P.pos.y, z: P.pos.z, s: P.scaleCur, kind: 'me' }); return out; }
@@ -14725,7 +14757,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const g = id === duelMe() ? null : net.peers.get(id);
         if (g && g.rig && g.rig.root.visible && g.loc === loc) out.push({ x: g.px, y: g.py, z: g.pz, s: g.cur[2] || 1, kind: 'friend', ref: id });
       }
-    } else if (pvpOn()) for (const g of net.peers.values()) if (pvpTarget(g, loc)) out.push({ x: g.px, y: g.py, z: g.pz, s: g.cur[2] || 1, kind: 'friend', ref: g.id });
+    } else if (pvpOn()) for (const g of net.peers.values()) if (pvpTarget(g, loc)) out.push(friendMark(g));
     if (FT || duelGunning()) return out;
     // a foe is a standing cylinder (s puts its middle where the aim assist looks), a boss too
     for (const e of L.enemies) {
@@ -14740,7 +14772,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function rayMark(m, ox, oy, oz, dx, dy, dz) {
     if (m.r) return { t: rayCyl(ox, oy, oz, dx, dy, dz, m.x, m.z, m.r, m.y, m.y + m.h), head: false }; // a foe or a boss
     const th = raySphere(ox, oy, oz, dx, dy, dz, m.x, m.y + HEAD_Y * m.s, m.z, HEAD_R * m.s);
-    const tb = rayCyl(ox, oy, oz, dx, dy, dz, m.x, m.z, BODY_R * m.s, m.y + .05, m.y + BODY_Y * m.s);
+    const tb = m.rr ? rayCyl(ox, oy, oz, dx, dy, dz, m.cx, m.cz, m.rr, m.y + m.low, m.y + BODY_Y * m.s) // a friend's ride and the rider on it
+      : rayCyl(ox, oy, oz, dx, dy, dz, m.x, m.z, BODY_R * m.s, m.y + .05, m.y + BODY_Y * m.s);
     return th < tb ? { t: th, head: true } : { t: tb, head: false };
   }
   // the first thing along a ray: a solid, one of the marks (a head or a body), or a target of the range
@@ -14851,6 +14884,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (dmg <= 0) return;
     const hx = m.x, hy = m.y + (head ? HEAD_Y : .9) * m.s, hz = m.z;
     if (m.kind === 'boss') { emit(hx, hy, hz, 0xfff3a0, 5, 4, 1, 8, .3, .14); Snd.at(hx, hy, hz).clink(); return; }
+    if (m.arm < 1 && !head) { dmg = Math.max(1, Math.round(dmg * m.arm)); Snd.at(hx, hy, hz).clang(); } // a friend in a tank: the armour takes part of it
     emit(hx, hy, hz, head ? 0xff5a4a : 0xfff3a0, head ? 12 : 7, 4, 1, 8, .35, .16); glow(hx, hy, hz, 0xffffff, 3, 2, 0, 0, .2, .3);
     if (by === 'me') {
       hitMark(head); if (m.kind !== 'foe') popup((head ? '💥' : '') + dmg, hx, hy + .9, hz, head ? 'gold' : '');
@@ -14859,7 +14893,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (m.kind === 'bot') botHurt(m.ref, dmg, head, d, w);
     else if (m.kind === 'friend') {
       if (duelGunRun()) { duelSay({ t: 'gh', who: m.ref, d: dmg, h: head ? 1 : 0, k: w && w.knock ? 1 : 0 }); if (head && duel.kind === 'snipe') gunHeadStar(); }
-      else if (by === 'me') gunNet('h', false, { who: m.ref, n: dmg, hd: head ? 1 : 0, kn: w && w.knock ? 1 : 0 });
+      else if (by === 'me') gunNet('h', false, { who: m.ref, n: dmg, hd: head ? 1 : 0, kn: w && w.knock ? 1 : w && w.splash ? 2 : 0 });
     }
     else if (m.kind === 'foe') gunFoe(m.ref, dmg, d);
     else if (m.kind === 'me') heroHurt(dmg, head, d, by, w);
@@ -14976,8 +15010,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const R = w.splash, full = w.sdmg || w.dmg;
     const hurtAll = (marks) => {
       for (const m of marks) {
-        const cx = m.x - x, cy = m.y + .9 - y, cz = m.z - z, l = Math.hypot(cx, cy, cz);
-        if (l > R + .4 || !gunClear(x, y + .2, z, m.x, m.y + .9, m.z)) continue;
+        const my = m.rr ? clamp(y, m.y + m.low, m.y + .9 * m.s) : m.y + .9; // (the nearest height of a friend's ride)
+        const cx = m.x - x, cy = my - y, cz = m.z - z, l = Math.max(0, Math.hypot(cx, cy, cz) - (m.rr ? m.rr * .5 : 0));
+        if (l > R + .4 || !gunClear(x, y + .2, z, m.x, my, m.z)) continue;
         gunHit(m, Math.round(full * clamp(1.1 - l / R, .25, 1)), false, _gd.set(cx / (l || 1), .5, cz / (l || 1)), f.by, w);
         if (m.kind === 'bot') { m.ref.kx += cx / (l || 1) * 9; m.ref.kz += cz / (l || 1) * 9; m.ref.vy = Math.max(m.ref.vy, 7); m.ref.onG = false; }
       }
@@ -15175,8 +15210,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const draw = hud && !L.def.duels && !GN.out && (G.state === 'playing' || G.state === 'dying') && gunCanDraw();
     if (gunDrawEl.hidden === draw) { gunDrawEl.hidden = !draw; gunDrawKey.textContent = isTouch ? '' : 'X'; }
     let show = hud && !FT && !duelGunning() && (P.hp < 100 || P.koT > 0);
-    if (hud && !show && gunUiOn && !FT && !duelGunning() && pvpOn()) { const loc = netLoc(); for (const g of net.peers.values()) if (pvpTarget(g, loc)) { show = true; break; } }
+    const armed = gunUiOn || !!(P.veh && (P.veh.cannon || P.veh.wings));
+    if (hud && !show && armed && !FT && !duelGunning() && pvpOn()) { const loc = netLoc(); for (const g of net.peers.values()) if (pvpTarget(g, loc)) { show = true; break; } }
     if (gunHpEl.hidden === show) gunHpEl.hidden = !show;
+    if (gunHpKey.ride !== !!P.veh) { gunHpKey.ride = !!P.veh; document.body.classList.toggle('on-ride', !!P.veh); }
     if (!show) return;
     const hp = P.koT > 0 ? 0 : Math.round(P.hp);
     if (gunHpKey.hp !== hp) { gunHpKey.hp = hp; $('gunHpBar').style.transform = 'scaleX(' + (hp / 100).toFixed(2) + ')'; $('gunHpBar').classList.toggle('low', hp < 35); $('gunHpN').textContent = '❤ ' + hp; }
@@ -15212,8 +15249,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- friends see the guns ----------
   // what is in hand (now and then, and when it changes; nothing when the guns are away), the scope's glint, and every
-  // shot's streak or flying thing. Hits and knock-outs in a duel go through the game (duelSay); anywhere else a hit on a
-  // friend is told to them here ('h': who, how much, a head, a hammer's toss), and one knocked out tells everyone ('k')
+  // shot's streak or flying thing, the rides' shells, grenades and rockets ('c') and a dragon's breath or the pepper's fire
+  // ('b'). Hits and knock-outs in a duel go through the game (duelSay); anywhere else a hit on a friend is told to them here
+  // ('h': who, how much, a head, a hammer's toss or a burst's shove), and one knocked out tells everyone ('k')
   function gunNet(t, quiet, extra) {
     if (!net.room || !net.act || !net.act.gun) return;
     const loc = netLoc(), to = [];
@@ -15224,7 +15262,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (t === 'w' || t === 'z') GN.sent = m.w + m.z;
     if (extra) Object.assign(m, extra);
     const r2 = (v) => Math.round(v * 100) / 100;
-    for (const k of ['p', 'v', 'd']) if (m[k]) m[k] = m[k].map(r2);
+    for (const k of ['p', 'v', 'd', 'g']) if (m[k]) m[k] = m[k].map(r2);
     if (m.e) m.e = m.e.slice(0, 10).map((a) => a.map(r2));
     netSend(net.act.gun, m, { target: to });
   }
@@ -15245,6 +15283,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     } else if (d.t === 'f' && ok(d.p) && ok(d.d)) jetP(POOL.glow, d.p[0], d.p[1], d.p[2], d.d[0], d.d[1], d.d[2], 13, 0xff9a2a, 4, .55, .35, .08, .4, 1);
     else if (d.t === 'm' && w) { Snd.at(g.px, g.py, g.pz)[w.snd](); glow(g.px, g.py + 1, g.pz, 0xdff6ff, 6, 2, 0, 0, .25, .3); }
     else if (d.t === 'j') { Snd.at(g.px, g.py, g.pz).jet(); wave(g.px, g.py, g.pz, 0xffc04a, 1.8, .35); }
+    else if (d.t === 'c' && ok(d.p) && ok(d.v) && Math.hypot(...d.v) < 90) ghostShell(d, ok);
+    else if (d.t === 'b' && ok(d.p) && ok(d.v) && Math.hypot(...d.v) < 90) ghostFire(d);
     else if (d.t === 'h' && String(d.who) === duelMe()) pvpHit(g, d);
     else if (d.t === 'k') pvpDown(g, d);
   }
@@ -15602,15 +15642,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (FT || duelGunRun()) {
       if (!gunOn() || (!(FT && FT.phase === 'fight') && !duelGunRun())) return;
       if (P.inv > 0 && duelGunRun() && by !== 'me') return; // just back after a knock-out
-    } else if (!pvpOn() || !net.peers.has(by) || P.inv > 0 || P.veh || P.riding || G.state !== 'playing') return;
+    } else if (!pvpOn() || !net.peers.has(by) || P.inv > 0 || G.state !== 'playing') return; // (on a ride too)
     P.pvpT = 0;
     P.hp = Math.max(0, P.hp - dmg); P.hurtT = .35;
     G.flash = Math.max(G.flash, head ? .55 : .3); G.flashCol = '#ff3b2f'; G.shake = Math.max(G.shake, head ? .3 : .14);
     if (dmg >= 20) Snd.sfx.yelp(); else Snd.sfx.bump();
     popup('−' + dmg, P.pos.x, P.pos.y + PH + .7, P.pos.z, head ? 'gold' : '');
     if (d) {
-      const kn = w && w.knock ? w.knock : w && w.splash ? 6 : 1.5;
-      P.vel.x += d.x * kn; P.vel.z += d.z * kn; if (kn > 5) { P.vel.y = Math.max(P.vel.y, 8); P.onGround = false; P.noCut = true; }
+      const kn = (w && w.knock ? w.knock : w && w.splash ? 6 : 1.5) * (P.veh && P.veh.cannon ? .3 : 1); // (a tank hardly moves)
+      P.vel.x += d.x * kn; P.vel.z += d.z * kn; if (kn > 5 && !P.veh) { P.vel.y = Math.max(P.vel.y, 8); P.onGround = false; P.noCut = true; }
     }
     if (P.hp <= 0) heroKO(by, head);
   }
@@ -15626,23 +15666,107 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- fights between friends anywhere ----------
   // Outside the duels every friend in the same world or level is fair game, as in the duels: whether a shot hit is for
   // the shooter's screen to say, and the one it hit loses health (100, back by itself a few seconds after the last hit).
-  // At none left they are knocked out (a puff of smoke), tell everyone who did it, and three seconds later are back at the
-  // last flag they touched, whole again, with their guns and a moment when nothing can hurt them. Friends on a ride, the
-  // dino or paused cannot be hit; nor anyone in a game with friends, the survival game, the dragons' cup or a tank battle.
+  // At none left they are knocked out (a puff of smoke; a ride they were on is wrecked), tell everyone who did it, and three
+  // seconds later are back at the last flag they touched, whole again, with their guns and a moment when nothing can hurt
+  // them. Everything that fights counts: the guns, a tank's and a KV-44's shells, grenades and rockets, a dragon's breath,
+  // the pepper's fire and a ride that knocks foes over driven into a friend. Friends on a ride or the dino are hit too (a
+  // tank's armour takes part of it); paused ones cannot be, nor anyone in a game with friends, the survival game, the
+  // dragons' cup or a tank battle.
   const pvpOn = () => !!net.room && !FT && !duelOn() && !survOn() && !cupOn() && !tbOn();
-  const pvpTarget = (g, loc) => !!loc && g.loc === loc && !g.old && !!g.rig && g.rig.root.visible && !g.rideNow && !(g.flags & NF_PAUSED)
+  const pvpTarget = (g, loc) => !!loc && g.loc === loc && !g.old && !!g.rig && g.rig.root.visible && !(g.flags & NF_PAUSED)
     && performance.now() - g.seen < NET_AWAY;
+  // What a shot can hit of a friend: the rider's head and middle, as on foot, and on a ride a wider cylinder round the ride
+  // (cx, cz: its middle; rr: how wide; low: how far its bottom is under the rider's feet); arm: what part of a hit gets
+  // through a tank's armour
+  const peerRide = (g) => (g.rideNow && g.rideNow !== 255 ? RIDES[RIDE_IDS[g.rideNow - 1]] || null : null);
+  const rideHitR = (R) => (!R ? 1 : R.hull ? 2.3 : R.wings ? 1.6 : R.cannon ? 1.35 : R.fly || R.hover ? 1.1 : .8);
+  const rideArmor = (R) => (R && R.cannon ? (R.hull ? .35 : .5) : 1);
+  function friendMark(g) {
+    const m = { x: g.px, y: g.py, z: g.pz, s: g.cur[2] || 1, kind: 'friend', ref: g.id, cx: g.px, cz: g.pz, arm: 1 };
+    if (g.rideNow) {
+      const R = peerRide(g), rg = g.ride && g.ride.g;
+      m.rr = rideHitR(R); m.low = Math.min(0, g.cur[3]); m.arm = rideArmor(R);
+      if (rg) { m.cx = rg.position.x; m.cz = rg.position.z; }
+    }
+    return m;
+  }
+  // how hard the rides' weapons hit a friend (a friend has 100): a shell (a fiery one half as hard again), a KV-44's small
+  // turret's, a grenade or rocket of its launchers, a puff of a dragon's breath, a fireball, a ride driven into them
+  const PVP_SHELL = 60, PVP_LIGHT = 15, PVP_NADE = 30, PVP_BREATH = 12, PVP_FIRE = 15, PVP_RAM = { knock: 13 };
+  // a burst of ours (a shell, a grenade, a rocket) reaches the friends round it: less the further off
+  function pvpBlast(x, y, z, R, full) {
+    const loc = netLoc();
+    for (const g of net.peers.values()) {
+      if (!pvpTarget(g, loc)) continue;
+      const m = friendMark(g), my = clamp(y, m.y + (m.low || 0), m.y + 1.2 * m.s), dx = m.cx - x, dz = m.cz - z;
+      const l = Math.hypot(Math.max(0, Math.hypot(dx, dz) - (m.rr || BODY_R)), my - y);
+      if (l > R || !gunClear(x, y + .2, z, m.cx, my, m.cz)) continue;
+      gunHit(m, Math.round(full * clamp(1.15 - l / R, .3, 1)), false, _gd.set(dx, 0, dz).normalize(), 'me', GUNS.rpg);
+    }
+  }
+  // our shell, breath or fireball flying into a friend here: a shell bursts on them (the burst hurts, pvpBlast), breath and
+  // fire hurt the one they touch
+  function fireHitsFriend(f) {
+    const loc = netLoc();
+    for (const g of net.peers.values()) {
+      if (!pvpTarget(g, loc)) continue;
+      const m = friendMark(g);
+      if (Math.hypot(m.cx - f.x, m.cz - f.z) > (m.rr || BODY_R) + (f.shell ? .3 : .45) || f.y < m.y + (m.low || 0) - .3 || f.y > m.y + 1.9 * m.s) continue;
+      if (!f.shell) gunHit(m, f.air ? PVP_BREATH : PVP_FIRE, false, _gd.set(f.vx, 0, f.vz).normalize(), 'me', null);
+      return true;
+    }
+    return false;
+  }
+  // a ride that knocks foes over, driven fast into a friend, knocks them flying (once a second each)
+  function pvpRam() {
+    const sp = Math.hypot(P.vel.x, P.vel.z), loc = netLoc(), reach = P.veh.hull ? 2.6 : HW + .5;
+    for (const g of net.peers.values()) {
+      if (!pvpTarget(g, loc) || time - (g.ramT || -9) < 1) continue;
+      const m = friendMark(g), dx = m.cx - P.pos.x, dz = m.cz - P.pos.z, d = Math.hypot(dx, dz) || 1;
+      if (d > reach + (m.rr || BODY_R) || Math.abs(m.y + (m.low || 0) - P.pos.y) > 1.6 || (dx * P.vel.x + dz * P.vel.z) / d < sp * .5) continue;
+      g.ramT = time;
+      gunHit(m, Math.round(clamp(sp * 2.5, 15, 40) * (P.veh.cannon ? 1.5 : 1)), false, _gd.set(dx / d, 0, dz / d), 'me', PVP_RAM);
+      Snd.sfx.bump(); G.shake = Math.max(G.shake, .2);
+    }
+  }
+  // our shell, grenade or rocket (k: 0, a small turret's 1, 2, 3) flies on the friends' screens too, outside the games
+  // (the tank battle sends its own); theirs fly on ours as ghosts, which only fly and burst
+  function shellNet(f, k) {
+    if (duelOn()) return;
+    const m = { p: [f.x, f.y, f.z], v: [f.vx, f.vy, f.vz], k, b: f.blast, h: f.hot ? 1 : 0 };
+    if (f.rocket) m.g = [f.tx, f.ty, f.tz];
+    gunNet('c', false, m);
+  }
+  function ghostShell(d, ok) {
+    const [x, y, z] = d.p, [vx, vy, vz] = d.v, k = d.k | 0;
+    if (k === 2) nadeOut(x, y, z, vx, vy, vz, 3.2, true);
+    else if (k === 3 && ok(d.g)) rocketOut(x, y, z, vx, vy, vz, null, d.g, true);
+    else if (k < 2) { shellOut(x, y, z, vx, vy, vz, true, !!d.h, clamp(+d.b || SHELL_R, .5, 5)); Snd.at(x, y, z).cannon(); }
+  }
+  // a friend's breath or fireball (c: what the dragon breathes, '' for the pepper's fire)
+  function ghostFire(d) {
+    const B = BREATH[d.c] || null, [x, y, z] = d.p, [vx, vy, vz] = d.v;
+    const m = new T.Mesh(SPH, B ? B.mat : MAT.fireball); m.scale.setScalar(B ? .34 : .22); m.position.set(x, y, z); L.group.add(m);
+    L.fireballs.push({ m, x, y, z, vx, vy, vz, life: B ? 1.1 : 1.7, bounces: 0, air: !!B, cols: B ? B.cols : null, ghost: true });
+    if (B) { Snd.at(x, y, z).breath(); glow(x, y, z, B.cols[0], 12, 3.5, 0, 0, .3, .4); } else Snd.at(x, y, z).fire();
+  }
   // a friend's shot hit us: from their screen, with how much and whether in the head (a duel's hits come through the game)
   function pvpHit(g, d) {
     if (FT || duelGunning()) return;
     const dx = P.pos.x - g.px, dz = P.pos.z - g.pz, l = Math.hypot(dx, dz) || 1;
-    heroHurt(clamp(Math.floor(+d.n) || 0, 1, 200), !!d.hd, _gs.set(dx / l, 0, dz / l), g.id, d.kn ? GUNS.hammer : null);
+    heroHurt(clamp(Math.floor(+d.n) || 0, 1, 200), !!d.hd, _gs.set(dx / l, 0, dz / l), g.id, d.kn === 2 ? GUNS.rpg : d.kn ? GUNS.hammer : null);
   }
   // we are knocked out: everyone here hears who did it (a delivery falls, as after a fall)
   function pvpKO(by, head) {
     const who = net.peers.has(by) ? by : '';
     P.inv = P.koT + .5; P.burn = 0;
     if (ISL.carry) dropCarry('hit');
+    if (P.veh || P.riding) { // the ride is wrecked: a burst where it stood
+      Snd.sfx.boom(); flashAt(P.pos.x, P.pos.y + 1, P.pos.z, 0xfff3b0, 3, .16); glow(P.pos.x, P.pos.y + 1, P.pos.z, 0xffa12e, 16, 5, 1, 4, .45, .4);
+      puff(P.pos.x, P.pos.y + 1, P.pos.z, 0x8a8490, 8, 2.4, .8, .8, 1.3);
+      if (P.veh) rideOff(false, true); else dismount(false, 0, 0);
+      P.rideCd = 0;
+    }
     gunNet('k', false, { by: who, hd: head ? 1 : 0 });
     toast(head ? 'Хедшот!' : 'Нокаут!', (who ? duelName(who) + ' → ты' : 'Тебя вырубили') + ' · назад к флажку');
     if (who) netNote(duelName(who) + ' → Ты' + (head ? ' 🎯' : ''));
@@ -15651,6 +15775,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function pvpDown(g, d) {
     const by = String(d.by || ''), me = by === duelMe();
     if (g.rig) { puff(g.px, g.py + .8, g.pz, 0xe8e6ee, 12, 2.5, .8, .8, 1.3); Snd.at(g.px, g.py, g.pz).poof(); }
+    if (g.rig && g.rideNow) { flashAt(g.px, g.py + .5, g.pz, 0xfff3b0, 3, .16); glow(g.px, g.py + .5, g.pz, 0xffa12e, 16, 5, 1, 4, .45, .4); Snd.at(g.px, g.py, g.pz).boom(); }
     if (me) { GN.kos++; toast(d.hd ? 'Хедшот!' : 'Нокаут!', (g.name || 'Друг') + ' · у тебя ' + GN.kos); Snd.sfx.ko(); P.happyT = 1.2; }
     netNote((by && (me || net.peers.has(by)) ? duelName(by) + ' → ' : '') + (g.name || 'Друг') + (d.hd ? ' 🎯' : ''));
   }
@@ -15665,6 +15790,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       return;
     }
     if (P.hp < 100 && P.pvpT > 5) P.hp = Math.min(100, P.hp + dt * 12);
+    if (P.veh && (P.veh.bump || P.veh.wings) && G.state === 'playing' && pvpOn() && Math.hypot(P.vel.x, P.vel.z) > 4) pvpRam();
   }
   function pvpBack() {
     P.koT = 0; P.hp = 100; P.burn = 0;
@@ -16173,12 +16299,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   const COIN_ICON = document.querySelector('.coin-ico');
   const hexCss = (c) => '#' + c.toString(16).padStart(6, '0');
-  let shopTab = 'perks';
+  // garage: the same card opened from the pause in any world or level, with only what the hero has (the rides and the guns)
+  let shopTab = 'perks', garage = false;
   function renderShop() {
-    $('shopName').textContent = L.def.shop || HUBS.island.shop;
-    $('shopBank').textContent = shopTab === 'tank' ? 'У тебя ' + SAVE.medals + ' ' + plural(SAVE.medals, 'медаль', 'медали', 'медалей') + ' 🎖'
+    $('shopName').textContent = garage ? 'Гараж и оружейная' : L.def.shop || HUBS.island.shop;
+    $('shopBank').textContent = garage ? 'Всё твоё, в любом мире и уровне' : shopTab === 'tank' ? 'У тебя ' + SAVE.medals + ' ' + plural(SAVE.medals, 'медаль', 'медали', 'медалей') + ' 🎖'
       : 'У тебя ' + SAVE.bank + ' ' + plural(SAVE.bank, 'значок', 'значка', 'значков');
-    for (const t of document.querySelectorAll('.shop-tab')) t.setAttribute('aria-selected', String(t.dataset.tab === shopTab));
+    for (const t of document.querySelectorAll('.shop-tab')) { t.setAttribute('aria-selected', String(t.dataset.tab === shopTab)); t.hidden = garage && t.dataset.tab !== 'rides' && t.dataset.tab !== 'guns'; }
+    document.querySelector('.shop-tabs').classList.toggle('garage', garage); $('btnShopClose').textContent = garage ? 'Закрыть' : 'Уйти';
     const box = $('shopList'), keep = box.dataset.tab === shopTab ? box.scrollTop : 0;
     box.textContent = ''; box.dataset.tab = shopTab;
     const sec = (text) => { const p = document.createElement('p'); p.className = 'shop-sec'; p.textContent = text; box.append(p); };
@@ -16269,6 +16397,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         for (const id of GUN_IDS) {
           const g = GUNS[id]; if (g.slot !== i) continue;
           const own = SAVE.guns.includes(id), on = SAVE.load[i] === id;
+          if (garage && !own) continue;
           item({ title: g.icon + ' ' + g.name, sub: g.sub, price: g.price, state: own ? (on ? 'В наборе' : 'Взять') : null, can: !on, on, act: () => {
             if (!own) SAVE.guns.push(id);
             SAVE.load[i] = id; P.happyT = 1; if (gunOn() && !FT && !duelGunning()) gunReset();
@@ -16277,10 +16406,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       });
       sec((isTouch ? 'Кнопка «Оружие» внизу экрана' : 'Клавиша X или кнопка «Оружие» внизу экрана') + ' достаёт набор в любом мире. С ним выходишь и на арену; в снайперском ущелье у всех снайперки');
     } else {
-      sec(isTouch ? 'Кнопка с самокатом наверху экрана зовёт транспорт в открытых мирах' : 'Клавиша V или кнопка наверху экрана зовёт транспорт в открытых мирах');
+      sec(garage ? 'Нажми, и сразу поедешь. ' + (L.def.dragons ? 'Кнопка транспорта здесь зовёт дракона' : (isTouch ? 'Кнопка с самокатом наверху экрана' : 'Клавиша V') + ' потом зовёт его же')
+        : (isTouch ? 'Кнопка с самокатом наверху экрана' : 'Клавиша V или кнопка наверху экрана') + ' зовёт транспорт в любом мире и уровне. Пушки танков и дыхание драконов бьют и друзей');
+      if (garage && !SAVE.rides.length) sec('Пока пусто: транспорт продают в лавках');
       for (const id of SHOP_RIDES) {
         const r = RIDES[id], own = SAVE.rides.includes(id), on = SAVE.ride === id, prize = r.prize && !own;
-        if (id === DRAGON_IDS[0]) sec('Драконы: летают в любом открытом мире');
+        if (garage) { // the garage: what the hero has, and a tap puts him on it
+          if (!own) continue;
+          const now = !!P.veh && P.vehId === id;
+          item({ title: r.name, sub: r.sub, state: now ? 'Едешь' : 'Поехали', can: !now, on: now, swatch: r.wings ? hexCss(DRAGON_LOOK[id].body) : null, act: () => garageRide(id) });
+          continue;
+        }
+        if (id === DRAGON_IDS[0]) sec('Драконы: летают везде');
         item({ title: r.name, sub: r.sub, price: r.price, state: prize ? 'Приз за кубок' : own ? (on ? 'Выбран' : 'Выбрать') : null, can: !on && !prize, on,
           swatch: r.wings ? hexCss(DRAGON_LOOK[id].body) : null, act: () => {
             if (!own) SAVE.rides.push(id);
@@ -16300,7 +16437,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     G.state = 'playing'; showScreen(null); showTouch(isTouch); input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false;
     last = performance.now();
   }
-  function openShop() { renderShop(); openMenu('shop'); Snd.sfx.ui(); }
+  function openShop() { garage = false; renderShop(); openMenu('shop'); Snd.sfx.ui(); }
+  function openGarage() { garage = true; if (shopTab !== 'guns') shopTab = 'rides'; renderShop(); openMenu('shop'); Snd.sfx.ui(); }
+  // a ride picked in the garage: it becomes the one the ride button calls, and the hero gets straight on it (not in the
+  // middle of a race, a tank battle or the dragons' cup, which give everyone their ride)
+  function garageRide(id) {
+    SAVE.ride = id; closeMenu(); updateRideBtn();
+    const why = FT || duelGunning() ? 'В дуэли только пешком' : duelRide() || tankLocked() || cupOn() ? 'Сначала доиграйте!' : '';
+    if (why) { popup(why, P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
+    if (P.veh) rideOff(false, true);
+    P.rideCd = 0; rideOn(id);
+  }
   // a card with levels to pick: behind the green world's gate, or the one level behind a door
   function openLevels(eyebrow, title, sub, list) {
     $('worldEyebrow').textContent = eyebrow; $('worldName').textContent = title; $('worldSub').textContent = sub;
@@ -16490,12 +16637,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   // what the hero stands on when a ride skims water (the jet ski, the cloud) or quicksand
   const SURF_FLOAT = { kind: 'water', surf: 'water', active: true, min: { x: 0, y: 0, z: 0 }, max: { x: 0, y: 0, z: 0 } };
-  // a ride from the shop, or the one lent at a pier or a base (P.rent) until the hero gets off it
+  // a ride from the shop (in any world or level, and in the Duel Arena between the duels), or the one lent at a pier or a
+  // base (P.rent) until the hero gets off it
   // in Dragon Peaks the ride button calls the dragon picked at the perches: lent for free, unless it is one of our own
   const worldRide = () => (L && L.def.dragons ? SAVE.dragon || 'drRed' : '');
   function rideOn(want) {
     const id = want || P.rent || duelRide() || worldRide() || SAVE.ride, def = RIDES[id];
-    if (!def || P.veh || P.riding || P.pound || G.state !== 'playing' || !L.def.hub) return;
+    if (!def || P.veh || P.riding || P.pound || G.state !== 'playing' || FT || duelGunning()) return; // (a duel with guns is on foot)
     if (P.rideCd > 0) return;
     if (duelHiding()) { popup('В прятках без транспорта', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (id !== P.rent && id === duelRide()) P.rent = id; // back on the race's ride after a knock
@@ -16541,14 +16689,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function rideToggle() {
     if (holdStill()) return;
-    if (!P.veh && L.def.duels) { popup('На арене только пешком', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
+    if (!P.veh && (FT || duelGunning())) { popup('В дуэли только пешком', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (!P.veh) { rideOn(); return; }
     if (tankLocked()) { popup('Из танка не вылезти, пока идёт бой', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     rideOff(false);
   }
   const btnRide = $('btnRide');
   function updateRideBtn() {
-    const id = worldRide() || SAVE.ride, show = !!(L && L.def.hub && !L.def.duels && (RIDES[id] || P.veh) && !hudEl.hidden); // (the Duel Arena is on foot)
+    const id = worldRide() || SAVE.ride, show = !!(L && (RIDES[id] || P.veh) && !hudEl.hidden); // (in every world and level)
     btnRide.hidden = !show; btnRide.classList.toggle('on', !!P.veh);
     btnRide.setAttribute('aria-label', P.veh ? 'Слезть с транспорта' : 'Транспорт: ' + (RIDES[id] ? RIDES[id].name : ''));
   }
@@ -16934,6 +17082,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (G.state === 'playing') bossContact(b);
   }
   function bossWin() {
+    if (P.veh) { rideOff(false, true); puff(P.pos.x, P.pos.y + .3, P.pos.z, 0xffffff, 8, 2, .6, .5, 1); }
     $('bossBar').hidden = true; endChain();
     G.state = 'goal'; G.goalPhase = 'bossWin'; G.stateT = 0; G.fw = [.3, .8, 1.3];
     addScore(5000); Snd.sfx.clear();
@@ -17438,6 +17587,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
   function startGoal(onPole) {
     const g = L.goal;
+    if (P.veh) { rideOff(false, true); puff(P.pos.x, P.pos.y + .3, P.pos.z, 0xffffff, 8, 2, .6, .5, 1); } // off the ride at the flag
     P.pound = null; P.spinT = 0; endChain();
     G.state = 'goal'; G.stateT = 0; G.fw = [];
     const span = g.topY - 1.2 - g.baseY;
@@ -18004,6 +18154,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnWinMenu').addEventListener('click', toTitle);
   $('btnWorldClose').addEventListener('click', closeMenu);
   $('btnShopClose').addEventListener('click', closeMenu);
+  $('btnGarage').addEventListener('click', () => { Snd.init(); openGarage(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); keys.clear(); } });
 
   // ================= HUD =================
@@ -18046,7 +18197,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 8, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 9, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
