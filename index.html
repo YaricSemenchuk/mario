@@ -5701,7 +5701,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // a glowing ring on the ground: the shop's golden one, a blue one that lends a ride (`data` names it), a red one that
       // starts a challenge, the purple one that wakes Leviathan
       pad(kind, x, top, d, data) {
-        const col = kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' || kind === 'car' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' || kind === 'cb' || kind === 'gp' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
+        const col = kind === 'gpf' ? 0x5fdc5a : kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' || kind === 'car' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' || kind === 'cb' || kind === 'gp' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
         const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: col, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
@@ -9243,6 +9243,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       'Солнечное кольцо прямо на севере, Восьмёрка на востоке, Лесная трасса на западе. Иди по асфальтовой дорожке.',
       'Проезжай в арки по порядку: следующая горит жёлтым, стрелка над тобой показывает к ней.',
       'Понравилась машина? Кот Турбо в лавке продаёт её насовсем, тогда она поедет с тобой в любой мир.',
+      'С друзьями тут гоняют на зелёных ковриках у стартов: все из комнаты едут вместе, каждый на своей машине.',
     ]);
     B.stall(-26, 4); B.pad('shop', -28.4, 0, 4, 'rides');
     B.npc('cat', -24.6, 0, 4, 'Кот Турбо', ['Мр-р-р! Я кузен Мурра, самый быстрый кот на свете. Почти.', 'Спорткар, Болид и Монстр-трак есть у меня в лавке, навсегда. Поедут во все миры!',
@@ -9253,21 +9254,24 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     for (let d = -9; d <= 13; d += 2) B.coin(0, 1.2, d);
 
     // --- the three starts: each track's marshal, the red pad that starts its grand prix, its star (hidden till it is won) ---
-    const marshal = (ti, kind, x, d, name, pad, star, tip) => {
+    // (beside the red pad a green one, for a race on the same track with the friends in the room)
+    const marshal = (ti, kind, x, d, name, pad, star, tip, fpad) => {
       const T0 = RACE_TRACKS[ti];
       const n = B.npc(kind, x, 0, d, name, () => [
         hasStar(T0.star) ? 'Ты выиграл Гран-при «' + T0.name + '»! Ещё заезд?' : 'Это старт трассы «' + T0.name + '». Встань на красный коврик, и начнётся Гран-при!',
         T0.laps + ' ' + plural(T0.laps, 'круг', 'круга', 'кругов') + ' против пятерых гонщиков. Проезжай в арки по порядку, следующая горит жёлтым.',
         tip,
         SAVE.rcBest[ti] ? 'Твой лучший заезд здесь: ' + fmtT(SAVE.rcBest[ti]) + '.' : 'Приедешь первым, дам звезду. А за второе и третье место значки!',
+        'Играешь с друзьями? Встань на зелёный коврик, и все из комнаты поедут с тобой по этой трассе!',
       ], { yaw: pad[2] });
       B.pad('gp', pad[0], 0, pad[1], ti);
+      B.pad('gpf', fpad[0], 0, fpad[1], ti); B.sign(fpad[2], 0, fpad[3], ['Гонка', 'с друзьями']);
       B.star(T0.star, star[0], 2.4, star[1], !questDone(T0.star));
       L.tracks[ti].owner = n;
     };
-    marshal(0, 'penguin', -20, 33, 'Пинг-гонщик', [-14, 33, 0], [-24, 31], 'Трасса ровная, зато поворотов много. На шиканах не вылетай на траву!');
-    marshal(1, 'frog', 164, -26, 'Квак-механик', [172, -26, 0], [160, -28], 'Ква! Трасса проходит сама под собой: по мосту и под мостом. Не перепутай арки!');
-    marshal(2, 'hedgehog', -104, 16, 'Ёжик Шустрик', [-104, 8, Math.PI / 2], [-100, 20], 'Самая длинная трасса, через лес! На горке трамплин: держись дороги, и полетишь!');
+    marshal(0, 'penguin', -20, 33, 'Пинг-гонщик', [-14, 33, 0], [-24, 31], 'Трасса ровная, зато поворотов много. На шиканах не вылетай на траву!', [-17, 29, -20.5, 27.5]);
+    marshal(1, 'frog', 164, -26, 'Квак-механик', [172, -26, 0], [160, -28], 'Ква! Трасса проходит сама под собой: по мосту и под мостом. Не перепутай арки!', [177, -26, 180, -28]);
+    marshal(2, 'hedgehog', -104, 16, 'Ёжик Шустрик', [-104, 8, Math.PI / 2], [-100, 20], 'Самая длинная трасса, через лес! На горке трамплин: держись дороги, и полетишь!', [-104, 2, -100.5, 0]);
 
     // --- the Sunny Ring: the stands along the straight, flags, the lake with its island ---
     const COLS = [0xf0503a, 0xffd23f, 0x4262ff, 0x7ddf6a, 0xff9ad1, 0xffffff, 0xff9a3c, 0x9a7aff];
@@ -12463,6 +12467,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function trackAt(trk, s) {
     const N = trk.pts.length, u = ((s % trk.len) + trk.len) % trk.len / trk.step, i = Math.floor(u) % N, f = u - Math.floor(u), a = trk.pts[i], b = trk.pts[(i + 1) % N];
     return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f, tx: a.tx, tz: a.tz, nx: a.nx, nz: a.nz, yaw: a.yaw + wrapPi(b.yaw - a.yaw) * f, i };
+  }
+  // the green pad by a start: a race on this track with everyone in the room, each in the car they picked
+  // (with no room yet, or nobody in it, the friends card opens to make one and call a friend)
+  function gpFriends(ti) {
+    const why = duelPropose('race', ti);
+    if (!why) { toast('Гонка с друзьями', 'Зовём всех из комнаты на трассу «' + RACE_TRACKS[ti].name + '»'); return; }
+    Snd.sfx.locked();
+    if (net.room && duelFriends().length) { toast('Гонка с друзьями', why); return; }
+    pause(); openNet('pause'); net.note = (net.room ? why : 'Создай комнату и позови друга.') + ' Потом снова встань на зелёный коврик.'; renderNet();
   }
   // a slot of the grid: rows of two, 6 m apart, behind the start line
   function gpGrid(trk, k) {
@@ -16742,7 +16755,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
         else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
         else if (pd.kind === 'craft') ntCraftPad();
-        else if (pd.kind === 'car') pickCar(pd.data); else if (pd.kind === 'gp') gpStart(pd.data);
+        else if (pd.kind === 'car') pickCar(pd.data); else if (pd.kind === 'gp') gpStart(pd.data); else if (pd.kind === 'gpf') gpFriends(pd.data);
         else if (pd.kind === 'cb') cbStart(); else if (pd.kind === 'rbwarp') rbContinue(); else if (pd.kind === 'rbhome') rbHome();
         else if (pd.kind === 'duel' || pd.kind === 'snipe') ftStart(pd.kind === 'duel' ? 'arena' : 'snipe');
       }
@@ -19579,13 +19592,15 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   }
 
   // ---------- inviting ----------
-  function duelPropose(kind) {
+  function duelPropose(kind, track) {
     const why = duelWhyNot(); if (why) return why;
-    const ids = duelFriends().map((g) => g.id), key = kind === 'tank' ? 'tanks' : kind === 'gun' || kind === 'snipe' ? 'duels' : duelHomeKey();
+    const home = duelHomeKey(), ids = duelFriends().map((g) => g.id);
+    const key = kind === 'tank' ? 'tanks' : kind === 'gun' || kind === 'snipe' ? 'duels' : kind === 'race' && home === 'island' ? 'racing' : home; // (a race from the island or the title: on the Speedway)
     duelStop('');
     duelGoTo(key); // the host waits for the answers in the game's world
-    // in the Speedway the race is on the track whose start line is nearest
-    const tr = kind === 'race' && L.tracks ? L.tracks.reduce((b, t, i) => (Math.hypot(t.gates[0].x - P.pos.x, t.gates[0].z - P.pos.z) < Math.hypot(L.tracks[b].gates[0].x - P.pos.x, L.tracks[b].gates[0].z - P.pos.z) ? i : b), 0) : 0;
+    // in the Speedway the race is on the track asked for (a green pad), or the one whose start line is nearest
+    const tr = kind !== 'race' || !L.tracks ? 0 : track !== undefined ? track
+      : L.tracks.reduce((b, t, i) => (Math.hypot(t.gates[0].x - P.pos.x, t.gates[0].z - P.pos.z) < Math.hypot(L.tracks[b].gates[0].x - P.pos.x, L.tracks[b].gates[0].z - P.pos.z) ? i : b), 0);
     duel = { id: netNewCode() + netNewCode(), kind, host: duelMe(), loc: NET_LOCS.indexOf('h:' + key), phase: 'ask', t: DUEL_ASK, asked: new Map(ids.map((i) => [i, null])), players: [], tr };
     netSend(duelAct(), { t: 'inv', id: duel.id, k: kind, loc: duel.loc, tr }, { target: ids });
     Snd.sfx.ui(); duelUi();
@@ -19662,7 +19677,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       for (const r of L.raceRings) r.m.visible = false; // the quest's rings on the same spots wait until the race is over
       for (const m of L.cupRings) m.visible = false;
       duelPlace(duelLane(i, n)); duelMount();
-      toast(DUEL_NAME.race, 'Все кольца по порядку. Кто первый?');
+      toast(DUEL_NAME.race, L.tracks ? 'Трасса «' + L.tracks[duel.tr].name + '»: все арки по порядку. Кто первый?' : 'Все кольца по порядку. Кто первый?');
     } else if (duel.kind === 'tank') {
       Object.assign(duel, { phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, rideId: 'tank', score: new Map(players.map((p) => [p, 0])), hitCd: new Map(), mountT: 0,
         left: TANK_DUEL_T });
@@ -19705,6 +19720,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the start line: side by side through the first ring (a little before or after it where something stands in the
   // way), facing along the course
   function duelLane(i, n) {
+    if (L.tracks && duel.kind === 'race' && duel.tr !== undefined) return gpGrid(L.tracks[duel.tr], i); // (the Speedway's grid)
     const c = duel.rings, a = c[0], b = c[1] || a, face = Math.atan2(b.x - a.x, b.z - a.z);
     const fx = Math.sin(face), fz = Math.cos(face), side = (i - (n - 1) / 2) * 2.4;
     for (const back of [0, 2, 4, -2, 6]) {
@@ -19744,9 +19760,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (d.phase === 'count') {
       d.t -= dt;
       const k = Math.ceil(d.t);
-      if (k < d.tick && k >= 1 && k <= DUEL_COUNT) { d.tick = k; toast(String(k), 'Приготовься!'); Snd.sfx.tock(false); }
+      const lamps = L.tracks && L.tracks[d.tr]; // (the Speedway's start lights)
+      if (k < d.tick && k >= 1 && k <= DUEL_COUNT) { d.tick = k; toast(String(k), 'Приготовься!'); Snd.sfx.tock(false); if (lamps) gpLights(lamps, DUEL_COUNT + 1 - k); }
       if (d.t > 0) return;
-      d.phase = 'run'; d.runAt = now; toast('Марш!', d.laps > 1 ? d.laps + ' круга, финиш в первом кольце' : 'Все кольца до самого низа'); Snd.sfx.whistle();
+      d.phase = 'run'; d.runAt = now; toast('Марш!', d.laps > 1 ? d.laps + ' ' + plural(d.laps, 'круг', 'круга', 'кругов') + ', финиш в первом ' + (lamps ? 'арке' : 'кольце') : 'Все кольца до самого низа'); Snd.sfx.whistle();
+      if (lamps) { gpLights(lamps, -1); setTimeout(() => { if (L.tracks && L.tracks[d.tr] === lamps) gpLights(lamps, 0); }, 2500); }
       return;
     }
     // back on the race's ride after a knock or a swim, as soon as it can be called
@@ -19786,7 +19804,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     rows.sort((a, b) => (!a.ms - !b.ms) || (a.ms ? a.ms - b.ms : b.got - a.got));
     const k = rows.findIndex((r) => r.id === me), mine = rows[k], won = !why && k === 0 && !!mine.ms && rows.length > 1;
     duelDone(why || (won ? 'Победа!' : mine.ms ? (k + 1) + '-е место' : 'Время вышло'),
-      rows.map((r, i) => [r.ms ? i + 1 + '.' : '–', duelName(r.id), r.ms ? fmtT(r.ms) : 'колец: ' + r.got + ' из ' + n, r.id === me]), won);
+      rows.map((r, i) => [r.ms ? i + 1 + '.' : '–', duelName(r.id), r.ms ? fmtT(r.ms) : (L.tracks ? 'арок: ' : 'колец: ') + r.got + ' из ' + n, r.id === me]), won);
   }
 
   // ---------- hide and seek ----------
@@ -20119,7 +20137,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         const ahead = d.fin.has(id) ? !d.fin.has(me) || d.fin.get(id) < d.fin.get(me) : (d.prog.get(id) || 0) > mine;
         if (ahead) place++;
       }
-      const lap = Math.min(d.laps, Math.floor(d.next / d.lapLen) + 1), ring = 'кольцо ' + (d.next % d.lapLen + 1) + ' из ' + d.lapLen;
+      const lap = Math.min(d.laps, Math.floor(d.next / d.lapLen) + 1), ring = (L.tracks ? 'арка ' : 'кольцо ') + (d.next % d.lapLen + 1) + ' из ' + d.lapLen;
       return ['Гонка · ' + place + '-е место', d.fin.has(me) ? 'Финиш! Ждём остальных' : d.laps > 1 ? 'Круг ' + lap + ' из ' + d.laps + ', ' + ring : ring[0].toUpperCase() + ring.slice(1)];
     }
     if (duelTanking()) {
@@ -20212,7 +20230,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     $('netGameBtns').hidden = busy; $('btnDuelQuit').hidden = !busy;
     $('btnDuelRace').disabled = $('btnDuelHide').disabled = $('btnDuelTank').disabled = $('btnDuelGun').disabled = $('btnDuelSnipe').disabled = !!why;
     $('netGameHint').textContent = busy ? 'Сейчас идёт игра: ' + DUEL_NAME[duel.kind].toLowerCase() + '.'
-      : why || 'Играем в мире «' + HUBS[duelHomeKey()].name + '», друзей, кто согласится, перенесёт туда. Гонка: кто быстрее по кольцам на одинаковом транспорте. Прятки: один водит, остальные прячутся. Танки: бой на Танковом полигоне, кто больше попадёт за две минуты. Дуэль и Снайперы: на Дуэльной арене, до пяти нокаутов.';
+      : why || 'Играем в мире «' + HUBS[duelHomeKey()].name + '», друзей, кто согласится, перенесёт туда. Гонка: с острова и титула на Автодроме, по трассе у ближайшего старта, каждый на своей машине; в другом мире по его кольцам.'
+        + ' На Автодроме ещё есть зелёные коврики у стартов: гонка с друзьями по этой трассе. Прятки: один водит, остальные прячутся. Танки: бой на Танковом полигоне, кто больше попадёт за две минуты. Дуэль и Снайперы: на Дуэльной арене, до пяти нокаутов.';
   }
 
   // ================= resize & loop =================

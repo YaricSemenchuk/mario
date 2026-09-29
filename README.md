@@ -273,6 +273,8 @@ the minigun's rattle), and under the water every sound is muffled.
       win brings the track's star; the first three get badges, and the best time on each track is kept
     - Five stars: the three grands prix, a star in the air over the jump (only a jump off the kicker reaches it) and the
       red badges. "🏁 Гонки" on the title goes straight to the garage
+    - racing friends: a green pad beside each red one calls everyone in the room to a race on that track, each in the car
+      they picked, on the grid under the start lights (with nobody to call, it opens the friends card)
 - Stars: 123 in the worlds and one for every level cleared, 137 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
@@ -357,7 +359,8 @@ the minigun's rattle), and under the water every sound is muffled.
   - a ring race: everyone gets the same ride (a kart, the stone car in Dino Valley, a tank on the Tank Range, the snowboard down the ice slalom,
     the jet ski on the lagoon, the rover on the Moon; in Dragon Peaks each flies the dragon they picked, high up round
     the dragons' cup course; on the Speedway each drives the car they picked in its garage, through the arches of the
-    track whose start is nearest to whoever starts it, with that track's laps) and races the rings of the world's own race quest (the factory has a course round its oven),
+    track whose start is nearest to whoever starts it (or whose green pad they stepped on), with that track's laps; a race
+    asked for from the title, a level or Promo Island is held on the Speedway) and races the rings of the world's own race quest (the factory has a course round its oven),
     two or three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the
     racer back at the last ring. The others have 25 seconds after the first finish
   - hide and seek: one player seeks (never the same one twice running), blindfolded for 25 seconds while the others hide;
