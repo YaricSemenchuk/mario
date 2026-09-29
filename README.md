@@ -328,8 +328,9 @@ the minigun's rattle), and under the water every sound is muffled.
     dragons that fly (listed last).
     The cars (the kart, the three race cars, the moon rover and the stone car) drive like cars, not like the hero on foot:
     up and down on the stick (W and S) are the throttle and the brake (held at a stop, reverse), left and right turn the
-    wheel. A car turns only while it rolls, and the faster it goes the less the wheel turns, so a fast car takes a bend
-    wide and wants the brake before a hairpin; the tyres let it slide a little, more on grass and ice, and nothing steers
+    wheel. They are fast (the kart 19 m/s, the monster truck 19, the roadster 22, the formula car 25), and the view widens
+    and the engine revs up as they speed up. A car turns only while it rolls, and the faster it goes the less the wheel
+    turns, so a fast car takes a bend wide and wants the brake before a hairpin; the tyres let it slide a little, more on grass and ice, and nothing steers
     it in the air. The camera swings round behind it by itself (dragging still turns it).
     "Транспорт и оружие" in the pause card, in any world or level, opens a garage with the rides the hero has (a tap puts
     him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon, and on the
