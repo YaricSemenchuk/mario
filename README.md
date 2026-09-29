@@ -18,17 +18,17 @@ per world (birdsong, wind, lava bubbles, candy chimes, the sea, the beeps of a m
 jungle, a woodpecker by day and crickets and an owl by night in the Dark Forest). Every open world has a tune of its own (the
 survival game, the dragons' cup and the tank battle have their own too, Leviathan comes with the bosses' tune, the Dark
 Forest's nights have a slow one over a heartbeat, and the Duel Arena a showdown with a gallop in the drums),
-the kart, the jet ski and the moon rover hum louder and higher as they speed up, a tank's tracks clatter, the wind roars past
+the kart, the race cars, the jet ski and the moon rover hum louder and higher as they speed up, a tank's tracks clatter, the wind roars past
 a flying dragon, every gun of the Duel Arena has a voice of its own (the sniper's crack, the shotgun's boom, a bow's twang,
 the minigun's rattle), and under the water every sound is muffled.
 
-- Thirteen open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
+- Fourteen open worlds with no timer and no game over; a fall only sends the hero back to the last flag he touched.
   Promo Island sits between them: a village with a fountain, houses and a windmill, a beach with a pier, a lake under
   a waterfall cliff (with a cave behind the water), a vegetable garden, a lighthouse on a plateau, a forest on terraces
   and a sky island above it. The hero swims (the action button is a stroke forward, a jump leaps out of the water) and
   walks up and down slopes
-- Behind the island's gates lie twelve more worlds, each with its own folk and quests; the first four have ten stars and
-  doors to their levels, the next two are open worlds of ten quests each, and the last six are open from the start:
+- Behind the island's gates lie thirteen more worlds, each with its own folk and quests; the first four have ten stars and
+  doors to their levels, the next two are open worlds of ten quests each, and the last seven are open from the start:
   - the Desert: an oasis and a bazaar, the Sphinx, the Great Pyramid with a tomb inside, a mesa climbed by riding a
     wandering dust devil, a field of quicksand (the hero sinks and has to jump out), dunes and a melon patch
   - Ice Peaks: a penguin village of igloos, a skating rink, a steaming hot spring, the Ice Mountain with a crystal cave,
@@ -257,7 +257,23 @@ the minigun's rattle), and under the water every sound is muffled.
     - Brick's tower: platforms round a column two laps up (fading ones, lava thirds), a spawn pad halfway, the star on top
     - Seven stars: the obby, the tower, eight rounds of Color Block, the sky platform (only with the gravity coil), Speedy's
       rings, Mama Noobie's five little noobs and the red badges. "🧱 Роблокс" on the title goes straight to the spawn
-- Stars: 118 in the worlds and one for every level cleared, 132 in all. They come from folk and secrets: lost ones to bring
+  - the Speedway (Автодром): three race tracks round a paddock on a wide green plain, each a long loop of tarmac with
+    white lines, red and white kerbs round the bends and arches over the road: the Sunny Ring (about 650 m a lap, three
+    laps) round a lake with an island, stands full of fans along its straight; the Figure Eight (about 700 m, three laps),
+    whose loops cross on a bridge, one way over it and the other under it; and the Forest Track (about 1050 m, two laps)
+    through the pines, up a hill that ends in a kicker and a jump. The paddock's garage has six cars on turntables (the
+    kart, the roadster, the formula car, the monster truck, the moon rover and the stone car): a blue pad before one puts
+    the hero in it, lent for free there, and the ride button calls it
+    - a grand prix on each track, from the red pad by its start: a grid of six behind a gantry with start lights that go
+      red one by one and then green, the hero against five of the folk in the other cars (Ping, Kvak, Murr, Foma and
+      Mishka). They drive the track's line on their own, slow for the bends, change lanes to get past, fly off the jump,
+      and like the dragons of the cup go a little faster when behind; bumping into one pushes the cars apart. The arches
+      are taken in turn (the next one glows yellow, an arrow over the hero points to it), the line under the buttons
+      shows the place, the lap and the arch, and in a race every car but the monster truck is slow on the grass. A
+      win brings the track's star; the first three get badges, and the best time on each track is kept
+    - Five stars: the three grands prix, a star in the air over the jump (only a jump off the kicker reaches it) and the
+      red badges. "🏁 Гонки" on the title goes straight to the garage
+- Stars: 123 in the worlds and one for every level cleared, 137 in all. They come from folk and secrets: lost ones to bring
   home (froglets, camel calves, penguin chicks, gingerbread kids, little robots, baby turtles that swim under the water,
   little aliens follow the hero once found), eight red badges in every world, gardens, warehouses and a reef to clear of
   enemies, ring races against the clock (on foot, on jet skis over the ramps, on moon rovers), treasure dug up with a
@@ -280,7 +296,7 @@ the minigun's rattle), and under the water every sound is muffled.
 - The World Gates open with stars: five on the island's square (the first leads to the Green levels, the others into the
   worlds at 3, 8, 15 and 24 stars), the Sea Gate at the end of the pier (30) and the Star Gate on a cloud islet above the
   forest (42), and on the cape past Foma's garden the Ancient Gate to Dino Valley, the Dragon Gate, the Tank Gate and, at the
-  cape by the sea, the Forest Gate, the Duel Gate and, at its very end, the Roblox Gate, open from the start.
+  cape by the sea, the Forest Gate, the Duel Gate, the Roblox Gate and, at its very end, the Racing Gate, open from the start.
   Every world has a gate home and a door for each of its levels; a cleared level returns the hero in front of its door
 - Every badge goes into a wallet the shops take (Murr's on the island, his cousins' in every world), in five tabs (the Tank
   tab is under the tank, below, and the Guns tab under the guns, above):
@@ -306,14 +322,17 @@ the minigun's rattle), and under the water every sound is muffled.
     steering wheel that turns into the corners), a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
-    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with twelve turrets, and five
+    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with twelve turrets, three race
+    cars (a yellow roadster with a spoiler; a blue formula car, the fastest on tarmac; a green monster truck on giant
+    knobbly wheels that jumps high and minds no grass), all with wheels that roll and steer like the kart's, and five
     dragons that fly (listed last).
     "Транспорт и оружие" in the pause card, in any world or level, opens a garage with the rides the hero has (a tap puts
-    him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon) and the
+    him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon, and on the
+    Speedway the car from its garage) and the
     guns' set.
     A hit knocks the hero off (a dragon only slows down, a tank's armour takes it). Blue pads lend a ride for free (the jet
     ski at the piers, the rover on the Moon, the stone car in Dino Valley, the dragons at their perches, tanks and KV-44s on
-    the Tank Range) until the hero gets off it
+    the Tank Range, the cars of the Speedway's garage) until the hero gets off it
 - Progress is saved in the browser: stars, finished quests, what every collection has found, the wallet and the shop
 - Friends online: "С друзьями" on the title (or "Играть с друзьями" in the pause card) makes a room with a five-letter
   code and a link to send. Friends in the same room see each other's heroes whenever they are in the same world or level:
@@ -331,7 +350,8 @@ the minigun's rattle), and under the water every sound is muffled.
   is taken there:
   - a ring race: everyone gets the same ride (a kart, the stone car in Dino Valley, a tank on the Tank Range, the snowboard down the ice slalom,
     the jet ski on the lagoon, the rover on the Moon; in Dragon Peaks each flies the dragon they picked, high up round
-    the dragons' cup course) and races the rings of the world's own race quest (the factory has a course round its oven),
+    the dragons' cup course; on the Speedway each drives the car they picked in its garage, through the arches of the
+    track whose start is nearest to whoever starts it, with that track's laps) and races the rings of the world's own race quest (the factory has a course round its oven),
     two or three laps on a loop, with a countdown, an arrow to the next ring, places on the fly and a fall putting the
     racer back at the last ring. The others have 25 seconds after the first finish
   - hide and seek: one player seeks (never the same one twice running), blindfolded for 25 seconds while the others hide;
