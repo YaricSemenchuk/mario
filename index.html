@@ -716,6 +716,7 @@
       <button class="btn btn-ghost btn-mode" id="btnModeNights" type="button">🌲 99 ночей</button>
       <button class="btn btn-ghost btn-mode" id="btnModeDuels" type="button">🎯 Дуэли</button>
       <button class="btn btn-ghost btn-mode" id="btnModeRoblox" type="button">🧱 Роблокс</button>
+      <button class="btn btn-ghost btn-mode" id="btnModeRacing" type="button">🏁 Гонки</button>
     </div>
     <p class="title-note" id="saveInfo" hidden></p>
     <div class="title-modes">
@@ -1322,6 +1323,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   MAT.water = std({ map: TX.water, transparent: true, opacity: .8, roughness: .12, metalness: .05 });
   MAT.fall = std({ map: TX.fall, transparent: true, opacity: .82, roughness: .3, emissive: 0x5fb8e0, emissiveIntensity: .35, side: T.DoubleSide, depthWrite: false });
   MAT.path = std({ map: TX.path, roughness: .92 });
+  // the Speedway's tarmac, and the lines and kerbs painted on it (both pulled towards the camera, so the ground under them
+  // never shows through far off); the start lights, off, red and green
+  TX.asphalt = makeTex(32, (g, s) => { const r = rng(7); speckle(g, s, '#5a5c66', ['#50525b', '#646670', '#4a4c55', '#6c6e78'], 300, r); });
+  MAT.asphalt = std({ map: TX.asphalt, roughness: .95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+  MAT.roadMark = std({ vertexColors: true, roughness: .8, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
+  MAT.lampOff = std({ color: 0x2b2f3a, roughness: .4 });
+  MAT.lampRed = std({ color: 0xff4a3a, emissive: 0xff2010, emissiveIntensity: 2.4, roughness: .4 });
+  MAT.lampGreen = std({ color: 0x6aff7a, emissive: 0x20ff40, emissiveIntensity: 2.4, roughness: .4 });
   MAT.crystal = std({ color: 0x8ff3ff, emissive: 0x3fd4ff, emissiveIntensity: 1.8, roughness: .2 });
   MAT.redCoin = addRim(std({ color: 0xf0503a, emissive: 0xc0201a, emissiveIntensity: .45, roughness: .28, metalness: .15 }), .6);
   MAT.star = addRim(std({ color: 0xffd23f, emissive: 0xffa800, emissiveIntensity: 1.5, roughness: .22, metalness: .3 }), .7);
@@ -2464,6 +2473,125 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         [CYL, CH, M4(0, 0, 0, .045, .05, .045, Math.PI / 2, 0, 0)], [SPH_HI, R, M4(0, 0, .026, .026, .026, .012)],
       ]),
     };
+  })();
+  // The Speedway's race cars (and the shop's): a yellow roadster, a blue formula car, a green monster truck. Built like the
+  // kart: the body in one merged mesh (GEO.rides), the wheels meshes of their own that roll (the front ones steer) and the
+  // kart's steering wheel (rideModel, spinRide). CARS: each one's steering wheel (middle, tilt, radius) and axles (x, y, z,
+  // wheel radius, width) in the kart's layout. The hero sits RIDES[id].y up and seatZ along, and every steering wheel
+  // stands .81 over his seat and .44 before it, where his hands reach it on the kart
+  const CARS = {
+    kart: KART,
+    sport: { steer: [0, 1.09, .19], tilt: KART.tilt, r: KART.r, front: [.78, .32, 1.02, .32, .26], rear: [.78, .34, -1.04, .34, .3] },
+    f1: { steer: [0, .91, .34], tilt: KART.tilt, r: KART.r, front: [.8, .3, 1.12, .3, .3], rear: [.8, .35, -1.16, .35, .4] },
+    monster: { steer: [0, 2.06, .14], tilt: KART.tilt, r: KART.r, front: [1.04, .62, 1.14, .62, .52], rear: [1.04, .62, -1.14, .62, .52] },
+  };
+  GEO.car = (() => {
+    const K = 0x24262c, CH = 0xd2d7e0, CAR_CYL = shared(new T.CylinderGeometry(1, 1, 1, 24));
+    // a wheel round its axle (x): a tyre, a rim with spokes (or the monster truck's knobbly tread), a chrome hub
+    const wheel = (r, w, rim, spokes, lugs) => mergedGeo([
+      [DONUT, K, M4(0, 0, 0, r / 1.42, r / 1.42, w / .84, 0, Math.PI / 2, 0)],
+      [CAR_CYL, rim, M4(0, 0, 0, r * .6, w * .78, r * .6, 0, 0, Math.PI / 2)],
+      ...Array.from({ length: spokes }, (_, i) => [BOX, CH, M4(0, 0, 0, w * .82, r * 1.02, r * .08, i / spokes * Math.PI, 0, 0)]),
+      ...Array.from({ length: lugs }, (_, i) => { const a = i / lugs * Math.PI * 2; return [BOX, K, M4(0, Math.cos(a) * r * .96, Math.sin(a) * r * .96, w * .96, r * .14, r * .2, a, 0, 0)]; }),
+      [CYL, CH, M4(0, 0, 0, r * .2, w * .86, r * .2, 0, 0, Math.PI / 2)], [SPH_HI, CH, M4(-w * .43, 0, 0, r * .09, r * .09, r * .09)], [SPH_HI, CH, M4(w * .43, 0, 0, r * .09, r * .09, r * .09)],
+    ]);
+    const pair = (C, rim, spokes, lugs) => ({ f: wheel(C.front[3], C.front[4], rim, spokes, lugs), r: wheel(C.rear[3], C.rear[4], rim, spokes, lugs) });
+    return {
+      kart: GEO.kart.wheel,
+      sport: pair(CARS.sport, 0xb8bfcc, 3, 0),
+      f1: pair(CARS.f1, 0xffd23f, 0, 0),
+      monster: pair(CARS.monster, 0xffd23f, 3, 16),
+    };
+  })();
+  // the roadster: a yellow body with rounded ends and fenders over the wheels, two black stripes over the hood and the
+  // deck, an open top with a black bucket seat, a windscreen, a spoiler over the tail, chrome bumpers and two exhausts
+  GEO.rides.sport = (() => {
+    const Y = 0xffc21a, K = 0x24262c, CH = 0xd2d7e0, W = 0xffffff, C = CARS.sport;
+    return mergedGeo([
+      [BOX, K, M4(0, .2, 0, 1.3, .08, 2.9)], [BOX, Y, M4(0, .42, 0, 1.46, .38, 2.7)],
+      [SPH_HI, Y, M4(0, .42, 1.34, .73, .19, .3)], [SPH_HI, Y, M4(0, .44, -1.34, .73, .21, .28)],
+      [BOX, Y, M4(0, .64, .88, 1.36, .1, 1.0, .1, 0, 0)], [BOX, Y, M4(0, .66, -1.0, 1.36, .12, .9)],
+      ...[-1, 1].flatMap((s) => [
+        [SPH_HI, Y, M4(s * .74, .5, C.front[2], .2, .24, .46)], [SPH_HI, Y, M4(s * .74, .52, C.rear[2], .22, .26, .5)],
+        // the door beside the seat with a white roundel and a black 7 on it, a black line low along the side
+        [BOX, Y, M4(s * .69, .7, -.2, .1, .16, 1.1)], [BOX, K, M4(s * .735, .36, 0, .02, .07, 1.5)],
+        [CYL, W, M4(s * .74, .5, -.2, .15, .012, .15, 0, 0, Math.PI / 2)],
+        [BOX, K, M4(s * .747, .565, -.2, .004, .03, .13)], [BOX, K, M4(s * .747, .5, -.2, .004, .154, .03, -s * .62, 0, 0)],
+        // a stripe over the hood and the deck, a mirror, a headlight, a tail light
+        [BOX, K, M4(s * .17, .695, .88, .13, .012, 1.0, .1, 0, 0)], [BOX, K, M4(s * .17, .725, -1.0, .13, .012, .9)],
+        [SPH_HI, Y, M4(s * .74, .83, .38, .06, .05, .08)],
+        [SPH_HI, 0xfff2c0, M4(s * .48, .5, 1.52, .13, .08, .06)], [BOX, 0xf0503a, M4(s * .5, .56, -1.6, .26, .07, .02)],
+        [CYL, CH, M4(s * .35, .26, -1.62, .05, .16, .05, Math.PI / 2, 0, 0)], limb(s * .45, .72, -1.4, s * .45, .96, -1.42, .035, K),
+      ]),
+      [BOX, K, M4(0, .4, 1.63, .56, .1, .02)],
+      [CYL, CH, M4(0, .27, 1.62, .045, 1.3, .045, 0, 0, Math.PI / 2)], [CYL, CH, M4(0, .29, -1.6, .045, 1.3, .045, 0, 0, Math.PI / 2)],
+      // the windscreen in a black frame over the dashboard
+      [BOX, K, M4(0, .95, .44, 1.3, .38, .05, -.45, 0, 0)], [BOX, 0x9fd8ff, M4(0, .95, .45, 1.2, .3, .055, -.45, 0, 0)],
+      [BOX, K, M4(0, .76, .36, 1.26, .12, .24)], limb(...C.steer, 0, .8, .5, .022, CH),
+      // the seat, and the spoiler over the tail
+      [SPH_HI, K, M4(0, .63, -.27, .26, .07, .24)], [SPH_HI, K, M4(0, .92, -.51, .25, .3, .07, -.22, 0, 0)],
+      [BOX, K, M4(0, .98, -1.42, 1.3, .05, .3)],
+    ]);
+  })();
+  // the formula car: a narrow blue tub with a white line along it, a long nose down to the front wing with a yellow tip,
+  // side pods, the air box behind the driver's head, a tall rear wing; the wheels stand out in the open on thin arms
+  GEO.rides.f1 = (() => {
+    const B = 0x2f6df6, K = 0x24262c, CH = 0xd2d7e0, W = 0xffffff, C = CARS.f1;
+    return mergedGeo([
+      [BOX, B, M4(0, .3, -.15, .6, .28, 1.5)], [BOX, K, M4(0, .447, -.1, .42, .02, .6)],
+      limb(0, .34, .5, 0, .2, 1.8, .22, B, CONE), [SPH_HI, 0xffd23f, M4(0, .205, 1.76, .07, .05, .08)],
+      [BOX, W, M4(0, .12, 1.88, 1.66, .035, .3)], [BOX, B, M4(0, .17, 1.8, 1.6, .03, .14)],
+      ...[-1, 1].flatMap((s) => [
+        [BOX, B, M4(s * .84, .17, 1.86, .025, .14, .34)], [BOX, W, M4(s * .301, .33, -.15, .01, .06, 1.4)],
+        [SPH_HI, B, M4(s * .42, .3, -.3, .2, .17, .62)], [SPH_HI, K, M4(s * .42, .32, .3, .12, .09, .04)],
+        [BOX, K, M4(s * .36, .56, .28, .1, .04, .06)], limb(s * .3, .45, .22, s * .36, .55, .28, .012, K),
+        // the arms out to the wheels
+        limb(s * .28, .34, C.front[2] - .12, s * .7, .31, C.front[2], .02, K), limb(s * .22, .24, C.front[2] + .12, s * .7, .28, C.front[2], .02, K),
+        limb(s * .3, .36, C.rear[2] + .14, s * .66, .36, C.rear[2], .022, K), limb(s * .28, .24, C.rear[2] - .1, s * .66, .32, C.rear[2], .022, K),
+        [BOX, B, M4(s * .64, .88, -1.64, .03, .38, .44)], [BOX, W, M4(s * .645, .88, -1.64, .03, .06, .44)],
+      ]),
+      // the engine cover narrowing to the tail, the air box, the diffuser, the rear wing on its pylon
+      limb(0, .58, -.42, 0, .36, -1.5, .21, B, CONE), [SPH_HI, B, M4(0, .76, -.62, .15, .2, .26)], [SPH_HI, K, M4(0, .84, -.4, .09, .08, .04)],
+      [BOX, K, M4(0, .2, -1.55, .7, .12, .3)], [BOX, K, M4(0, .75, -1.55, .06, .4, .12)],
+      [BOX, B, M4(0, .98, -1.62, 1.26, .05, .34)], [BOX, W, M4(0, 1.06, -1.72, 1.26, .04, .2)],
+      // the seat, the headrest, the steering column
+      [SPH_HI, K, M4(0, .45, -.12, .22, .06, .22)], [SPH_HI, B, M4(0, .62, -.42, .22, .14, .1)], limb(...C.steer, 0, .42, .6, .02, CH),
+    ]);
+  })();
+  // the monster truck: a green pickup up on a black frame over giant knobbly wheels, orange and yellow flames down its
+  // sides, springs at every wheel, chrome bumpers and exhaust stacks, an open cab with a yellow roll cage over the seat
+  GEO.rides.monster = (() => {
+    const G = 0x4fd14a, K = 0x24262c, CH = 0xd2d7e0, Y = 0xffd23f, O = 0xff7a1a, C = CARS.monster, fz = C.front[2], rz = C.rear[2];
+    return mergedGeo([
+      // the frame, the axles with their differentials
+      [BOX, K, M4(-.45, .8, 0, .12, .14, 2.9)], [BOX, K, M4(.45, .8, 0, .12, .14, 2.9)],
+      [CYL, K, M4(0, .62, fz, .08, 1.7, .08, 0, 0, Math.PI / 2)], [CYL, K, M4(0, .62, rz, .08, 1.7, .08, 0, 0, Math.PI / 2)],
+      [SPH_HI, K, M4(0, .62, fz, .2, .2, .2)], [SPH_HI, K, M4(0, .62, rz, .2, .2, .2)],
+      ...[-1, 1].flatMap((s) => [fz, rz].flatMap((z) => [
+        limb(s * .72, .62, z, s * .62, 1.3, z * .86, .05, Y), ...[0, 1, 2, 3].map((i) => [DONUT, O, M4(s * (.71 - i * .025), .8 + i * .12, z * (.98 - i * .03), .09, .09, .07, Math.PI / 2, 0, 0)]),
+      ])),
+      // the body: the tub, the hood with a chrome scoop, the bed behind the cab, the cab's sides
+      [BOX, G, M4(0, 1.32, 0, 1.64, .36, 3.0)], [BOX, G, M4(0, 1.58, .98, 1.5, .2, 1.0, .08, 0, 0)],
+      [BOX, CH, M4(0, 1.73, .98, .5, .1, .5, .08, 0, 0)], [BOX, K, M4(0, 1.785, .98, .38, .01, .38, .08, 0, 0)],
+      [BOX, G, M4(0, 1.62, -1.48, 1.64, .26, .08)], [BOX, 0x2f9a34, M4(0, 1.5, -1.0, 1.5, .02, .9)],
+      ...[-1, 1].flatMap((s) => [
+        [BOX, G, M4(s * .78, 1.62, -1.02, .08, .26, .96)], [BOX, G, M4(s * .78, 1.72, -.25, .08, .44, .9)],
+        // the flames licking back along the side
+        ...[0, 1, 2].map((i) => [BOX, i % 2 ? Y : O, M4(s * .825, 1.33 + (i % 2) * .04, .75 - i * .42, .02, .1, .62, .32 + (i % 2) * .1, 0, 0)]),
+        [BOX, O, M4(s * .826, 1.3, 1.2, .02, .16, .3)],
+        [CYL, 0xfff2c0, M4(s * .58, 1.4, 1.52, .1, .03, .1, Math.PI / 2, 0, 0)],
+        [BOX, 0xf0503a, M4(s * .6, 1.5, -1.53, .2, .1, .02)],
+        limb(s * .55, 1.5, -.88, s * .55, 2.45, -.88, .06, CH), [CYL, K, M4(s * .55, 2.46, -.88, .065, .04, .065)],
+        // the roll cage: a hoop behind the seat, two bars forward to the dashboard
+        limb(s * .62, 1.5, -.72, s * .6, 3.05, -.64, .05, Y), limb(s * .62, 1.8, .3, s * .6, 3.05, -.2, .045, Y), limb(s * .6, 3.05, -.2, s * .6, 3.05, -.64, .045, Y),
+        [SPH_HI, Y, M4(s * .3, 3.12, -.2, .09, .07, .07)], [SPH_HI, 0xfff2c0, M4(s * .3, 3.12, -.14, .07, .05, .02)],
+      ]),
+      [CYL, Y, M4(0, 3.05, -.64, .05, 1.2, .05, 0, 0, Math.PI / 2)], [CYL, Y, M4(0, 3.05, -.2, .045, 1.2, .045, 0, 0, Math.PI / 2)],
+      [BOX, CH, M4(0, 1.12, 1.56, 1.7, .16, .14)], [BOX, CH, M4(0, 1.12, -1.56, 1.7, .16, .14)], [BOX, K, M4(0, 1.36, 1.51, .9, .24, .03)],
+      // the dashboard, the steering column, the seat
+      [BOX, K, M4(0, 1.76, .3, 1.4, .14, .26)], limb(...C.steer, 0, 1.76, .38, .025, CH),
+      [SPH_HI, K, M4(0, 1.6, -.32, .28, .08, .26)], [SPH_HI, K, M4(0, 1.89, -.56, .27, .32, .08, -.22, 0, 0)],
+    ]);
   })();
   // Where the hands hold a ride, in the ride's own space, the -x hand first: the bars' grips, or the sides of a steering
   // wheel (a ring at x, y, z of radius r, tipped by rx; a little above its middle). The kart's are on its steering
@@ -4299,6 +4427,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         lead: [69, 0, 0, 0, 72, 0, 0, 0, 71, 0, 0, 0, 68, 0, 0, 0, 69, 0, 0, 0, 76, 0, 0, 0, 74, 0, 72, 0, 71, 0, 0, 0,
           69, 0, 0, 0, 72, 0, 0, 0, 77, 0, 0, 0, 76, 0, 0, 0, 74, 0, 0, 72, 71, 0, 0, 0, 68, 0, 0, 0, 69, 0, 0, 0],
       },
+      rally: {
+        bpm: 150, drums: 'pop', chords: [50, 55, 47, 45, 50, 55, 52, 45],
+        lead: [74, 0, 78, 81, 86, 0, 81, 78, 79, 0, 83, 86, 83, 0, 79, 0, 78, 81, 78, 74, 76, 0, 78, 0, 76, 74, 73, 74, 76, 0, 0, 0,
+          81, 0, 83, 85, 86, 0, 85, 83, 81, 0, 79, 78, 79, 0, 83, 0, 81, 78, 74, 78, 76, 0, 79, 76, 74, 0, 76, 78, 74, 0, 0, 0],
+      },
       race: {
         bpm: 158, drums: 'pop', chords: [48, 43, 45, 41, 48, 43, 41, 43],
         lead: [72, 76, 79, 76, 84, 0, 79, 0, 71, 74, 79, 74, 83, 0, 79, 0, 69, 72, 76, 72, 81, 0, 76, 0, 77, 76, 74, 72, 74, 0, 0, 0,
@@ -4971,6 +5104,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       },
       puff(x, y, z, s, col) { far.add(SPH, col, M4(x, y, z, s, s * .35, s)); },
       hill(x, y, z, r, col) { far.add(SPH, col, M4(x, y, z, r, r * .8, r)); },
+      // a grass tuft or a flower as the scatter lays them, for a ground too big to scatter over
+      tuft(x, top, d, cols) { for (let k = 0; k < 3; k++) far.add(CONE, cols[k === 1 ? 0 : 1], M4(x + (k - 1) * .09, top + .1, -d + (R() - .5) * .08, .05, .24 + R() * .1, .05, 0, 0, (k - 1) * .35)); },
+      flower(x, top, d, col) { far.add(ICO, col, M4(x, top + .14, -d, .09, .07, .09)); far.add(ICO, 0xffd23f, M4(x, top + .19, -d, .035, .035, .035)); },
       // a dark pine far off, scenery only (the forest beyond the Dark Forest's rim)
       farPine(x, y, z, s) {
         far.add(CYL, 0x4a3422, M4(x, y + 1 * s, z, .3 * s, 2 * s, .3 * s));
@@ -5565,7 +5701,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       // a glowing ring on the ground: the shop's golden one, a blue one that lends a ride (`data` names it), a red one that
       // starts a challenge, the purple one that wakes Leviathan
       pad(kind, x, top, d, data) {
-        const col = kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' || kind === 'cb' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
+        const col = kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' || kind === 'car' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' || kind === 'cb' || kind === 'gp' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
         const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: col, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
@@ -5641,8 +5777,18 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         addSolid(x - 1.7, top, z - 1.7, x + 1.7, top + .42, z + 1.7, 'hard');
         g.position.set(x, top + .42, z); g.rotation.y = yaw; add(g);
         this.pad('dragon', x + fx * 3.8, top, d - fz * 3.8, id);
-        if (name) this.sign(x + fx * 3.8 + fz * 2.4, d - fz * 3.8 + fx * 2.4, top, [name], yaw);
+        if (name) this.sign(x + fx * 3.8 + fz * 2.4, top, d - fz * 3.8 + fx * 2.4, [name], yaw);
         L.perches.push({ id, g, x, y: top + .42, z, yaw, t: R() * 6 });
+      },
+      // a car on a turntable in the Speedway's garage, a blue pad before it that puts the hero in it
+      carStand(id, x, top, d, yaw, name) {
+        const z = -d, g = rideModel(id), fx = Math.sin(yaw), fz = Math.cos(yaw);
+        near.add(CYL_HI, 0xb8bfcc, M4(x, top + .15, z, 3, .3, 3)); near.add(CYL_HI, 0xe8352a, M4(x, top + .31, z, 3.02, .04, 3.02));
+        addSolid(x - 2.2, top, z - 2.2, x + 2.2, top + .3, z + 2.2, 'hard');
+        g.position.set(x, top + .3, z); g.rotation.y = yaw; add(g);
+        this.pad('car', x + fx * 4.4, top, d - fz * 4.4, id);
+        if (name) this.sign(x + fx * 4.4 + fz * 2.6, top, d - fz * 4.4 + fx * 2.6, [name], yaw);
+        L.carStands.push({ id, g, yaw, t: R() * 6 });
       },
       // the survival clearing: its walls are the world's business; here a boulder that closes the way in while the game is
       // on, and a red pad in the middle that starts it. cfg: the clearing's bounds, its middle, the way in (gate) and who runs it
@@ -5800,7 +5946,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         // scatter grass tufts, flowers and bushes where nothing stands
         const blocked = (x, z, top) => L.solids.some((s) => s.kind !== 'ground' && s.min.y <= top + .05 && s.max.y > top + .05 &&
           x > s.min.x - .5 && x < s.max.x + .5 && z > s.min.z - .5 && z < s.max.z + .5);
-        const onPath = (x, z) => L.paths.some((p) => x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1);
+        const onPath = (x, z) => L.paths.some((p) => x > p.x0 && x < p.x1 && z > p.z0 && z < p.z1) || (!!L.trackGrid && trackDist(x, z) < TRACK_HW + 1.6);
         const FLOWERS = [0xffffff, 0xffe45c, 0xff7aa8, 0xff9a3c], every = L.def.scatter || 9;
         for (const gr of L.grounds) {
           if (gr.bare) continue;
@@ -6793,7 +6939,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.npc('robot', 0, 1.5, 49.5, 'Страж врат', ['Это Врата миров. Каждые врата открываются, когда у тебя хватает звёзд.',
       'Первые врата ведут в уровни Зелёного края, а остальные в целые миры: там свои жители, звёзды и уровни.', 'За каждый пройденный уровень тоже дают звезду.',
       'Ещё двое врат стоят не здесь: Морские в конце пирса, а Звёздные на облачном островке над лесом.',
-      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи, Танковые, Лесные, Дуэльные и Роблокс-врата. Туда можно сразу!']);
+      'А на мысу за огородом Фомы Древние врата к динозаврам, Драконьи, Танковые, Лесные, Дуэльные, Роблокс-врата и Гоночные. Туда можно сразу!']);
     B.tree(-16.6, 1.5, 47, 1, 'pillar'); B.tree(16.6, 1.5, 47, 1, 'pillar');
     // the cape past Foma's garden: the Ancient Gate to Dino Valley and the Dragon Gate, both open from the start
     B.ground(46, 64, 18, 46, 0, 12);
@@ -6816,6 +6962,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     B.sign(51, 0, -35.5, ['Мир', 'Роблокс'], -Math.PI / 2);
     B.npc('noob', 52, 0, -27.5, 'Нубик', ['Привет! Я из Мира Роблокс. Там всё из кубиков, даже герои!',
       'Врата рядом. Там обби, башня, цветные плитки и пружины!'], { yaw: -Math.PI / 2 });
+    // past it, the Racing Gate to the Speedway, a roadster on show by it
+    B.ground(46, 64, -52, -38, 0, 12);
+    B.gate(59, -45, 0, 'world', 13, -Math.PI / 2, 8);
+    B.sign(51, 0, -49.5, ['Автодром'], -Math.PI / 2);
+    { const car = rideModel('sport'); car.position.set(62, 0, 50.2); car.rotation.y = -Math.PI * .6; L.group.add(car); addSolid(60.6, 0, 48.8, 63.4, 1, 51.6, 'hard'); }
     { const t = new T.Mesh(GEO.beacon.target, MAT.char); t.position.set(62, 0, 22); t.rotation.y = -Math.PI / 2; t.castShadow = true; L.group.add(t); addSolid(61.7, .75, 21.1, 62.3, 2.4, 22.9, 'hard'); }
     for (const [x, d, s] of [[62.5, -8.5, .9], [62.5, 2.5, .8], [49, -9, .75]]) B.tree(x, 0, d, s);
     const toy = tankModel('tank'); toy.position.set(57, 0, -4.5); toy.rotation.y = -Math.PI * .65; toy.userData.turret.rotation.y = -.6; L.group.add(toy);
@@ -8898,6 +9049,299 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       sky: [[0, '#1a1026'], [.55, '#4b2a4a'], [1, '#c0603a']], fog: [0x4a2a3a, 40, 130], hemi: [0xffd2c0, 0x6a3a4a, .82], sun: 0xffc8a8, sunI: .7, glow: [0xff7a4a, .55], stars: true },
   ];
 
+  // ---------- the Speedway ----------
+  // Three race tracks round a paddock on a wide green plain: the Sunny Ring to the north (flat, round a lake, the stands
+  // along its straight), the Figure Eight to the east (it crosses itself, one way over a bridge and the other under it)
+  // and the Forest Track to the west, the longest, through the pines and over a hill that ends in a jump. A track is a
+  // closed spline through its control points (x, d), cut into points 2 m apart; the tarmac, its lines and its kerbs lie
+  // at the height of whatever is under each point, so the bridge, its ramps and the hill are built first as plain ground.
+  // Arches over the road every fifty-odd metres are the gates a race goes through in turn; the first one is the start
+  // and the finish, under a gantry with the start lights.
+  const TRACK_HW = 6, TRACK_STEP = 2, ARCH_K = 4.2;
+  const RACE_TRACKS = [
+    { name: 'Солнечное кольцо', laps: 3, star: 'rc.a', pts: [[-10, 44], [20, 44], [48, 45], [70, 48], [88, 62], [90, 84], [78, 100], [62, 104], [50, 116], [56, 134],
+      [72, 150], [74, 172], [58, 188], [30, 192], [0, 186], [-24, 178], [-40, 186], [-58, 196], [-80, 188], [-92, 168], [-88, 140], [-70, 124], [-72, 100],
+      [-90, 80], [-86, 58], [-66, 46], [-40, 44]] },
+    // the straight north through x = 220 goes over the bridge, the one west along d = 100 under it
+    { name: 'Восьмёрка', laps: 3, star: 'rc.b', pts: [[175, -12], [200, -12], [214, 2], [220, 30], [220, 50], [220, 70], [220, 90], [220, 110], [220, 130], [220, 150],
+      [220, 170], [228, 190], [248, 204], [276, 206], [302, 192], [314, 166], [310, 136], [294, 112], [270, 100], [250, 100], [230, 100], [210, 100], [190, 100],
+      [170, 100], [148, 92], [132, 72], [126, 46], [130, 18], [138, -2], [150, -12]] },
+    // the straight west along d = 130 climbs the hill and leaves it off the jump
+    { name: 'Лесная трасса', laps: 2, star: 'rc.c', pts: [[-118, 10], [-118, 30], [-118, 50], [-122, 80], [-136, 106], [-160, 124], [-180, 130], [-200, 130], [-220, 130],
+      [-240, 130], [-260, 130], [-280, 130], [-300, 130], [-318, 142], [-326, 166], [-316, 192], [-300, 212], [-306, 236], [-330, 250], [-358, 244], [-378, 222],
+      [-386, 190], [-380, 150], [-392, 110], [-384, 70], [-366, 40], [-370, 10], [-360, -20], [-336, -40], [-300, -46], [-268, -36], [-240, -44], [-210, -56],
+      [-176, -58], [-146, -54], [-126, -44], [-118, -30], [-118, -10]] },
+  ];
+  // a closed centripetal Catmull-Rom spline through the points, as points spaced evenly along it (x, z)
+  function trackSpline(pts) {
+    const n = pts.length, dense = [], tj = (a, b) => Math.sqrt(Math.hypot(b[0] - a[0], b[1] - a[1])) || 1e-4;
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i + n - 1) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      const t1 = tj(p0, p1), t2 = t1 + tj(p1, p2), t3 = t2 + tj(p2, p3);
+      for (let k = 0; k < 24; k++) {
+        const t = t1 + (t2 - t1) * k / 24, mix = (a, b, ta, tb) => { const f = (t - ta) / (tb - ta); return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]; };
+        const a1 = mix(p0, p1, 0, t1), a2 = mix(p1, p2, t1, t2), a3 = mix(p2, p3, t2, t3);
+        dense.push(mix(mix(a1, a2, 0, t2), mix(a2, a3, t1, t3), t1, t2));
+      }
+    }
+    const cum = [0];
+    for (let i = 1; i <= dense.length; i++) { const a = dense[i - 1], b = dense[i % dense.length]; cum.push(cum[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1])); }
+    const len = cum[dense.length], N = Math.round(len / TRACK_STEP), out = [];
+    for (let i = 0, j = 0; i < N; i++) {
+      const s = i * len / N; while (cum[j + 1] < s) j++;
+      const a = dense[j], b = dense[(j + 1) % dense.length], f = (s - cum[j]) / (cum[j + 1] - cum[j] || 1);
+      out.push({ x: a[0] + (b[0] - a[0]) * f, z: -(a[1] + (b[1] - a[1]) * f) });
+    }
+    return { pts: out, len };
+  }
+  // A track laid on the ground built so far. Each point knows its height, the way along (t) and to the left (n), how far
+  // it is from the start (s), how sharply the road bends there (k: + towards n) and so how fast the folk take it (vmax,
+  // braking a little ahead of a bend). The tarmac is one textured strip; the lines, the kerbs round the bends, the
+  // chequered start line and the grid's slots are one vertex-coloured mesh; the gantry and the arches stand over it.
+  function buildTrack(B, ti) {
+    const def = RACE_TRACKS[ti], { pts, len } = trackSpline(def.pts), N = pts.length, step = len / N;
+    let y = 0;
+    pts.forEach((p, i) => {
+      const a = pts[(i + N - 1) % N], b = pts[(i + 1) % N], tx = b.x - a.x, tz = b.z - a.z, l = Math.hypot(tx, tz) || 1;
+      Object.assign(p, { tx: tx / l, tz: tz / l, nx: tz / l, nz: -tx / l, yaw: Math.atan2(tx, tz), s: i * step, i });
+      const g = groundAt(p.x, p.z, (i ? y : 0) + 1.5); y = p.y = g > -Infinity ? g : 0;
+    });
+    for (const p of pts) p.k = wrapPi(pts[(p.i + 2) % N].yaw - pts[(p.i + N - 2) % N].yaw) / (4 * step);
+    const vmax = pts.map((p) => clamp(Math.sqrt(11 / Math.max(Math.abs(p.k), 1e-3)), 9, 22));
+    const trk = { ti, name: def.name, laps: def.laps, star: def.star, pts, len, step, gates: [], arches: [], lamps: [],
+      vmax: vmax.map((v, i) => { let m = v; for (let j = 1; j <= 10; j++) m = Math.min(m, vmax[(i + j) % N] + j * .45); return m; }) };
+    // the arches: the start line, then about every 52 m, but not on a ramp or where the road passes close by itself
+    const bad = (i) => Math.abs(pts[(i + 3) % N].y - pts[(i + N - 3) % N].y) > .3
+      || pts.some((q) => Math.abs(q.i - i) > 20 && Math.abs(q.i - i) < N - 20 && Math.hypot(q.x - pts[i].x, q.z - pts[i].z) < 16);
+    const want = Math.max(8, Math.round(len / 52));
+    for (let g = 0; g < want; g++) {
+      let i = Math.round(g * N / want);
+      while (g && i < N - 8 && bad(i)) i++;
+      if (g && (i >= N - 8 || i - trk.gates[trk.gates.length - 1].i < 10)) continue;
+      const p = pts[i]; trk.gates.push({ x: p.x, y: p.y, z: p.z, yaw: p.yaw, s: p.s, i });
+    }
+    trk.course = trk.gates.map((g) => ({ x: g.x, y: g.y, z: g.z, yaw: g.yaw }));
+    for (const g of trk.gates) {
+      const m = new T.Mesh(ARCH_GEO, MAT.ringDim); m.position.set(g.x, g.y, g.z); m.rotation.y = g.yaw; m.scale.setScalar(ARCH_K);
+      L.group.add(m); trk.arches.push(m); L.cupRings.push(m); // (hidden, like the cup's rings, while friends race on their own arches)
+    }
+    // the tarmac (a strip is left out where the road drops off the jump)
+    const P = [], U = [], I = [];
+    for (let i = 0; i <= N; i++) {
+      const p = pts[i % N];
+      for (const o of [-TRACK_HW, TRACK_HW]) { P.push(p.x + p.nx * o, p.y + .04, p.z + p.nz * o); U.push(o / 4, i * step / 4); }
+      if (i < N && Math.abs(pts[(i + 1) % N].y - p.y) < 1) { const b = i * 2; I.push(b, b + 2, b + 1, b + 1, b + 2, b + 3); }
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(P, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(U, 2)); geo.setIndex(I); geo.computeVertexNormals();
+    const road = new T.Mesh(geo, MAT.asphalt); road.receiveShadow = true; L.group.add(road);
+    // the markings: a quad between offsets o0 < o1 across the road, from s0 to s1 along it, in the frame of point p
+    const M = { p: [], c: [], i: [] }, WH = new T.Color(0xf4f6fb), RD = new T.Color(0xe8352a), BK = new T.Color(0x24262c);
+    const quad = (a, b, sa, sb, o0, o1, dy, c) => {
+      const base = M.p.length / 3;
+      for (const [p, s, o] of [[a, sa, o0], [a, sa, o1], [b, sb, o0], [b, sb, o1]]) { M.p.push(p.x + p.tx * s + p.nx * o, p.y + dy, p.z + p.tz * s + p.nz * o); M.c.push(c.r, c.g, c.b); }
+      M.i.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+    };
+    const strip = (i0, i1, o0, o1, dy, c) => {
+      for (let i = i0; i < i1; i++) { const a = pts[i % N], b = pts[(i + 1) % N]; if (Math.abs(b.y - a.y) < 1) quad(a, b, 0, 0, o0, o1, dy, c(i)); }
+    };
+    strip(0, N, TRACK_HW - .55, TRACK_HW - .3, .06, () => WH); strip(0, N, -TRACK_HW + .3, -TRACK_HW + .55, .06, () => WH);
+    for (let i = 6; i < N - 3; i += 4) strip(i, i + 2, -.14, .14, .06, () => WH); // the dashes down the middle
+    // kerbs in red and white round the bends, on both sides
+    const bend = pts.map((p) => Math.abs(p.k) > 1 / 40);
+    for (let i = 0; i < N; i++) {
+      let on = false; for (let j = -3; j <= 3; j++) on = on || bend[(i + j + N) % N];
+      if (on) { const c = () => (i % 2 ? WH : RD); strip(i, i + 1, TRACK_HW - .05, TRACK_HW + 1.1, .07, c); strip(i, i + 1, -TRACK_HW - 1.1, -TRACK_HW + .05, .07, c); }
+    }
+    // the chequered line across the start, and the six slots of the grid behind it
+    const p0 = pts[0];
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 12; c++) quad(p0, p0, r * .9 - .9, r * .9, c - TRACK_HW, c + 1 - TRACK_HW, .065, (r + c) % 2 ? BK : WH);
+    for (let k = 0; k < 6; k++) {
+      const g = gpGrid(trk, k), p = pts[Math.round(((len + g.s) % len) / step) % N], o = g.lane;
+      quad(p, p, 1.3, 1.6, o - 1.1, o + 1.1, .065, WH);
+    }
+    const mg = new T.BufferGeometry();
+    mg.setAttribute('position', new T.Float32BufferAttribute(M.p, 3)); mg.setAttribute('color', new T.Float32BufferAttribute(M.c, 3)); mg.setIndex(M.i); mg.computeVertexNormals();
+    const marks = new T.Mesh(mg, MAT.roadMark); marks.receiveShadow = true; L.group.add(marks);
+    // the gantry over the start line: two posts, a beam with a chequered banner, a board, five start lights facing the grid
+    for (const o of [-8, 8]) {
+      const x = p0.x + p0.nx * o, z = p0.z + p0.nz * o;
+      B.decor(BOX, 0xd2d7e0, x, p0.y + 4.3, -z, .5, 8.6, .5); addSolid(x - .3, p0.y, z - .3, x + .3, p0.y + 8.6, z + .3, 'hard');
+    }
+    B.decor(BOX, 0x2b2f4a, p0.x, p0.y + 8.4, -p0.z, 16.5, .6, .6, 0, p0.yaw, 0);
+    for (let c = 0; c < 16; c++) for (let r = 0; r < 2; r++) {
+      const o = c - 7.5;
+      B.decor(BOX, (r + c) % 2 ? 0x24262c : 0xf4f6fb, p0.x + p0.nx * o, p0.y + 7.65 - r * .7, -(p0.z + p0.nz * o), 1, .7, .12, 0, p0.yaw, 0);
+    }
+    const board = new T.Mesh(SIGN_GEO, std({ map: signTex(['Старт', 'Финиш']), roughness: .8 }));
+    board.position.set(p0.x, p0.y + 9.55, p0.z); board.rotation.y = p0.yaw + Math.PI; board.scale.setScalar(1.9); board.castShadow = true; L.group.add(board);
+    for (let k = -2; k <= 2; k++) {
+      const m = new T.Mesh(SPH_HI, MAT.lampOff); m.scale.setScalar(.26);
+      m.position.set(p0.x + p0.nx * k * 1.1 - p0.tx * .38, p0.y + 8.4, p0.z + p0.nz * k * 1.1 - p0.tz * .38); L.group.add(m); trk.lamps.push(m);
+    }
+    return trk;
+  }
+  // where the roads are: every point of every track in 10 m squares, to tell how far a spot is from the nearest road
+  function trackIndex() {
+    const G2 = L.trackGrid = new Map();
+    for (const trk of L.tracks) for (const p of trk.pts) { const k = Math.floor(p.x / 10) + ',' + Math.floor(p.z / 10); if (!G2.has(k)) G2.set(k, []); G2.get(k).push(p); }
+  }
+  // how far a spot is from the middle of the nearest road (Infinity when that is more than ten metres or so)
+  function trackDist(x, z) {
+    let best = Infinity; const cx = Math.floor(x / 10), cz = Math.floor(z / 10);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const c = L.trackGrid.get((cx + i) + ',' + (cz + j));
+      if (c) for (const p of c) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < best) best = d; }
+    }
+    return Math.sqrt(best);
+  }
+  function buildRacing(B) {
+    const R = B.R;
+    B.start(0, 0, 0);
+    L.titleCam = { x: 0, y: 3, z: -40, r: 60, h: 24 };
+    L.modeSpot = { x: 0, y: 0, z: -8, face: Math.PI }; // where "Races" on the title puts the hero: before the garage
+    L.modeHint = 'Выбери машину на синем коврике. Старты гонок на севере, востоке и западе!';
+
+    // --- the plain with the lake inside the Sunny Ring cut out of it, low cliffs all round (the plain is too big for the
+    // usual scatter of tufts and flowers: a sparser one of its own comes after the trees) ---
+    B.groundCut(-420, 350, -80, 290, 0, 12, 'grass', [[-30, 30, 100, 140]], true);
+    B.ground(-30, 30, 100, 140, -3.5, 8.5, 'sand', true);
+    B.water(-30, 30, 100, 140, -.4);
+    B.ground(-5, 5, 115, 125, .3, 4, 'sand');
+    rimWalls(B, -420, 350, -80, 290, 'cliff', 3, 7);
+    // the Figure Eight's bridge (the deck over the road that runs west, ramps up to it from the south and down to the north)
+    // and the Forest Track's hill (a flat top, up to it from the east, then a kicker and the drop). The flat tops go first:
+    // a car on a ramp steps up onto the top it meets only if that top comes before the ramp in the solids
+    B.slab(212, 228, 86, 114, 4.7, 5.5, 'stone');
+    B.ramp(212, 228, 58, 86, 0, 5.5, 'd', 'stone', 6);
+    B.ramp(212, 228, 114, 142, 5.5, 0, 'd', 'stone', 6);
+    B.ground(-238, -230, 122, 138, 4.5, 6, 'cliff');
+    B.ramp(-230, -206, 122, 138, 4.5, 0, 'x', 'cliff', 6);
+    B.ramp(-244, -238, 122, 138, 5.3, 4.5, 'x', 'cliff', 7);
+    // --- the three tracks ---
+    L.tracks = RACE_TRACKS.map((d, ti) => buildTrack(B, ti));
+    trackIndex();
+    L.course = L.tracks[0].course; // (a race with friends takes the track nearest to whoever starts it: duelPropose)
+    const clear = (x, z, r) => trackDist(x, z) > TRACK_HW + r;
+    // tarmac off the tracks: the paddock and the roads from it to the starts
+    const tarmac = (x0, x1, d0, d1) => {
+      const w = x1 - x0, dd = d1 - d0, g = new T.PlaneGeometry(w, dd); g.rotateX(-Math.PI / 2);
+      const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 4, uv.getY(i) * dd / 4);
+      const m = new T.Mesh(g, MAT.asphalt); m.position.set((x0 + x1) / 2, .03, -(d0 + d1) / 2); m.receiveShadow = true; L.group.add(m);
+      L.paths.push({ x0, x1, z0: -d1, z1: -d0 });
+    };
+    tarmac(-32, 32, -12, 28); tarmac(-22, -6, 28, 37); tarmac(32, 128, -3, 5); tarmac(-112.5, -32, -3, 5);
+
+    // --- the paddock: the gate home, the garage of cars to pick, the shop, the host ---
+    B.warp('island', 0, -16, 0, Math.PI);
+    GP_CARS.forEach((id, i) => B.carStand(id, -25 + i * 10, 0, 18, 0, RIDES[id].name));
+    B.npc('robot', 7, 0, 4, 'Промобот', () => [
+      'Добро пожаловать на Автодром! Тут три трассы, и на каждой свой Гран-при.',
+      'В гараже шесть машин. Встань на синий коврик перед любой, и она твоя, пока ты здесь. Кнопка транспорта зовёт её же.',
+      'Спорткар и Болид самые быстрые на асфальте. Монстр-трак медленнее, зато в гонке не вязнет на траве. На траве все остальные тормозят!',
+      'Солнечное кольцо прямо на севере, Восьмёрка на востоке, Лесная трасса на западе. Иди по асфальтовой дорожке.',
+      'Проезжай в арки по порядку: следующая горит жёлтым, стрелка над тобой показывает к ней.',
+      'Понравилась машина? Кот Турбо в лавке продаёт её насовсем, тогда она поедет с тобой в любой мир.',
+    ]);
+    B.stall(-26, 4); B.pad('shop', -28.4, 0, 4, 'rides');
+    B.npc('cat', -24.6, 0, 4, 'Кот Турбо', ['Мр-р-р! Я кузен Мурра, самый быстрый кот на свете. Почти.', 'Спорткар, Болид и Монстр-трак есть у меня в лавке, навсегда. Поедут во все миры!',
+      'Карт тоже у меня. Он лёгкий и шустрый, и на нём тоже можно выиграть!'], { yaw: -Math.PI / 2 });
+    B.sign(-4, 0, 9, ['Гараж:', 'выбери машину']);
+    B.sign(-8, 0, 30.5, ['Солнечное', 'кольцо']); B.sign(36, 0, 7.5, ['Восьмёрка', 'на восток →']); B.sign(-36, 0, 7.5, ['← Лесная', 'трасса']);
+    for (const [x, d] of [[-30, -10], [30, -10], [-30, 26], [30, 26]]) B.tyres(x, 0, d);
+    for (let d = -9; d <= 13; d += 2) B.coin(0, 1.2, d);
+
+    // --- the three starts: each track's marshal, the red pad that starts its grand prix, its star (hidden till it is won) ---
+    const marshal = (ti, kind, x, d, name, pad, star, tip) => {
+      const T0 = RACE_TRACKS[ti];
+      const n = B.npc(kind, x, 0, d, name, () => [
+        hasStar(T0.star) ? 'Ты выиграл Гран-при «' + T0.name + '»! Ещё заезд?' : 'Это старт трассы «' + T0.name + '». Встань на красный коврик, и начнётся Гран-при!',
+        T0.laps + ' ' + plural(T0.laps, 'круг', 'круга', 'кругов') + ' против пятерых гонщиков. Проезжай в арки по порядку, следующая горит жёлтым.',
+        tip,
+        SAVE.rcBest[ti] ? 'Твой лучший заезд здесь: ' + fmtT(SAVE.rcBest[ti]) + '.' : 'Приедешь первым, дам звезду. А за второе и третье место значки!',
+      ], { yaw: pad[2] });
+      B.pad('gp', pad[0], 0, pad[1], ti);
+      B.star(T0.star, star[0], 2.4, star[1], !questDone(T0.star));
+      L.tracks[ti].owner = n;
+    };
+    marshal(0, 'penguin', -20, 33, 'Пинг-гонщик', [-14, 33, 0], [-24, 31], 'Трасса ровная, зато поворотов много. На шиканах не вылетай на траву!');
+    marshal(1, 'frog', 164, -26, 'Квак-механик', [172, -26, 0], [160, -28], 'Ква! Трасса проходит сама под собой: по мосту и под мостом. Не перепутай арки!');
+    marshal(2, 'hedgehog', -104, 16, 'Ёжик Шустрик', [-104, 8, Math.PI / 2], [-100, 20], 'Самая длинная трасса, через лес! На горке трамплин: держись дороги, и полетишь!');
+
+    // --- the Sunny Ring: the stands along the straight, flags, the lake with its island ---
+    const COLS = [0xf0503a, 0xffd23f, 0x4262ff, 0x7ddf6a, 0xff9ad1, 0xffffff, 0xff9a3c, 0x9a7aff];
+    // stands of benches full of fans stepping up away from the track to the south, a roof on posts at the back
+    const stands = (x0, x1, d0, d1, roof) => {
+      const rows = 5, deep = (d1 - d0) / rows;
+      for (let r = 0; r < rows; r++) {
+        const dd = d0 + (r + .5) * deep, h = .6 + r * .6;
+        B.decor(BOX, r % 2 ? 0xdfe3ee : 0xb8bfcc, (x0 + x1) / 2, h / 2, dd, x1 - x0, h, deep);
+        for (let x = x0 + .6; x < x1 - .4; x += .9) {
+          if (R() < .22) continue;
+          const up = R() < .3 ? .15 : 0; // some stand up to cheer
+          B.decor(BOX, COLS[(R() * COLS.length) | 0], x, h + .3 + up, dd + .1, .5, .6, .36);
+          B.decor(SPH, [0xf6d2b0, 0xe0b48a, 0xc98d52][(R() * 3) | 0], x, h + .8 + up, dd + .1, .19, .21, .19);
+        }
+      }
+      for (let x = x0; x <= x1 + .1; x += (x1 - x0) / Math.round((x1 - x0) / 12)) B.decor(CYL, 0xdfe3ee, x, 3.2, d1 - .3, .15, 6.4, .15);
+      B.decor(BOX, roof, (x0 + x1) / 2, 6.45, (d0 + d1) / 2 + .5, x1 - x0 + 1.2, .25, d1 - d0 + 1.4, -.06, 0, 0);
+      addSolid(x0, 0, -d1, x1, .6 + rows * .6, -d0, 'hard');
+    };
+    stands(-44, 24, 53, 61, 0xe8352a);
+    for (const [x, c] of [[-44, 0xf0503a], [-34, 0xffd23f], [4, 0x4262ff], [14, 0x7ddf6a], [24, 0xff9ad1]]) B.flag(x, 0, 34.5, c);
+    // --- the Figure Eight: the bridge's railings and pillars, a stand inside the eastern loop ---
+    B.fence(212.4, 86, 212.4, 114, 5.5); B.fence(227.6, 86, 227.6, 114, 5.5);
+    for (const [x, d] of [[213, 87], [225, 87], [213, 111], [225, 111]]) B.slab(x, x + 2, d, d + 2, 0, 4.7, 'stone');
+    stands(238, 266, 112, 118, 0x4262ff);
+    B.sign(206, 0, 60, ['Мост!'], 0); B.sign(262, 0, 93, ['Под мостом', '← держи прямо'], 0);
+    // --- the Forest Track: the jump's signs and its star up in the air past the kicker (a jump off it reaches it) ---
+    B.sign(-190, 0, 139.5, ['Трамплин!', 'Разгонись'], Math.PI / 2);
+    B.star('rc.jump', -252, 7.4, 130);
+    for (const d of [137.4, 122.6]) B.flag(-234, 4.5, d, 0xff7a1a, 3);
+
+    // --- tyre walls round the outside of the tight bends, trees everywhere off the roads ---
+    for (const trk of L.tracks) for (const p of trk.pts) {
+      if (Math.abs(p.k) < 1 / 22 || p.i % 5) continue;
+      const o = -Math.sign(p.k) * (TRACK_HW + 3.4), x = p.x + p.nx * o, z = p.z + p.nz * o;
+      if (clear(x, z, 2.2) && Math.abs(groundAt(x, z, p.y + 1) - p.y) < .1) B.tyres(x, p.y, -z, 2);
+    }
+    const busy = [[-40, 40, -20, 40], [-34, 34, 94, 146], [-48, 28, 50, 64], [234, 270, 108, 122], [205, 235, 50, 150], [-250, -200, 118, 142], [-110, -95, 0, 25], [150, 180, -32, -20]];
+    const free = (x, d) => !busy.some(([a, b, c, e]) => x > a && x < b && d > c && d < e);
+    for (let i = 0; i < 190; i++) { // the forest round the Forest Track: pines and round trees
+      const x = -405 + R() * 290, d = -70 + R() * 350;
+      if (clear(x, -d, 5) && free(x, d)) B.tree(x, 0, d, .9 + R() * .6, R() < .65 ? 'pine' : undefined);
+    }
+    for (let i = 0; i < 260; i++) { // and the pines close along the Forest Track itself, so it runs through a wood
+      const c = L.tracks[2], p = c.pts[(R() * c.pts.length) | 0], o = (R() < .5 ? -1 : 1) * (TRACK_HW + 4 + R() * 22), x = p.x + p.nx * o, z = p.z + p.nz * o;
+      if (clear(x, z, 3.5) && free(x, -z) && Math.abs(groundAt(x, z, 1) ) < .1) B.tree(x, 0, -z, .9 + R() * .7, R() < .75 ? 'pine' : undefined);
+    }
+    for (let i = 0; i < 90; i++) { // a few about the other two
+      const x = -100 + R() * 435, d = -70 + R() * 350;
+      if (clear(x, -d, 6) && free(x, d)) B.tree(x, 0, d, .9 + R() * .5);
+    }
+    for (let i = 0; i < 2600; i++) {
+      const x = -412 + R() * 754, d = -72 + R() * 354;
+      if (!clear(x, -d, 1.4) || !free(x, d)) continue;
+      if (R() < .8) B.tuft(x, 0, d, THEMES.grass.tuft); else B.flower(x, 0, d, [0xffffff, 0xffe45c, 0xff7aa8, 0xff9a3c][(R() * 4) | 0]);
+    }
+    // coins down the straights
+    const coins = (trk, i0, n) => { for (let i = 0; i < n; i++) { const p = trk.pts[(i0 + i * 3) % trk.pts.length]; B.coin(p.x, p.y + 1.2, -p.z); } };
+    coins(L.tracks[0], 12, 10); coins(L.tracks[0], 175, 8); coins(L.tracks[1], 100, 10); coins(L.tracks[2], 130, 12); coins(L.tracks[2], 330, 10);
+
+    // --- the red badges: on the bridge, up the stands, on the hill, on the lake's island, in the loops, in the forest ---
+    B.itemSet({ key: 'rc.red', star: 'rc.red' });
+    for (const [i, x, y, d] of [[0, 220, 6.7, 100], [1, -10, 4.4, 60], [2, -234, 5.7, 135], [3, 0, 1.5, 120], [4, 270, 1.2, 150], [5, -350, 1.2, 200], [6, 170, 1.2, 40],
+      [7, 250, 4.4, 117]]) B.collect('rc.red', i, x, y, d);
+    B.star('rc.red', 6, 2.2, -4, setOf('rc.red').length < RED_N);
+
+    // --- far off: green hills over the cliffs, clouds ---
+    for (let i = 0; i < 30; i++) {
+      const a = i / 30 * Math.PI * 2;
+      B.hill(-35 + Math.cos(a) * 470, -24, -105 - Math.sin(a) * 280, 60 + R() * 40, [0x5fbf52, 0x4aa844, 0x74cc5c][i % 3]);
+    }
+    for (let i = 0; i < 30; i++) B.cloud(-420 + R() * 770, 38 + R() * 26, -(-80 + R() * 370), 1.4 + R() * 1.2);
+  }
+
   // the gates on the island: the stars each one needs, its colour, and where it leads: the green levels themselves (a card
   // to pick one) or another open world, with its levels behind doors of their own
   const WORLDS = [
@@ -8916,6 +9360,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     { n: 11, name: 'Тёмный лес', need: 0, levels: [], col: 0x3f7a3a, hub: 'forest', where: 'Лесные врата на мысу, у моря.' },
     { n: 12, name: 'Дуэльная арена', need: 0, levels: [], col: 0xe0503a, hub: 'duels', where: 'Дуэльные врата на самом краю мыса, за Лесными.' },
     { n: 13, name: 'Мир Роблокс', need: 0, levels: [], col: 0xf5cd30, hub: 'roblox', where: 'Роблокс-врата в самом конце мыса, за Дуэльными.' },
+    { n: 14, name: 'Автодром', need: 0, levels: [], col: 0xe8352a, hub: 'racing', where: 'Гоночные врата в самом конце мыса, за Роблокс-вратами.' },
   ];
   const worldOf = (li) => WORLDS.findIndex((w) => w.levels.includes(li));
   const hubOfLevel = (li) => WORLDS[worldOf(li)].hub || 'island';
@@ -9113,6 +9558,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         { id: 'rb.noobs', name: 'Нубики', hint: 'Мама Нуби у домика на юго-западе ищет пятерых нубиков.', prog: ['rb.noobs', 5] },
         { id: 'rb.red', name: 'Красные значки', hint: 'Восемь красных значков: в обби, на башне, над плитками, на крыше…', prog: ['rb.red', 8] },
       ] },
+    // the Speedway: three race tracks, a garage of cars to pick, a grand prix against the folk on each track
+    racing: { id: 'hub-racing', key: 'racing', name: 'Автодром', to: 'На Автодром', shop: 'Лавка кота Турбо', col: 0xe8352a, hub: true, seed: 1401, killY: -30,
+      music: 'rally', theme: 'grass', build: buildRacing, scatter: 40, amb: 'birds', far: 520, cars: true, arches: true, ringK: ARCH_K,
+      sky: [[0, '#2f8fe8'], [.55, '#8fd0ff'], [1, '#e6f6ff']], fog: [0xdcefff, 170, 480], hemi: [0xf2f8ff, 0x6b8f4a, .84], sun: 0xfff4dc, glow: [0xfff6d8, .45],
+      stars: [
+        { id: 'rc.a', name: 'Гран-при Солнечного кольца', hint: 'Пинг-гонщик у старта Солнечного кольца, к северу от гаража. Встань на красный коврик и приедь первым: три круга против пятерых гонщиков.' },
+        { id: 'rc.b', name: 'Гран-при Восьмёрки', hint: 'Квак-механик у старта Восьмёрки на востоке. Трасса проходит сама под собой: по мосту и под мостом.' },
+        { id: 'rc.c', name: 'Гран-при Лесной трассы', hint: 'Ёжик Шустрик у старта Лесной трассы на западе. Самая длинная трасса, с горкой и трамплином!' },
+        { id: 'rc.jump', name: 'Звезда над трамплином', hint: 'Над трамплином Лесной трассы висит звезда. Разгонись по горке и прыгни с самого края!' },
+        { id: 'rc.red', name: 'Красные значки', hint: 'Восемь красных значков: на мосту, на трибунах, на горке, на островке в озере…', prog: ['rc.red', 8] },
+      ] },
   };
   // the Dark Forest's sky at night: stars and a pale moon
   const NIGHT_SKY = { id: 'hub-forest-night', seed: 1102, sky: [[0, '#04060e'], [.55, '#0b1224'], [1, '#1a2238']], stars: true, starN: 700,
@@ -9165,6 +9621,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       sands: [], lavas: [], switches: [], rocket: null, course: null, perches: [], cupRings: [], hearts: [], meteors: [],
       // the Roblox world
       kills: [], trusses: [], fades: [], jpads: [], givers: [],
+      // the Speedway
+      tracks: null, trackGrid: null, carStands: [],
       goal: null, start: { x: 0, y: 0, z: 0 }, killY: def.killY, lavaY: def.lava === undefined ? null : def.lava, coinMesh: null };
     scene.add(L.group);
     resetIsland(); RB_BITS.length = 0;
@@ -10374,6 +10832,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1) * (coilOn('speed') ? 1.55 : 1);
       if (slide) spdMax = Math.max(spdMax, 14); // steering down a slide must not brake it
       if (gunOn()) spdMax *= gunSpeedK(); // slower through a scope and with a spinning minigun
+      if (V && P.onGround && L.trackGrid && (gpOn() || duelRacing()) && !V.rough && !V.wings && !V.fly && !V.hover && !V.glide && !V.cannon
+        && trackDist(P.pos.x, P.pos.z) > TRACK_HW + .8) spdMax *= V.grass || .7; // a car in a race on the grass beside the Speedway's roads
       let tx = wx, tz = wz;
       if (V && V.cannon && mag > .08) { // a tank turns on its tracks at its own pace, and drives only the way it faces
         const d = wrapPi(Math.atan2(wx, wz) - P.facing), turn = ((V.turn || TANK_TURN) + tankMod(3) * .45) * dt, k = mag * Math.max(0, Math.cos(d)), f0 = P.facing;
@@ -11117,7 +11577,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     // opponent, the arena duels won, the sniper duels won, the opponents beaten at least once
     guns: ['sniper', 'rifle', 'revolver', 'katana', 'grenade'], load: ['sniper', 'revolver', 'katana', 'grenade'], duLad: 0, duWins: 0, duSn: 0, duBeat: [],
     // the Roblox world: the furthest obby stage reached, the most Color Block rounds lasted
-    rbStage: 0, rbCb: 0 });
+    rbStage: 0, rbCb: 0,
+    // the Speedway: the car picked in its garage, the best grand prix time on each track (ms)
+    car: 'kart', rcBest: [0, 0, 0] });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
   // older saves: the island's red badges and froglets had lists of their own, and the turquoise cap was the default
   if (SAVE.red) { SAVE.sets.red = SAVE.red; delete SAVE.red; }
@@ -11148,7 +11610,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const ISL = {};
   function resetIsland() {
     Object.assign(ISL, { trail: [], lost: null, sets: {}, race: null, clears: [], switches: null, magicT: 0, cp: null, deliveries: [], chases: [], beacons: null, carry: null,
-      surv: null, cup: null, tb: null, nt: null, ft: null, rb: null, cb: null });
+      surv: null, cup: null, tb: null, nt: null, ft: null, rb: null, cb: null, gp: null });
   }
   resetIsland();
   function awardStar(id) {
@@ -11295,6 +11757,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   // ---------- ring races: the first ring starts the clock, the rings light up one after another ----------
   const RACE_RING_GEO = shared(new T.TorusGeometry(1.6, .16, 10, 36));
+  const ARCH_GEO = shared(new T.TorusGeometry(1.6, .16, 10, 24, Math.PI)); // (the Speedway's: the ring's upper half, over the road)
   function addRing(i, x, y, z, yaw) {
     if (questDone(ISL.race.star)) return;
     const m = new T.Mesh(RACE_RING_GEO, i ? MAT.ringDim : MAT.ring); m.position.set(x, y, z); m.rotation.y = yaw; L.group.add(m);
@@ -11925,6 +12388,221 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     showResult({ head: 'Кубок драконов · итоги', big: why || (won ? 'Победа!' : C.fin ? (k + 1) + '-е место' : 'Не долетел'),
       rows: rows.map((r, i) => [r.ms ? i + 1 + '.' : '–', r.name, r.ms ? fmtT(r.ms) : 'колец: ' + r.got + ' из ' + n, !!r.me]),
       yes: 'Ещё раз', onYes: () => { if (G.state === 'paused') resume(); cupStart(); } });
+  }
+
+
+  // ---------- the Speedway: the cars in the garage, and a grand prix on each track ----------
+  // Stepping on the pad before a car puts the hero in it; the one picked is the one the ride button calls there, lent for
+  // free unless it is one of our own. The cars on the turntables swing a little, and the one the hero drives is away.
+  const GP_CARS = ['kart', 'sport', 'f1', 'monster', 'rover', 'stonecar'];
+  function pickCar(id) {
+    SAVE.car = id; saveGame();
+    mountCar(id);
+    if (P.veh && !G.carHint) { G.carHint = true; toast(P.veh.name, 'Старты гонок у красных ковриков. В гонке держись асфальта: на траве машины вязнут!'); }
+  }
+  function mountCar(id) {
+    if (P.veh && P.vehId === id) return;
+    if (P.veh) rideOff(false, true);
+    P.rent = ''; P.rideCd = 0; rideOn(id);
+  }
+  function updateCarStands(dt) {
+    for (const cs of L.carStands) {
+      cs.t += dt;
+      cs.g.visible = !(P.veh && P.vehId === cs.id);
+      if (cs.g.visible) cs.g.rotation.y = cs.yaw + Math.sin(cs.t * .5) * .5;
+    }
+  }
+  // A grand prix: three laps (two on the long forest track) against five of the folk in cars, from a grid of two by
+  // two behind the start line, the hero in the second row. The folk drive the track's line on their own, each in a lane
+  // that drifts about and moves over to get past, slowing for the bends and, like the dragons of the cup, a little faster
+  // when behind and slower when well ahead, so a good driver in any car can beat them. The hero goes through the arches
+  // in turn; the places come from how many arches everyone has passed and how far on to the next one. First place brings
+  // out the track's star; the first three get badges.
+  const GP_RIVALS = [['Пинг', 'penguin', 1.02], ['Квак', 'frog', .99], ['Мурр', 'cat', .97], ['Фома', 'hedgehog', .95], ['Мишка', 'bear', .93]];
+  const GP_V = 14, GP_PAY = [15, 8, 4], GP_HERO = 2;
+  const gpOn = () => !!ISL.gp && (ISL.gp.phase === 'count' || ISL.gp.phase === 'run');
+  const gpFrozen = () => !!ISL.gp && ISL.gp.phase === 'count';
+  const gpCar = () => (SAVE.car && RIDES[SAVE.car] ? SAVE.car : 'kart');
+  // a point of a track at distance s from the start line (either way round), in between its points
+  function trackAt(trk, s) {
+    const N = trk.pts.length, u = ((s % trk.len) + trk.len) % trk.len / trk.step, i = Math.floor(u) % N, f = u - Math.floor(u), a = trk.pts[i], b = trk.pts[(i + 1) % N];
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f, z: a.z + (b.z - a.z) * f, tx: a.tx, tz: a.tz, nx: a.nx, nz: a.nz, yaw: a.yaw + wrapPi(b.yaw - a.yaw) * f, i };
+  }
+  // a slot of the grid: rows of two, 6 m apart, behind the start line
+  function gpGrid(trk, k) {
+    const s = -(6 + (k >> 1) * 6), lane = (k & 1 ? 1 : -1) * 2.9, p = trackAt(trk, s);
+    return { x: p.x + p.nx * lane, y: p.y + .05, z: p.z + p.nz * lane, face: p.yaw, s, lane };
+  }
+  function gpStart(ti) {
+    const trk = L.tracks && L.tracks[ti];
+    if (!trk || gpOn() || duelOn() || duelPending()) return;
+    if (ISL.carry) dropCarry('fall');
+    if (ISL.gp) gpTidy();
+    const n = trk.gates.length, laps = trk.laps;
+    const C = ISL.gp = { ti, phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, next: 0, fin: 0, runAt: 0, firstAt: 0, laps, n, bumpT: 0, mountT: 0,
+      seq: Array.from({ length: laps }, () => trk.gates.map((g, i) => i).slice(1).concat(0)).flat() };
+    for (const m of trk.arches) { m.material = MAT.ringDim; m.scale.setScalar(ARCH_K); }
+    trk.arches[C.seq[0]].material = MAT.ring;
+    // the folk on the grid, each in a car of another kind than the hero's
+    const mine = gpCar(), cars = GP_CARS.filter((id) => id !== mine), slots = [0, 1, 3, 4, 5];
+    C.riv = GP_RIVALS.map(([name, kind, pace], i) => {
+      const car = cars[i % cars.length], g = rideModel(car), rider = new T.Mesh(GEO[kind], MAT.char), sl = gpGrid(trk, slots[i]);
+      rider.scale.setScalar(.56); rider.position.set(0, RIDES[car].y + .3, RIDES[car].seatZ || 0); rider.castShadow = true; g.add(rider); L.group.add(g);
+      g.position.set(sl.x, sl.y, sl.z); g.rotation.y = sl.face;
+      return { name, g, car, pace, s: sl.s, lane: sl.lane, laneGoal: sl.lane, laneT: 3 + i, spd: 0, y: sl.y, vy: 0, done: 0, seed: i * 1.7 };
+    });
+    if (ISL.race && ISL.race.on) resetRace();
+    const me = gpGrid(trk, GP_HERO);
+    G.state = 'playing';
+    placePlayer(me, me.face); mountCar(mine);
+    gpLights(trk, 0); updateCam(0, true); updateRideBtn();
+    Snd.startMusic('race'); toast('Гран-при «' + trk.name + '»', laps + ' ' + plural(laps, 'круг', 'круга', 'кругов') + ' по аркам. Жди зелёный!');
+  }
+  // the start lights: k of them red during the countdown, all green (-1) at the start, off (0) otherwise
+  function gpLights(trk, k) { trk.lamps.forEach((m, i) => { m.material = k < 0 ? MAT.lampGreen : i < k ? MAT.lampRed : MAT.lampOff; }); }
+  const gpTarget = () => (gpOn() && !ISL.gp.fin ? L.tracks[ISL.gp.ti].gates[ISL.gp.seq[ISL.gp.next]] || null : null);
+  // after a fall: in the car on the road at the last arch passed, facing on; the grid before the first
+  function gpSpot() {
+    if (!gpOn()) return null;
+    const C = ISL.gp, trk = L.tracks[C.ti];
+    if (!C.next) return gpGrid(trk, GP_HERO);
+    const g = trk.gates[C.seq[C.next - 1]];
+    return { x: g.x, y: g.y + .05, z: g.z, face: g.yaw };
+  }
+  // how far on someone is, in arches passed: the hero from his arches and the way to the next, the folk from their
+  // distance along the track (before the start line a little less than none)
+  function gpProgS(trk, C, s) {
+    if (s < 0) return s / trk.len;
+    const lap = Math.floor(s / trk.len), w = s - lap * trk.len, gs = trk.gates;
+    let k = 1; while (k < gs.length && gs[k].s <= w) k++;
+    const from = gs[k - 1].s, to = k < gs.length ? gs[k].s : trk.len;
+    return lap * C.n + (k - 1) + (w - from) / (to - from);
+  }
+  function gpProgHero() {
+    const C = ISL.gp, trk = L.tracks[C.ti], gs = trk.gates, a = C.next ? gs[C.seq[C.next - 1]] : gpGrid(trk, GP_HERO), b = gs[C.seq[C.next]];
+    if (!b) return C.seq.length;
+    const seg = Math.hypot(b.x - a.x, b.z - a.z) || 1;
+    return C.next + clamp(1 - Math.hypot(b.x - P.pos.x, b.z - P.pos.z) / seg, 0, 1);
+  }
+  function gpPlace() {
+    const C = ISL.gp, trk = L.tracks[C.ti], me = C.fin ? C.seq.length + 10 - C.fin / 1e5 : gpProgHero();
+    let place = 1;
+    for (const r of C.riv) { const p = r.done ? C.seq.length + 10 - r.done / 1e5 : gpProgS(trk, C, r.s); if (p > me) place++; }
+    return place;
+  }
+  function gpUpdate(dt) {
+    const C = ISL.gp; if (!C || !gpOn()) return;
+    const trk = L.tracks[C.ti], now = performance.now(), nx = trk.gates[C.seq[C.next]];
+    if (nx && !C.fin) trk.arches[C.seq[C.next]].scale.setScalar(ARCH_K * (1 + Math.sin(time * 6) * .04));
+    if (C.phase === 'count') {
+      C.t -= dt;
+      const kk = Math.ceil(C.t);
+      if (kk < C.tick && kk >= 1 && kk <= DUEL_COUNT) { C.tick = kk; toast(String(kk), 'Приготовься!'); Snd.sfx.tock(false); gpLights(trk, DUEL_COUNT + 1 - kk); }
+      for (const r of C.riv) spinRide(r.g, dt, .4);
+      if (C.t > 0) return;
+      C.phase = 'run'; C.runAt = now; gpLights(trk, -1); toast('Марш!', 'Следующая арка горит жёлтым'); Snd.sfx.whistle();
+      return;
+    }
+    if (now - C.runAt > 2500 && trk.lamps[0].material !== MAT.lampOff) gpLights(trk, 0);
+    // back in the car after a knock or a swim, as soon as it can be called
+    C.mountT -= dt;
+    if (!P.veh && C.mountT <= 0 && G.state === 'playing' && P.rideCd <= 0 && P.onGround && !P.swim && !P.pound) { C.mountT = 1; mountCar(gpCar()); }
+    // the hero through the next arch
+    if (G.state === 'playing' && nx && !C.fin) {
+      const dx = nx.x - P.pos.x, dz = nx.z - P.pos.z;
+      if (dx * dx + dz * dz < (TRACK_HW + 2) ** 2 && Math.abs(P.pos.y - nx.y) < 4) {
+        const m = trk.arches[C.seq[C.next]]; m.material = MAT.ringDim; m.scale.setScalar(ARCH_K);
+        Snd.sfx.ring(C.next % C.n); flashAt(nx.x, nx.y + 3, nx.z, 0xfff3b0, 4, .25); glow(nx.x, nx.y + 3, nx.z, 0xffe07a, 24, 6, 0, 1, .5, .35);
+        C.next++;
+        const nn = C.seq[C.next];
+        if (nn !== undefined) {
+          trk.arches[nn].material = MAT.ring;
+          if (C.next % C.n === 0) { const lap = C.next / C.n + 1; toast(lap === C.laps ? 'Последний круг!' : 'Круг ' + lap + ' из ' + C.laps, 'Место: ' + gpPlace() + '-е'); Snd.sfx.whistle(); }
+        } else {
+          C.fin = Math.max(1, Math.round(now - C.runAt)); if (!C.firstAt) C.firstAt = now;
+          const place = gpPlace();
+          toast(place === 1 ? 'Первое место!' : place + '-е место', 'Время ' + fmtT(C.fin)); P.happyT = 2; P.cheerT = 1.8;
+          if (place === 1) Snd.sfx.starGet(); else Snd.sfx.deliver();
+        }
+      }
+    }
+    gpRivals(dt, now);
+    gpBump(dt);
+    const all = C.riv.every((r) => r.done) && C.fin;
+    if (all || (C.firstAt && now - C.firstAt > RACE_AFTER * 1000) || now - C.runAt > RACE_MAX * 1000) gpOver();
+  }
+  function gpRivals(dt, now) {
+    const C = ISL.gp, trk = L.tracks[C.ti], total = C.laps * trk.len, me = C.fin ? C.seq.length : gpProgHero(), lim = TRACK_HW - 1.6;
+    for (const r of C.riv) {
+      const c = trackAt(trk, r.s);
+      // keep out of the way: a car close ahead in the same lane (the hero's or another's) is passed on the other side
+      const ahead = (x, z) => { const dx = x - c.x, dz = z - c.z, a = dx * c.tx + dz * c.tz, o = dx * c.nx + dz * c.nz; return a > 0 && a < 8 && Math.abs(o - r.lane) < 2.2 ? o : null; };
+      let block = G.state === 'playing' ? ahead(P.pos.x, P.pos.z) : null;
+      for (const q of C.riv) if (block === null && q !== r) block = ahead(q.g.position.x, q.g.position.z);
+      r.laneT -= dt;
+      if (block !== null) r.laneGoal = clamp(block + (block > 0 ? -3.2 : 3.2), -lim, lim);
+      else if (r.laneT <= 0) { r.laneT = 2 + Math.random() * 3; r.laneGoal = (Math.random() * 2 - 1) * lim; }
+      const dl = clamp(r.laneGoal - r.lane, -2.4 * dt, 2.4 * dt); r.lane += dl;
+      // how fast: the bend ahead, the rubber band, a burst off the line
+      const lead = r.done ? 0 : gpProgS(trk, C, r.s) - me, bendV = trk.vmax[trackAt(trk, r.s + 4).i] * (.94 + r.pace * .06);
+      const want = r.done ? 8 : Math.min(bendV, GP_V * r.pace * clamp(1 - lead * .06, .82, 1.15) * (1 + Math.sin(time * .5 + r.seed) * .03));
+      r.spd = damp(r.spd, want, r.spd < want ? 1.1 : 2.6, dt);
+      r.s += r.spd * dt;
+      const p = trackAt(trk, r.s), x = p.x + p.nx * r.lane, z = p.z + p.nz * r.lane;
+      // down the jump's drop in a fall, up and down the ramps with the road
+      if (p.y < r.y - .05 || r.vy > 0) { r.vy -= GRAV * dt; r.y += r.vy * dt; if (r.y <= p.y) { r.y = p.y; if (r.vy < -8) puff(x, p.y + .2, z, dustColor(), 8, 2, .6, .5, .8); r.vy = 0; } }
+      else { r.y = p.y; r.vy = 0; }
+      const air = r.y > p.y + .1, rise = trackAt(trk, r.s + 2).y - trackAt(trk, r.s - 2).y;
+      r.g.position.set(x, r.y, z);
+      r.g.rotation.set(air ? -.12 : -Math.atan(rise / 4), p.yaw + dl / Math.max(dt, 1e-4) * .06, 0);
+      spinRide(r.g, dt, 1);
+      if (!air && r.spd > 6 && Math.random() < dt * 5) puff(x - p.tx * 1.4, r.y + .15, z - p.tz * 1.4, 0xd8d8e0, 1, .6, .4, .4, .5);
+      if (!r.done && r.s >= total) { r.done = Math.max(1, Math.round(now - C.runAt)); if (!C.firstAt) C.firstAt = now; netNote(r.name + ' на финише: ' + fmtT(r.done)); }
+    }
+  }
+  // the hero's car and one of the folk's run into each other: pushed apart, the other one slowed a little
+  function gpBump(dt) {
+    const C = ISL.gp; C.bumpT -= dt;
+    if (G.state !== 'playing') return;
+    for (const r of C.riv) {
+      const dx = P.pos.x - r.g.position.x, dz = P.pos.z - r.g.position.z, d = Math.hypot(dx, dz);
+      if (d > 2.1 || d < .01 || Math.abs(P.pos.y - r.y) > 1.6) continue;
+      const k = 2.1 - d, ux = dx / d, uz = dz / d;
+      if (freeAt(P.pos.x + ux * k, P.pos.y, P.pos.z + uz * k)) { P.pos.x += ux * k; P.pos.z += uz * k; }
+      const into = P.vel.x * -ux + P.vel.z * -uz;
+      if (into > 0) { P.vel.x += ux * into * .6; P.vel.z += uz * into * .6; }
+      r.spd *= .9;
+      if (C.bumpT <= 0) { C.bumpT = .5; Snd.sfx.bump(); G.shake = Math.max(G.shake, .12); }
+    }
+  }
+  function gpTidy() {
+    const C = ISL.gp; if (!C) return;
+    const trk = L.tracks[C.ti];
+    if (C.riv) { for (const r of C.riv) L.group.remove(r.g); C.riv = null; }
+    for (const m of trk.arches) { m.material = MAT.ringDim; m.scale.setScalar(ARCH_K); }
+    gpLights(trk, 0);
+  }
+  function gpOver(why) {
+    const C = ISL.gp; if (!C || !gpOn()) return;
+    const trk = L.tracks[C.ti], n = C.seq.length;
+    const rows = [{ name: 'Ты', ms: C.fin, got: C.fin ? n : C.next, me: true }]
+      .concat(C.riv.map((r) => ({ name: r.name, ms: r.done, got: r.done ? n : clamp(Math.floor(gpProgS(trk, C, r.s)), 0, n) })));
+    rows.sort((a, b) => (!a.ms - !b.ms) || (a.ms ? a.ms - b.ms : b.got - a.got));
+    const k = rows.findIndex((r) => r.me), won = !why && k === 0 && !!C.fin, owner = trk.owner;
+    gpTidy(); C.phase = 'off';
+    Snd.startMusic(L.def.music);
+    let note = '';
+    if (!why && C.fin) {
+      if (!SAVE.rcBest[C.ti] || C.fin < SAVE.rcBest[C.ti]) { if (SAVE.rcBest[C.ti]) note = 'рекорд!'; SAVE.rcBest[C.ti] = C.fin; }
+      const pay = GP_PAY[k] || 0;
+      if (pay) { SAVE.bank += pay; setTimeout(() => popup('+' + pay + ' значков', P.pos.x, P.pos.y + PH + 1.2, P.pos.z, 'gold'), 600); }
+      saveGame();
+    }
+    if (won) { npcSay(owner, 'Победа! Гран-при «' + trk.name + '» твой!'); revealStar(trk.star, owner.x, owner.y + owner.h, owner.z); }
+    else npcSay(owner, why ? 'Гонку остановили. Ещё раз?' : C.fin ? 'Хорошая гонка! Срезай повороты по асфальту: на траве машины вязнут.' : 'Не беда, попробуй ещё! Следующая арка горит жёлтым.');
+    showResult({ head: 'Гран-при «' + trk.name + '» · итоги', big: why || (won ? 'Победа!' : C.fin ? (k + 1) + '-е место' : 'Не доехал') + (note ? ' · ' + note : ''),
+      rows: rows.map((r, i) => [r.ms ? i + 1 + '.' : '–', r.name, r.ms ? fmtT(r.ms) : 'арок: ' + r.got + ' из ' + n, !!r.me]),
+      yes: 'Ещё раз', onYes: () => { if (G.state === 'paused') resume(); gpStart(C.ti); } });
   }
 
   // ---------- the Tank Range: the tank's gun, the grumpy tanks, the tank battle ----------
@@ -12984,6 +13662,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function questTrack() {
     const du = duelTrack(); if (du) return du;
     if (FT) return null; // a duel shows its own panel at the top
+    if (gpOn()) {
+      const C = ISL.gp, trk = L.tracks[C.ti], lap = Math.min(C.laps, Math.floor(C.next / C.n) + 1);
+      return ['«' + trk.name + '» · ' + gpPlace() + '-е место', C.phase === 'count' ? 'Жди зелёный свет!' : C.fin ? 'Финиш! Ждём остальных' : 'Круг ' + lap + ' из ' + C.laps + ', арка ' + (C.next % C.n + 1) + ' из ' + C.n];
+    }
     if (cbOn()) {
       const C = ISL.cb;
       return ['Цветные плитки · раунд ' + Math.max(1, C.round), C.phase === 'pick' ? 'Беги на ' + CB_COLS[C.ci][1] + '!' : C.phase === 'count' ? 'Приготовься!' : C.phase === 'drop' ? 'Держись!' : 'Следующий раунд…'];
@@ -13020,6 +13702,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const dc = duelClock(); if (dc !== null) return dc;
     if (FT) return FT.phase === 'fight' ? Math.max(0, FT.left) : null; // the round's time
     if (cbOn()) return ISL.cb.phase === 'pick' ? Math.max(0, ISL.cb.t) : null;
+    if (gpOn()) return ISL.gp.phase === 'run' ? (ISL.gp.fin || performance.now() - ISL.gp.runAt) / 1000 : null;
     if (survOn()) return Math.max(0, ISL.surv.t);
     if (tbOn()) return ISL.tb.phase === 'wave' || ISL.tb.won ? null : Math.max(0, ISL.tb.t); // the wait for the next wave
     if (cupOn()) return ISL.cup.phase === 'run' ? ((ISL.cup.fin || performance.now() - ISL.cup.runAt)) / 1000 : null;
@@ -15672,7 +16355,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the pepper's fire and a ride that knocks foes over driven into a friend. Friends on a ride or the dino are hit too (a
   // tank's armour takes part of it); paused ones cannot be, nor anyone in a game with friends, the survival game, the
   // dragons' cup or a tank battle.
-  const pvpOn = () => !!net.room && !FT && !duelOn() && !survOn() && !cupOn() && !tbOn();
+  const pvpOn = () => !!net.room && !FT && !duelOn() && !survOn() && !cupOn() && !tbOn() && !gpOn();
   const pvpTarget = (g, loc) => !!loc && g.loc === loc && !g.old && !!g.rig && g.rig.root.visible && !(g.flags & NF_PAUSED)
     && performance.now() - g.seen < NET_AWAY;
   // What a shot can hit of a friend: the rider's head and middle, as on foot, and on a ride a wider cylinder round the ride
@@ -16018,11 +16701,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
       const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
       if (!inside) pd.armed = true;
-      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT && !cbOn()) {
+      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT && !cbOn() && !gpOn()) {
         pd.armed = false;
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
         else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
         else if (pd.kind === 'craft') ntCraftPad();
+        else if (pd.kind === 'car') pickCar(pd.data); else if (pd.kind === 'gp') gpStart(pd.data);
         else if (pd.kind === 'cb') cbStart(); else if (pd.kind === 'rbwarp') rbContinue(); else if (pd.kind === 'rbhome') rbHome();
         else if (pd.kind === 'duel' || pd.kind === 'snipe') ftStart(pd.kind === 'duel' ? 'arena' : 'snipe');
       }
@@ -16035,7 +16719,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (!inside) { pt.armed = true; continue; }
       if (!pt.armed || G.state !== 'playing') continue;
       pt.armed = false;
-      const busy = duelOn() || survOn() || cupOn() || tbOn() || !!FT || cbOn(); // a game with friends (or the survival game, the cup, a tank battle, a duel) keeps everyone in this world until it is over
+      const busy = duelOn() || survOn() || cupOn() || tbOn() || !!FT || cbOn() || gpOn(); // a game with friends (or the survival game, the cup, a tank battle, a duel) keeps everyone in this world until it is over
       if (open && !busy) { enterGate(pt); continue; }
       P.vel.set(pt.nx * 7, 7, pt.nz * 7); P.onGround = false; P.noCut = true; G.shake = Math.max(G.shake, .2);
       Snd.sfx.locked();
@@ -16226,7 +16910,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // New ones go at the end: a friend's packet names the ride by its place in this list (RIDE_IDS).
   const RIDES = {
     scooter: { name: 'Самокат', price: 90, sub: 'Быстрый и вёрткий', spd: 11.5, acc: 34, jump: 1, air: 0, y: .22, pose: 'stand' },
-    kart: { name: 'Карт', price: 160, sub: 'Самый быстрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, seatZ: -.08, pose: 'sit', bump: true, motor: 1 },
+    kart: { name: 'Карт', price: 160, sub: 'Лёгкий и шустрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, seatZ: -.08, pose: 'sit', bump: true, motor: 1 },
     board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, surfs: ['snow', 'glacier', 'sand', 'canyon'], acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
     jetski: { name: 'Водный скутер', price: 140, sub: 'Мчится по воде, на суше медленный', spd: 6.5, water: 14.5, acc: 26, jump: .95, air: 0, y: .3, pose: 'sit', floats: true, motor: 1.4 },
     pogo: { name: 'Пого-палка', price: 110, sub: 'Сама прыгает и давит даже колючек', spd: 7.5, acc: 30, jump: 1.25, air: 0, y: .38, pose: 'pogo', pogo: true },
@@ -16255,6 +16939,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     kv44: { name: 'КВ-44', price: 500, sub: 'Двенадцать башен, гранатомёт и ракетница! Красная кнопка даёт залп из всех пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2.71,
       pose: 'hatch', cannon: true, bump: true, hw: 1.3, hull: [BIG_TANKS.kv44.hw * BIG_TANKS.kv44.sc, BIG_TANKS.kv44.hd * BIG_TANKS.kv44.sc], turn: 1.9,
       seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread', launchers: true },
+    // the Speedway's race cars (CARS): a roadster; a formula car, the quickest on the tarmac but slowest on the grass
+    // beside it in a race (grass: its speed there); a monster truck that jumps high and minds no grass (rough)
+    sport: { name: 'Спорткар', price: 240, sub: 'Быстрый и красивый, сбивает врагов на ходу', spd: 15.5, acc: 26, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2 },
+    f1: { name: 'Болид', price: 350, sub: 'Самый быстрый на асфальте, но на траве вязнет', spd: 17, acc: 30, jump: .6, air: 0, y: .1, seatZ: -.1, pose: 'sit', bump: true, motor: 1.6, grass: .55 },
+    monster: { name: 'Монстр-трак', price: 300, sub: 'Колёса выше тебя! Высоко прыгает и не вязнет на траве', spd: 13.5, acc: 22, jump: 1.3, air: 0, y: 1.25, seatZ: -.3, pose: 'sit', bump: true,
+      motor: .7, hw: .75, rough: true },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -16406,7 +17096,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       });
       sec((isTouch ? 'Кнопка «Оружие» внизу экрана' : 'Клавиша X или кнопка «Оружие» внизу экрана') + ' достаёт набор в любом мире. С ним выходишь и на арену; в снайперском ущелье у всех снайперки');
     } else {
-      sec(garage ? 'Нажми, и сразу поедешь. ' + (L.def.dragons ? 'Кнопка транспорта здесь зовёт дракона' : (isTouch ? 'Кнопка с самокатом наверху экрана' : 'Клавиша V') + ' потом зовёт его же')
+      sec(garage ? 'Нажми, и сразу поедешь. ' + (L.def.dragons ? 'Кнопка транспорта здесь зовёт дракона' : L.def.cars ? 'Кнопка транспорта здесь зовёт машину из гаража' : (isTouch ? 'Кнопка с самокатом наверху экрана' : 'Клавиша V') + ' потом зовёт его же')
         : (isTouch ? 'Кнопка с самокатом наверху экрана' : 'Клавиша V или кнопка наверху экрана') + ' зовёт транспорт в любом мире и уровне. Пушки танков и дыхание драконов бьют и друзей');
       if (garage && !SAVE.rides.length) sec('Пока пусто: транспорт продают в лавках');
       for (const id of SHOP_RIDES) {
@@ -16421,7 +17111,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
         item({ title: r.name, sub: r.sub, price: r.price, state: prize ? 'Приз за кубок' : own ? (on ? 'Выбран' : 'Выбрать') : null, can: !on && !prize, on,
           swatch: r.wings ? hexCss(DRAGON_LOOK[id].body) : null, act: () => {
             if (!own) SAVE.rides.push(id);
-            SAVE.ride = id; if (P.veh && !(L.def.dragons && P.veh.wings)) rideSwap(); updateRideBtn();
+            SAVE.ride = id; if (L.def.cars && GP_CARS.includes(id)) SAVE.car = id; // (the Speedway's ride button calls its garage's car)
+            if (P.veh && !(L.def.dragons && P.veh.wings) && !gpOn()) rideSwap(); updateRideBtn();
           } });
       }
     }
@@ -16443,7 +17134,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // middle of a race, a tank battle or the dragons' cup, which give everyone their ride)
   function garageRide(id) {
     SAVE.ride = id; closeMenu(); updateRideBtn();
-    const why = FT || duelGunning() ? 'В дуэли только пешком' : duelRide() || tankLocked() || cupOn() ? 'Сначала доиграйте!' : '';
+    const why = FT || duelGunning() ? 'В дуэли только пешком' : duelRide() || tankLocked() || cupOn() || gpOn() ? 'Сначала доиграйте!' : '';
     if (why) { popup(why, P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (P.veh) rideOff(false, true);
     P.rideCd = 0; rideOn(id);
@@ -16492,15 +17183,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       u.rollers = [.95, -.95].map((z) => { const r = new T.Mesh(GEO.roller, MAT.char); r.position.set(0, .45, z); r.castShadow = true; g.add(r); return r; });
       u.roll = 0; u.lp = null;
     } else if (id === 'tank') tankParts(g, 'tank');
-    else if (id === 'kart') { // wheels that roll (the front ones on pivots that steer) and a steering wheel that turns
+    else if (CARS[id]) { // a car: wheels that roll (the front ones on pivots that steer) and a steering wheel that turns
+      const C = CARS[id], W = GEO.car[id];
       u.kw = []; u.front = [];
-      for (const [A, geo] of [[KART.front, GEO.kart.wheel.f], [KART.rear, GEO.kart.wheel.r]]) for (const k of [-1, 1]) {
+      for (const [A, geo] of [[C.front, W.f], [C.rear, W.r]]) for (const k of [-1, 1]) {
         const m = new T.Mesh(geo, MAT.char), at = new T.Vector3(k * A[0], A[1], A[2]); m.castShadow = true; u.kw.push([m, A[3]]);
-        if (A === KART.front) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
+        if (A === C.front) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
       }
-      const sp = new T.Group(); sp.position.set(...KART.steer); sp.rotation.x = KART.tilt; g.add(sp);
+      const sp = new T.Group(); sp.position.set(...C.steer); sp.rotation.x = C.tilt; g.add(sp);
       u.steer = new T.Mesh(GEO.kart.steer, MAT.char); u.steer.castShadow = true; sp.add(u.steer);
-      u.grips = [-1, 1].map((k) => { const o = new T.Object3D(); o.position.set(k * KART.r * Math.sin(1.35), KART.r * Math.cos(1.35), 0); u.steer.add(o); return o; });
+      u.grips = [-1, 1].map((k) => { const o = new T.Object3D(); o.position.set(k * C.r * Math.sin(1.35), C.r * Math.cos(1.35), 0); u.steer.add(o); return o; });
       Object.assign(u, { st: 0, lp: null, ly: 0 });
     } else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
       u.wings = GEO.wings[id].map((geo, i) => {
@@ -16640,7 +17332,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // a ride from the shop (in any world or level, and in the Duel Arena between the duels), or the one lent at a pier or a
   // base (P.rent) until the hero gets off it
   // in Dragon Peaks the ride button calls the dragon picked at the perches: lent for free, unless it is one of our own
-  const worldRide = () => (L && L.def.dragons ? SAVE.dragon || 'drRed' : '');
+  const worldRide = () => (L && L.def.dragons ? SAVE.dragon || 'drRed' : L && L.def.cars ? gpCar() : ''); // (and in the Speedway the car picked in its garage)
   function rideOn(want) {
     const id = want || P.rent || duelRide() || worldRide() || SAVE.ride, def = RIDES[id];
     if (!def || P.veh || P.riding || P.pound || G.state !== 'playing' || FT || duelGunning()) return; // (a duel with guns is on foot)
@@ -16648,6 +17340,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (duelHiding()) { popup('В прятках без транспорта', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (id !== P.rent && id === duelRide()) P.rent = id; // back on the race's ride after a knock
     if (!P.rent && def.wings && L.def.dragons && !SAVE.rides.includes(id)) P.rent = id; // a lent dragon stays in Dragon Peaks
+    if (!P.rent && L.def.cars && GP_CARS.includes(id) && !SAVE.rides.includes(id)) P.rent = id; // and a car of the Speedway's garage there
     if (P.swim && !def.floats) { popup('Сначала выберись из воды', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     P.veh = def; P.vehId = id; P.rideFast = false; applySize();
     if (def.cannon) { P.aim = P.facing; P.aimAt = null; P.aimT = 0; P.tankCd = .3; }
@@ -16692,6 +17385,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (!P.veh && (FT || duelGunning())) { popup('В дуэли только пешком', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (!P.veh) { rideOn(); return; }
     if (tankLocked()) { popup('Из танка не вылезти, пока идёт бой', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
+    if (gpOn()) { popup('Сначала доедь гонку!', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     rideOff(false);
   }
   const btnRide = $('btnRide');
@@ -16709,7 +17403,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     g.position.set(P.pos.x, P.pos.y, P.pos.z);
     g.rotation.y = P.facing + spinAngle();
     const lean = clamp(spd / 12, 0, 1);
-    g.rotation.x = id === 'pogo' ? lean * .25 : id === 'kart' || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
+    g.rotation.x = id === 'pogo' ? lean * .25 : CARS[id] || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
     g.rotation.z = id === 'scooter' || id === 'board' || id === 'ski' ? Math.sin(time * 2) * .02 * lean : 0;
     if (id === 'pogo') { const sq = P.onGround ? .8 : clamp(1 + P.vel.y * .01, .9, 1.08); g.scale.set(1, sq, 1); }
     g.position.y += rideBob();
@@ -16755,7 +17449,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // ---------- the compass perk: an arrow over the hero's head towards the nearest star he can take ----------
   const compass = new T.Mesh(GEO.arrow, MAT.arrow); compass.visible = false; compass.scale.setScalar(1); compass.renderOrder = 6; scene.add(compass);
   function updateCompass() {
-    const ring = duelTarget() || cupTarget();
+    const ring = duelTarget() || cupTarget() || gpTarget();
     if (ring) { // in a race with friends it points at the next ring
       compass.visible = true;
       compass.position.set(P.pos.x, P.pos.y + PH + (P.veh ? .7 : .9) + Math.sin(time * 3) * .08, P.pos.z);
@@ -16798,10 +17492,12 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     updateRocket(dt);
     survUpdate(dt);
     cupUpdate(dt);
+    gpUpdate(dt);
     tbUpdate(dt);
     ntUpdate(dt);
     ftUpdate(dt);
     updatePerches(dt);
+    updateCarStands(dt);
     updateGates(dt);
   }
   // ================= bosses =================
@@ -17724,7 +18420,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // falling in an open world costs nothing: the hero is back at the last flag he touched (in a race with friends, at the
   // last ring he flew through, on the race's ride)
   function hubRespawn(quiet, keepMusic) {
-    const c = ISL.cp, back = duelSpot() || cupSpot(), pt = back || (c ? cpSpawn(c) : L.start);
+    const c = ISL.cp, back = duelSpot() || cupSpot() || gpSpot(), pt = back || (c ? cpSpawn(c) : L.start);
     const dragon = P.veh && P.veh.wings && L.def.dragons ? P.vehId : ''; // in Dragon Peaks the dragon comes back with the hero
     setBig(false, false); placePlayer(pt, back ? back.face : c && c.face !== undefined ? c.face : undefined);
     for (const f of L.lost) if (f.state === 'follow') { f.x = pt.x; f.y = pt.y; f.z = pt.z; }
@@ -17732,10 +18428,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (ISL.race && ISL.race.on) resetRace();
     if (ISL.carry) dropCarry('fall');
     G.state = 'playing'; updateCam(0, true);
-    if (back) { if (cupOn()) mountDragon(SAVE.dragon || 'drRed'); else duelMount(); }
+    if (back) { if (cupOn()) mountDragon(SAVE.dragon || 'drRed'); else if (gpOn()) mountCar(gpCar()); else duelMount(); }
     else if (dragon) mountDragon(dragon);
     updateRideBtn();
-    if (!keepMusic) Snd.startMusic(cupOn() ? 'race' : survOn() ? 'survive' : tbOn() || FT ? 'battle' : ntOn() ? ntSong() : L.def.music);
+    if (!keepMusic) Snd.startMusic(cupOn() || gpOn() ? 'race' : survOn() ? 'survive' : tbOn() || FT ? 'battle' : ntOn() ? ntSong() : L.def.music);
     if (!quiet) toast('Ой!', back ? 'Назад к кольцу' : c ? 'Начнём от флажка' : 'Начнём сначала');
   }
   function startGame(key = 'island', mode = false) {
@@ -18076,6 +18772,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   $('btnModeNights').addEventListener('click', () => startGame('forest', true));
   $('btnModeDuels').addEventListener('click', () => startGame('duels', true));
   $('btnModeRoblox').addEventListener('click', () => startGame('roblox', true));
+  $('btnModeRacing').addEventListener('click', () => startGame('racing', true));
   // a fresh start wipes the saved stars; it asks for a second tap first
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
@@ -18197,7 +18894,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // quests and wallet. The browsers talk to each other directly (WebRTC through Trystero, which meets the others through
   // public Nostr relays), so the game still needs no server of its own. The library loads only when a room is joined.
   const NET_LIB = 'https://cdn.jsdelivr.net/npm/trystero@0.25.4/+esm';
-  const NET_APP = 'super-hop-3d', NET_V = 9, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
+  const NET_APP = 'super-hop-3d', NET_V = 10, NET_HZ = 20, NET_IDLE = .5, NET_DELAY = 110, NET_AWAY = 3000;
   // relays from Trystero's own list that answered when this was written; every player uses the same ones, so any two
   // of them share all eight (the library's default picks six by the app's name, and two of those were down)
   const NET_RELAYS = ['nos.lol', 'purplerelay.com', 'nostr.data.haus', 'nostr-relay.corb.net', 'nostr-01.uid.ovh', 'basspistol.org', 'nostr.sathoarder.com',
@@ -18632,7 +19329,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // in the middle of a game with friends
   function netCanGo(g) {
     const k = NET_LOCS[g.loc] || '';
-    if (k[0] !== 'h' || !g.last || g.old || duelOn() || survOn() || cupOn() || tbOn()) return null;
+    if (k[0] !== 'h' || !g.last || g.old || duelOn() || survOn() || cupOn() || tbOn() || gpOn()) return null;
     const key = k.slice(2), W = WORLDS.find((w) => w.hub === key);
     return { key, need: W && openStars() < W.need ? W.need : 0 };
   }
@@ -18776,7 +19473,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // the rover on the moon
   const DUEL_RIDE = { island: 'kart', desert: 'kart', ice: 'board', candy: 'kart', factory: 'kart', sea: 'jetski', space: 'rover', dino: 'stonecar', tanks: 'tank' };
   // in Dragon Peaks everyone flies the dragon they picked there
-  const duelRideFor = (key) => (HUBS[key] && HUBS[key].dragons ? SAVE.dragon || 'drRed' : DUEL_RIDE[key] || 'kart');
+  // (and in the Speedway everyone drives the car they picked there)
+  const duelRideFor = (key) => (HUBS[key] && HUBS[key].dragons ? SAVE.dragon || 'drRed' : HUBS[key] && HUBS[key].cars ? gpCar() : DUEL_RIDE[key] || 'kart');
   const DUEL_NAME = { race: 'Гонка по кольцам', hide: 'Прятки', tank: 'Танковый бой', gun: 'Дуэль', snipe: 'Снайперская дуэль' };
   let duel = null, duelSeekerLast = '';
   const duelMe = () => (net.lib && net.lib.selfId) || 'me';
@@ -18787,7 +19485,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   const duelHiding = () => !!duel && duel.kind === 'hide' && (duel.phase === 'hide' || duel.phase === 'seek');
   // nobody moves during the race's countdown, the seeker not while the others hide
   const duelFrozen = () => !!duel && (duel.phase === 'count' || (duel.phase === 'hide' && duel.seeker === duelMe()));
-  const holdStill = () => duelFrozen() || cupFrozen() || ftFrozen() || P.koT > 0; // and the dragons' cup's countdown, a duel's, a knock-out
+  const holdStill = () => duelFrozen() || cupFrozen() || gpFrozen() || ftFrozen() || P.koT > 0; // and the dragons' cup's countdown, a duel's, a knock-out
   const duelTanking = () => !!duel && duel.kind === 'tank' && (duel.phase === 'count' || duel.phase === 'run');
   const duelGunning = () => !!duel && (duel.kind === 'gun' || duel.kind === 'snipe') && (duel.phase === 'count' || duel.phase === 'run');
   const duelGunRun = () => duelGunning() && duel.phase === 'run';
@@ -18814,6 +19512,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (survOn()) return 'Сначала закончи выживание.';
     if (tbOn()) return 'Сначала закончи танковый бой.';
     if (cupOn()) return 'Сначала долети кубок драконов.';
+    if (gpOn()) return 'Сначала доедь гонку.';
     if (FT) return 'Сначала закончи дуэль.';
     if (!duelFriends().length) return net.peers.size ? 'Друг ещё подключается, подожди пару секунд.' : 'В комнате пока никого. Нажми «Позвать друга».';
     return '';
@@ -18830,8 +19529,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const ids = duelFriends().map((g) => g.id), key = kind === 'tank' ? 'tanks' : kind === 'gun' || kind === 'snipe' ? 'duels' : duelHomeKey();
     duelStop('');
     duelGoTo(key); // the host waits for the answers in the game's world
-    duel = { id: netNewCode() + netNewCode(), kind, host: duelMe(), loc: NET_LOCS.indexOf('h:' + key), phase: 'ask', t: DUEL_ASK, asked: new Map(ids.map((i) => [i, null])), players: [] };
-    netSend(duelAct(), { t: 'inv', id: duel.id, k: kind, loc: duel.loc }, { target: ids });
+    // in the Speedway the race is on the track whose start line is nearest
+    const tr = kind === 'race' && L.tracks ? L.tracks.reduce((b, t, i) => (Math.hypot(t.gates[0].x - P.pos.x, t.gates[0].z - P.pos.z) < Math.hypot(L.tracks[b].gates[0].x - P.pos.x, L.tracks[b].gates[0].z - P.pos.z) ? i : b), 0) : 0;
+    duel = { id: netNewCode() + netNewCode(), kind, host: duelMe(), loc: NET_LOCS.indexOf('h:' + key), phase: 'ask', t: DUEL_ASK, asked: new Map(ids.map((i) => [i, null])), players: [], tr };
+    netSend(duelAct(), { t: 'inv', id: duel.id, k: kind, loc: duel.loc, tr }, { target: ids });
     Snd.sfx.ui(); duelUi();
     return '';
   }
@@ -18839,13 +19540,13 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const kind = ['race', 'hide', 'tank', 'gun', 'snipe'].includes(d.k) ? d.k : '';
     const no = () => netSend(duelAct(), { t: 'ans', id: d.id, yes: false }, { target: from });
     if (!kind || !duelKeyOf(d.loc)) { no(); return; }
-    const inv = { id: d.id, kind, host: from, loc: d.loc, phase: 'invited', t: DUEL_ASK, players: [] };
+    const inv = { id: d.id, kind, host: from, loc: d.loc, phase: 'invited', t: DUEL_ASK, players: [], tr: clamp(d.tr | 0, 0, RACE_TRACKS.length - 1) };
     // two friends asking each other at the same moment: the smaller id wins, and the other one says yes to it
     if (duel && duel.phase === 'ask' && duel.kind === kind && duel.asked.has(from) && d.id < duel.id) {
       netSend(duelAct(), { t: 'cancel', id: duel.id }, { target: Array.from(duel.asked.keys()) });
       duel = inv; duelAnswer(true); return;
     }
-    if (duelOn() || duelPending() || survOn() || cupOn() || tbOn() || FT) { no(); return; }
+    if (duelOn() || duelPending() || survOn() || cupOn() || tbOn() || FT || gpOn()) { no(); return; }
     duelStop(''); duel = inv;
     Snd.sfx.pop(); duelUi();
   }
@@ -18862,7 +19563,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const yes = ans.filter(([, v]) => v).map(([id]) => id), late = ans.filter(([, v]) => v === null).map(([id]) => id);
     if (late.length) netSend(duelAct(), { t: 'cancel', id: d.id, late: yes.length > 0 }, { target: late });
     if (!yes.length) { duelStop(ans.length ? 'Друзья сейчас не смогут' : 'Друзья ушли'); return; }
-    const players = [duelMe(), ...yes], go = { t: 'go', id: d.id, k: d.kind, loc: d.loc, p: players };
+    const players = [duelMe(), ...yes], go = { t: 'go', id: d.id, k: d.kind, loc: d.loc, p: players, tr: d.tr || 0 };
     if (d.kind === 'hide') {
       const pool = players.filter((p) => p !== duelSeekerLast), from = pool.length ? pool : players; // not the same seeker twice running
       go.s = from[Math.floor(Math.random() * from.length)];
@@ -18878,6 +19579,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   function duelBegin(d) {
     const me = duelMe(), players = Array.isArray(d.p) ? d.p.map(String).filter((p, i, a) => a.indexOf(p) === i) : [], key = duelKeyOf(d.loc);
     if (players.includes(me) && key) duelGoTo(key);
+    if (duel.kind === 'race' && L.tracks) { duel.tr = clamp(d.tr | 0, 0, L.tracks.length - 1); L.course = L.tracks[duel.tr].course; }
     if (!players.includes(me) || !key || netLoc() !== d.loc || (duel.kind === 'race' && !L.course) || (duel.kind === 'tank' && !ISL.tb)
       || ((duel.kind === 'gun' || duel.kind === 'snipe') && !ISL.ft) || FT) {
       netSend(duelAct(), { t: 'quit', id: duel.id }, { target: players.filter((p) => p !== me) });
@@ -18889,7 +19591,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       Object.assign(duel, { phase: 'count', t: DUEL_COUNT + .6, tick: DUEL_COUNT + 1, rideId: duelRideFor(L.def.key), next: 0, prog: new Map(), fin: new Map(),
         runAt: 0, firstAt: 0, mountT: 0 });
       duel.rings = L.course.map((c) => {
-        const m = new T.Mesh(RACE_RING_GEO, MAT.ringDim); m.position.set(c.x, c.y, c.z); m.rotation.y = c.yaw; m.scale.setScalar(L.def.ringK || 1); L.group.add(m);
+        const m = new T.Mesh(L.def.arches ? ARCH_GEO : RACE_RING_GEO, MAT.ringDim); m.position.set(c.x, c.y, c.z); m.rotation.y = c.yaw; m.scale.setScalar(L.def.ringK || 1); L.group.add(m);
         return { x: c.x, y: c.y, z: c.z, m };
       });
       // The start line runs through the first ring. A course that comes back round to it is raced two or three times
@@ -18897,7 +19599,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       const rs = duel.rings, first = rs[0], end = rs[rs.length - 1], lap = rs.map((r, k) => k).slice(1);
       let len = Math.hypot(end.x - first.x, end.z - first.z);
       for (let k = 1; k < rs.length; k++) len += Math.hypot(rs[k].x - rs[k - 1].x, rs[k].z - rs[k - 1].z);
-      duel.laps = Math.hypot(end.x - first.x, end.z - first.z) < 25 ? clamp(Math.round(RACE_LEN / len), 2, 3) : 1;
+      duel.laps = L.tracks ? L.tracks[duel.tr].laps : Math.hypot(end.x - first.x, end.z - first.z) < 25 ? clamp(Math.round(RACE_LEN / len), 2, 3) : 1; // (a Speedway track: its own laps)
       duel.lapLen = duel.laps > 1 ? rs.length : rs.length - 1;
       duel.seq = duel.laps > 1 ? Array.from({ length: duel.laps }, () => lap.concat(0)).flat() : lap;
       rs[duel.seq[0]].m.material = MAT.ring;
@@ -19282,6 +19984,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       for (const r of d.rings) L.group.remove(r.m);
       d.rings = null;
       if (ISL.race) { resetRace(); ISL.race.hold = true; }
+      for (const m of L.cupRings) m.visible = true; // (the cup's rings and the Speedway's arches, hidden for the race)
     }
     blindEl.hidden = true;
   }
@@ -19401,7 +20104,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       head = DUEL_NAME[d.kind]; yes = 'Играю! · ' + Math.max(0, Math.ceil(d.t)); no = 'Нет';
       const w = (HUBS[duelKeyOf(d.loc)] || HUBS.island).name, here = netLoc() === d.loc;
       const dk = duelKeyOf(d.loc), fly = HUBS[dk] && HUBS[dk].dragons;
-      text = duelName(d.host) + (d.kind === 'race' ? ' зовёт на гонку по кольцам: ' + w + (fly ? '. Каждый на своём драконе.' : '. Транспорт у всех одинаковый.')
+      const cars = HUBS[dk] && HUBS[dk].cars;
+      text = duelName(d.host) + (d.kind === 'race' ? (cars ? ' зовёт на гонку: ' + w + ', трасса «' + RACE_TRACKS[d.tr || 0].name + '». Каждый на своей машине из гаража.'
+        : ' зовёт на гонку по кольцам: ' + w + (fly ? '. Каждый на своём драконе.' : '. Транспорт у всех одинаковый.'))
         : d.kind === 'tank' ? ' зовёт на танковый бой: ' + w + '. Каждому дадут танк, кто больше попадёт, тот победил.'
         : d.kind === 'gun' ? ' зовёт на дуэль: ' + w + '. У каждого своё оружие, пять нокаутов побеждают.'
         : d.kind === 'snipe' ? ' зовёт на снайперскую дуэль в ущелье: ' + w + '. У всех снайперки, пять нокаутов побеждают.' : ' зовёт играть в прятки: ' + w + '. Один водит, остальные прячутся.')
