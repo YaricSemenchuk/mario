@@ -10769,6 +10769,38 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     const slope = (r.y1 - r.y0) / (r.a1 - r.a0), k = 20 * slope / Math.sqrt(1 + slope * slope);
     if (r.axis === 'x') P.vel.x -= k * dt; else P.vel.z -= k * dt;
   }
+  // A car drives like a car, not like the hero on foot. Up and down on the stick (W and S) are the throttle and the brake,
+  // and with the car stopped the brake backs it up; left and right turn the wheel, which takes a moment to turn and to
+  // come back. The car turns only while it rolls, round a circle its wheelbase (drive) and the wheel's angle give; the
+  // wheel turns less the faster it goes, so a bend taken flat out is a wide one and a hairpin wants the brake. The tyres
+  // turn the way it goes round to the way it faces as hard as they grip: a little slide on tarmac, more on grass and on
+  // ice; in the air nothing steers it. The camera swings round behind it (updateCam).
+  const CAR_BRAKE = 26, CAR_DRAG = 3.2, CAR_REV = .4;
+  function carDrive(dt, inp, spdMax, icy) {
+    const V = P.veh, thr = inp.y, want = inp.x, f0 = P.facing;
+    let fx = Math.sin(f0), fz = Math.cos(f0), v = P.vel.x * fx + P.vel.z * fz, side = P.vel.x * fz - P.vel.z * fx;
+    const st = P.steer || 0; P.steer = st + clamp(want - st, -1, 1) * Math.min(1, (want * st < 0 || Math.abs(want) < Math.abs(st) ? 7 : 3.5) * dt);
+    if (P.onGround) {
+      const acc = V.acc * .6, top = spdMax * Math.abs(thr), rev = spdMax * CAR_REV * Math.abs(thr);
+      if (thr > .05) v = v < -.3 ? v + CAR_BRAKE * dt : v < top ? Math.min(top, v + acc * dt) : Math.max(top, v - CAR_DRAG * 2 * dt);
+      else if (thr < -.05) v = v > .3 ? v - CAR_BRAKE * dt : v > -rev ? Math.max(-rev, v - acc * .6 * dt) : Math.min(-rev, v + CAR_DRAG * 2 * dt);
+      else v = Math.sign(v) * Math.max(0, Math.abs(v) - CAR_DRAG * dt);
+      const lock = lerp(.6, .14, clamp(Math.abs(v) / 18, 0, 1)) * P.steer;
+      P.facing = wrapPi(f0 - v / V.drive * Math.tan(lock) * dt);
+    }
+    // the way it goes, seen from the way it now faces: the tyres take off some of the slide
+    const vx = fx * v + fz * side, vz = fz * v - fx * side;
+    fx = Math.sin(P.facing); fz = Math.cos(P.facing);
+    const grass = L.trackGrid && trackDist(P.pos.x, P.pos.z) > TRACK_HW + .8 && !V.rough;
+    const grip = !P.onGround ? 0 : icy ? 1.2 : grass ? 4.5 : 9;
+    // the slip angle between the two shrinks as fast as the tyres grip; a real slide (over 7 degrees) scrubs off speed
+    v = vx * fx + vz * fz; side = vx * fz - vz * fx;
+    const back = v < 0, sp = Math.hypot(v, side), b = Math.atan2(side, Math.abs(v)), b2 = b * Math.exp(-grip * dt);
+    const sp2 = sp * (1 - Math.min(.5, Math.max(0, Math.abs(b) - .12)) * 1.4 * dt);
+    v = (back ? -1 : 1) * sp2 * Math.cos(b2); side = sp2 * Math.sin(b2);
+    if (P.onGround && Math.abs(side) > 3.5 && Math.random() < dt * 25) puff(P.pos.x - fx, P.pos.y + .15, P.pos.z - fz, dustColor(), 1, .8, .5, .4, .6); // a slide raises dust
+    P.vel.x = fx * v + fz * side; P.vel.z = fz * v - fx * side;
+  }
   function updatePlayer(dt) {
     P.prevY = P.pos.y;
     P.wasGround = P.onGround;
@@ -10834,6 +10866,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (gunOn()) spdMax *= gunSpeedK(); // slower through a scope and with a spinning minigun
       if (V && P.onGround && L.trackGrid && (gpOn() || duelRacing()) && !V.rough && !V.wings && !V.fly && !V.hover && !V.glide && !V.cannon
         && trackDist(P.pos.x, P.pos.z) > TRACK_HW + .8) spdMax *= V.grass || .7; // a car in a race on the grass beside the Speedway's roads
+      if (V && V.drive && !P.swim && !P.sand && !slide) carDrive(dt, readDrive(), spdMax, icy); // a car drives like a car
+      else {
       let tx = wx, tz = wz;
       if (V && V.cannon && mag > .08) { // a tank turns on its tracks at its own pace, and drives only the way it faces
         const d = wrapPi(Math.atan2(wx, wz) - P.facing), turn = ((V.turn || TANK_TURN) + tankMod(3) * .45) * dt, k = mag * Math.max(0, Math.cos(d)), f0 = P.facing;
@@ -10851,6 +10885,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       if (slide) slidePull(dt);
       if (P.wallSlide && !gunOn()) P.facing = angleDamp(P.facing, Math.atan2(-P.wallN.x, -P.wallN.z), 18, dt);
       else if (mag > .08 && P.wallLock <= 0 && !(V && V.cannon) && !gunOn()) P.facing = angleDamp(P.facing, Math.atan2(wx, wz), V && V.pose === 'sit' ? 9 : 16, dt);
+      }
     }
 
     if (input.jumpQueued) { P.jumpBuf = .14; input.jumpQueued = false; }
@@ -12419,7 +12454,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // in turn; the places come from how many arches everyone has passed and how far on to the next one. First place brings
   // out the track's star; the first three get badges.
   const GP_RIVALS = [['Пинг', 'penguin', 1.02], ['Квак', 'frog', .99], ['Мурр', 'cat', .97], ['Фома', 'hedgehog', .95], ['Мишка', 'bear', .93]];
-  const GP_V = 14, GP_PAY = [15, 8, 4], GP_HERO = 2;
+  const GP_V = 13.6, GP_PAY = [15, 8, 4], GP_HERO = 2;
   const gpOn = () => !!ISL.gp && (ISL.gp.phase === 'count' || ISL.gp.phase === 'run');
   const gpFrozen = () => !!ISL.gp && ISL.gp.phase === 'count';
   const gpCar = () => (SAVE.car && RIDES[SAVE.car] ? SAVE.car : 'kart');
@@ -16910,16 +16945,16 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   // New ones go at the end: a friend's packet names the ride by its place in this list (RIDE_IDS).
   const RIDES = {
     scooter: { name: 'Самокат', price: 90, sub: 'Быстрый и вёрткий', spd: 11.5, acc: 34, jump: 1, air: 0, y: .22, pose: 'stand' },
-    kart: { name: 'Карт', price: 160, sub: 'Лёгкий и шустрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, seatZ: -.08, pose: 'sit', bump: true, motor: 1 },
+    kart: { name: 'Карт', price: 160, sub: 'Лёгкий и шустрый, сбивает врагов на ходу', spd: 13.5, acc: 24, jump: .82, air: 0, y: .12, seatZ: -.08, pose: 'sit', bump: true, motor: 1, drive: 1.8 },
     board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, surfs: ['snow', 'glacier', 'sand', 'canyon'], acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
     jetski: { name: 'Водный скутер', price: 140, sub: 'Мчится по воде, на суше медленный', spd: 6.5, water: 14.5, acc: 26, jump: .95, air: 0, y: .3, pose: 'sit', floats: true, motor: 1.4 },
     pogo: { name: 'Пого-палка', price: 110, sub: 'Сама прыгает и давит даже колючек', spd: 7.5, acc: 30, jump: 1.25, air: 0, y: .38, pose: 'pogo', pogo: true },
     cloud: { name: 'Облачко', price: 260, sub: 'Парит, прыгает в воздухе и не тонет', spd: 9.5, acc: 24, jump: 1.05, air: 1, y: .52, pose: 'stand', glide: true, floats: true },
-    rover: { name: 'Луноход', price: 220, sub: 'Шесть колёс: быстрый и сбивает врагов', spd: 12.5, acc: 26, jump: 1, air: 0, y: .36, pose: 'sit', bump: true, motor: .8 },
+    rover: { name: 'Луноход', price: 220, sub: 'Шесть колёс: быстрый и сбивает врагов', spd: 12.5, acc: 26, jump: 1, air: 0, y: .36, pose: 'sit', bump: true, motor: .8, drive: 1.6 },
     ski: { name: 'Лыжи', price: 130, sub: 'Самые быстрые на снегу и льду', spd: 8.5, snow: 16.5, surfs: ['snow', 'glacier'], acc: 32, jump: 1.05, air: 0, y: .08, pose: 'ski' },
     ufo: { name: 'НЛО', price: 280, sub: 'Парит над землёй и водой, лучом тянет значки', spd: 11, acc: 26, jump: 1, air: 0, y: .34, pose: 'sit', hover: true, floats: true, beam: true, motor: 3, wob: 'warble' },
     heli: { name: 'Вертолёт', price: 320, sub: 'Летает! Держи прыжок, и он поднимется', spd: 10.5, acc: 22, jump: .55, air: 0, y: .34, pose: 'sit', fly: true, floats: true, motor: 1.1, wob: 'chop' },
-    stonecar: { name: 'Каменная машина', price: 150, sub: 'Как у пещерных людей: едет, пока бегут ноги, и сбивает врагов', spd: 12, acc: 22, jump: .85, air: 0, y: .02, pose: 'flint', bump: true },
+    stonecar: { name: 'Каменная машина', price: 150, sub: 'Как у пещерных людей: едет, пока бегут ноги, и сбивает врагов', spd: 12, acc: 22, jump: .85, air: 0, y: .02, pose: 'flint', bump: true, drive: 1.9 },
     // Dragons fly for real (dragonFlight): the stick steers and tips the nose up and down, the jump beats the wings, the
     // action button breathes. On the ground they walk. Their wings: speed when cruising and at most, how fast they turn
     // and climb, and what they breathe
@@ -16940,11 +16975,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       pose: 'hatch', cannon: true, bump: true, hw: 1.3, hull: [BIG_TANKS.kv44.hw * BIG_TANKS.kv44.sc, BIG_TANKS.kv44.hd * BIG_TANKS.kv44.sc], turn: 1.9,
       seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread', launchers: true },
     // the Speedway's race cars (CARS): a roadster; a formula car, the quickest on the tarmac but slowest on the grass
-    // beside it in a race (grass: its speed there); a monster truck that jumps high and minds no grass (rough)
-    sport: { name: 'Спорткар', price: 240, sub: 'Быстрый и красивый, сбивает врагов на ходу', spd: 15.5, acc: 26, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2 },
-    f1: { name: 'Болид', price: 350, sub: 'Самый быстрый на асфальте, но на траве вязнет', spd: 17, acc: 30, jump: .6, air: 0, y: .1, seatZ: -.1, pose: 'sit', bump: true, motor: 1.6, grass: .55 },
+    // beside it in a race (grass: its speed there); a monster truck that jumps high and minds no grass (rough). The cars
+    // drive like cars (carDrive): drive is the wheelbase their turns are worked out from
+    sport: { name: 'Спорткар', price: 240, sub: 'Быстрый и красивый, сбивает врагов на ходу', spd: 15.5, acc: 26, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2,
+      drive: 2.1 },
+    f1: { name: 'Болид', price: 350, sub: 'Самый быстрый на асфальте, но на траве вязнет', spd: 17, acc: 30, jump: .6, air: 0, y: .1, seatZ: -.1, pose: 'sit', bump: true, motor: 1.6, grass: .55,
+      drive: 2.3 },
     monster: { name: 'Монстр-трак', price: 300, sub: 'Колёса выше тебя! Высоко прыгает и не вязнет на траве', spd: 13.5, acc: 22, jump: 1.3, air: 0, y: 1.25, seatZ: -.3, pose: 'sit', bump: true,
-      motor: .7, hw: .75, rough: true },
+      motor: .7, hw: .75, rough: true, drive: 2.3 },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -17353,7 +17391,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       setTimeout(() => toast('Гранатомёт и ракетница!', isTouch ? 'Кнопки «Гранаты» и «Ракеты» рядом с красной' : 'Клавиша C — гранатомёт, R — ракетница, F — залп'), 1400);
     }
     if (P.swim) { const wy = waterAt(P.pos.x, P.pos.z); P.swim = false; P.dive = false; if (wy !== null) P.pos.y = wy; }
-    P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.wallSlide = false; P.wallT = 0; P.skidT = 0; P.airJumps = def.air;
+    P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.wallSlide = false; P.wallT = 0; P.skidT = 0; P.airJumps = def.air; P.steer = 0;
+    if (def.drive && !G.driveHint) {
+      G.driveHint = true;
+      setTimeout(() => toast('Рули как в гонках!', isTouch ? 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль' : 'W газ, S тормоз и назад, A и D руль'), 1200);
+    }
     rideGroup(P.vehId).visible = true;
     Snd.sfx.mount(); puff(P.pos.x, P.pos.y + .3, P.pos.z, 0xffffff, 8, 2, .6, .5, 1); emit(P.pos.x, P.pos.y + .6, P.pos.z, 0xffe07a, 14, 3, 1, 4, .5);
     popup(P.rent ? def.name + ' напрокат!' : def.name + '!', P.pos.x, P.pos.y + 2.8, P.pos.z, 'gold'); P.happyT = .8;
@@ -18216,6 +18258,10 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
       cam.yaw = angleDamp(cam.yaw, wrapPi(P.facing - Math.PI), 2.4, dt); cam.yawGoal = null;
       cam.pitch = damp(cam.pitch, clamp(.24 - P.flyPitch * .45, .05, .75), 2, dt);
     }
+    if (P.veh && P.veh.drive && !snap && drag === null && look.id === null && !keys.has('KeyQ') && !keys.has('KeyE') && G.state === 'playing') {
+      const sp = Math.hypot(P.vel.x, P.vel.z);
+      cam.yaw = angleDamp(cam.yaw, wrapPi(P.facing - Math.PI), 1 + clamp(sp / 6, 0, 1) * 3, dt); cam.yawGoal = null;
+    }
     const holdY = G.state === 'dying' && G.dieKind === 'fall';
     const ty = holdY ? cam.ty : P.pos.y + (P.veh && P.veh.wings ? .9 : P.veh && P.veh.cannon ? (P.veh.hull ? 1.3 : .4) : 0);
     if (snap) { cam.tx = P.pos.x; cam.ty = ty; cam.tz = P.pos.z; cam.dist = cam.distGoal; }
@@ -18602,6 +18648,14 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (stick.id !== null) { x = stick.x; y = stick.y; }
     const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
     return { x, y };
+  }
+  // a car's pedals and wheel, read apart: on the keys each is all or nothing (the throttle stays down while turning),
+  // on the touch stick a push two thirds of the way is already full
+  function readDrive() {
+    if (holdStill()) return { x: 0, y: 0 };
+    if (stick.id !== null) return { x: clamp(stick.x / .7, -1, 1), y: clamp(stick.y / .7, -1, 1) };
+    const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
+    return { x: k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft'), y: k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') };
   }
   addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLInputElement) { if (e.code === 'Escape') e.target.blur(); return; } // typing a name or a room code
