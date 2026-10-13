@@ -339,7 +339,11 @@ the minigun's rattle), and under the water every sound is muffled.
     brake (held at a stop, reverse), A and D turn the wheel, and Shift is the handbrake that throws the car into a
     drift. On a phone a car has buttons of its own: two arrows for the wheel under the left thumb (anywhere on the left
     half steers to the side of the arrow it is nearer), and gas, brake and drift under the right one, which slides from
-    one to the next without lifting; the drift button is the handbrake with the throttle down, as W with Shift. Each has its own top speed, pull and grip from the real
+    one to the next without lifting; the drift button is the handbrake with the throttle down, as W with Shift.
+    Every car has nitro (N, or the blue pedal over the gas): held, it burns a bottle in 2.6 seconds with flames out of the
+    exhaust, the engine gives 1.9 times its power and the car runs about a sixth past its top speed. The bottle fills by
+    itself in 18 seconds and faster in a drift; the speedometer shows how full it is. The folk of the grand prix have
+    nitro too and burn it on the straights. Each has its own top speed, pull and grip from the real
     car: an all-wheel-drive Lamborghini or GT-R hooks up and corners flat, a rear-driven Challenger, Camaro, RX-7 or
     AE86 steps its tail out under power and drifts, the kart and the formula car grip hardest. The tyres hold about twice
     their real grip (the tracks and the folk of the grand prix want quick cornering), the wheel turns less at speed and
@@ -354,7 +358,7 @@ the minigun's rattle), and under the water every sound is muffled.
     stars, tiger, camouflage) in eight colours and a racing number on the doors, any other car's wheels and nine rim
     colours, and parts: three spoilers, a hood scoop or a blower, twin, quad or fire-spitting exhausts (flames at each
     change up), a sports kit, a police light bar, a roof rack, a taxi sign or a spotlight bar, a lowered or lifted stance
-    and neon underneath. Only the car's paint takes the colour and the stickers (the glass, lights and trim stay as they
+    and neon underneath, and the nitro flame's colour. Only the car's paint takes the colour and the stickers (the glass, lights and trim stay as they
     are): each car's model has its body split into the paint and the rest by the car's own colour (`car.paint`), the
     stickers are drawn on a canvas and laid on in the shader from the side and from above, and the parts are placed by
     rays cast at the body. A car's tuning is a short code kept in the save and sent to the friends, who see our cars as we
@@ -437,10 +441,10 @@ the minigun's rattle), and under the water every sound is muffled.
 - Lira: a fairy who flies out of every castle and thanks the hero in the last one
 - Collectibles are the Promobile mark
 - Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera; in a car, arrows for
-  the wheel on the left and gas, brake and drift on the right);
+  the wheel on the left and gas, brake, drift and nitro on the right);
   on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun; on a KV-44,
   a salvo, with C for its grenade launcher and R for its rockets), mouse drag or Q/E for the
-  camera, V for a ride, G to wave to friends, X for the guns in any world; with the guns a click to aim with the mouse, the
+  camera, V for a ride, N for a car's nitro, G to wave to friends, X for the guns in any world; with the guns a click to aim with the mouse, the
   left button to fire, the right one or C for the scope, 1–4 or the wheel for a slot, R to reload
 
 ## Play

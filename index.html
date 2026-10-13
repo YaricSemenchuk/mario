@@ -90,6 +90,10 @@
   #speedo b { font: 900 34px/1 var(--ui); font-variant-numeric: tabular-nums; min-width: 2.4ch; text-align: right; }
   #speedo span { font: 800 12px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
   #speedo i { font: 900 15px/1 var(--ui); font-style: normal; color: var(--gold); margin-left: 4px; }
+  /* the nitro bottle: how full it is, glowing while it burns */
+  #spdN { align-self: center; width: 46px; height: 9px; margin-left: 6px; border-radius: 5px; background: rgba(28, 30, 59, .55); border: 2px solid var(--ink); overflow: hidden; }
+  #spdN b { display: block; height: 100%; background: linear-gradient(90deg, #4fa8ff, #9fe8ff); transform-origin: left center; }
+  #spdN.on { box-shadow: 0 0 10px #4fa8ff; }
   /* on a phone the car fills the middle of the screen and the wheel and pedals the bottom: the speed goes up top, in
      the HUD's row when it is wide enough and under it otherwise */
   body.touch #speedo { top: calc(env(safe-area-inset-top, 0px) + 60px); bottom: auto; }
@@ -172,16 +176,24 @@
     width: var(--b); height: calc(var(--b) * .86); background: rgba(143, 211, 255, .95);
   }
   #cpDrift.on { background: #d2edff; }
+  /* the nitro pedal over the gas: blue, darkened from the top as the bottle empties (--n is how full it is) */
+  #cpNitro {
+    right: calc(env(safe-area-inset-right, 0px) + var(--m)); bottom: calc(var(--y) + var(--g) * 1.36 + 12px); width: var(--g); height: calc(var(--b) * .86);
+    --n: 1; background: linear-gradient(to bottom, rgba(28, 30, 59, .5) calc((1 - var(--n)) * 100%), transparent 0), rgba(79, 168, 255, .95);
+  }
+  #cpNitro.on { background: linear-gradient(to bottom, rgba(28, 30, 59, .5) calc((1 - var(--n)) * 100%), transparent 0), #9fd8ff; }
   /* the action button is the drift now and the camera follows the car by itself; the jump stays, small, over the gas */
   body.car-pad #stickBase, body.car-pad #btnAct, body.car-pad #btnCam { display: none; }
   body.car-pad #btnJump {
-    width: 62px; height: 62px; right: calc(env(safe-area-inset-right, 0px) + var(--m) + (var(--g) - 62px) / 2);
-    bottom: calc(var(--y) + var(--g) * 1.36 + 14px); font-size: 8px; letter-spacing: .04em;
+    width: 62px; height: 62px; right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + 12px + (var(--b) - 62px) / 2);
+    bottom: calc(var(--y) + var(--b) * 1.86 + 26px); font-size: 8px; letter-spacing: .04em;
   }
   body.car-pad #btnJump svg { width: 20px; height: 20px; }
   body.car-pad #btnWave {
-    right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + 12px + (var(--b) - 50px) / 2);
-    bottom: calc(var(--y) + var(--b) * 1.86 + 26px);
+    right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + var(--b) + 26px); bottom: calc(var(--y) + (var(--b) - 50px) / 2);
+  }
+  @media (orientation: portrait) { /* (a narrow phone's arrows reach the brake's side: the wave goes over the jump) */
+    body.car-pad #btnWave { right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + 12px + (var(--b) - 50px) / 2); bottom: calc(var(--y) + var(--b) * 1.86 + 100px); }
   }
 
   /* ---------- the Duel Arena: the crosshair, the sniper's scope, the hit mark, the gun bar, the duel's panel ---------- */
@@ -712,7 +724,7 @@
     </button>
   </div>
   <div id="track" role="status" hidden><small></small><span></span></div>
-  <div id="speedo" hidden><b id="spdK">0</b><span>км/ч</span><i id="spdG">1</i></div>
+  <div id="speedo" hidden><b id="spdK">0</b><span>км/ч</span><i id="spdG">1</i><span id="spdN" aria-label="Нитро"><b></b></span></div>
 </header>
 
 <div id="touch" hidden>
@@ -728,6 +740,10 @@
     <button class="cp" id="cpBrake" data-k="brake" type="button" aria-label="Тормоз и задний ход">
       <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 18.5 4.5 7.5h15z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
       <span>ТОРМОЗ</span>
+    </button>
+    <button class="cp" id="cpNitro" data-k="nitro" type="button" aria-label="Нитро">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M9.5 3.5h5M10.5 3.5v3.2a5.2 5.2 0 0 0-3.2 4.8v7.3a1.8 1.8 0 0 0 1.8 1.8h5.8a1.8 1.8 0 0 0 1.8-1.8v-7.3a5.2 5.2 0 0 0-3.2-4.8V3.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.6 10.5 10 15h3l-1.4 3.8 3.4-5.2h-3z" fill="currentColor"/></svg>
+      <span>НИТРО</span>
     </button>
     <button class="cp" id="cpGas" data-k="gas" type="button" aria-label="Газ">
       <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true"><path d="M12 5.5 19.5 16.5h-15z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
@@ -9473,6 +9489,7 @@ import * as THREE from 'three';
       'Солнечное кольцо прямо на севере, Восьмёрка на востоке, Лесная трасса на западе. Иди по асфальтовой дорожке.',
       'Проезжай в арки по порядку: следующая горит жёлтым, стрелка над тобой показывает к ней.',
       'Хочешь свою машину покрасить или поставить спойлер? Мастер Гайка у восточной дороги делает тюнинг бесплатно.',
+      'Нитро — синяя кнопка над газом или клавиша N: машина рвётся вперёд с пламенем из выхлопа. Баллон заправляется сам, а в заносе быстрее. У гонщиков Гран-при нитро тоже есть!',
       'Понравилась машина? Кот Турбо в лавке продаёт её насовсем, тогда она поедет с тобой в любой мир.',
       'С друзьями тут гоняют на зелёных ковриках у стартов: все из комнаты едут вместе, каждый на своей машине.',
     ]);
@@ -9494,6 +9511,7 @@ import * as THREE from 'three';
       'Встань на жёлтый коврик, и я покажу машину на подъёмнике. Покрасим, наклеим пламя или номер, поставим спойлер, новые диски, неон.',
       'У каждой машины свой тюнинг. Сделаешь Ferrari синей, а Lamborghini с полосами, и каждая такой и останется.',
       'Друзья в комнате видят твою машину такой, какой ты её сделал. Мигалку на крыше тоже!',
+      'А пламя нитро можно сделать розовым, зелёным или огненным. Это в «Запчастях», в самом низу.',
       'Тюнинг есть и в паузе, в любом мире: кнопка «Тюнинг машин».',
     ], { yaw: -Math.PI / 2 });
     B.sign(-8, 0, 30.5, ['Солнечное', 'кольцо']); B.sign(36, 0, 7.5, ['Восьмёрка', 'на восток →']); B.sign(-36, 0, 7.5, ['← Лесная', 'трасса']);
@@ -10057,6 +10075,7 @@ import * as THREE from 'three';
   function oneUp() { P.happyT = .9; G.lives++; Snd.sfx.oneUp(); popup('+1 ЖИЗНЬ', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); }
   function jumpHeld() { return JUMP_KEYS.some((k) => keys.has(k)) || touchJump.held; }
   function actHeld() { return ACT_KEYS.some((k) => keys.has(k)) || touchAct.id !== null || pad.held.has('drift'); }
+  function nitroHeld() { return keys.has('KeyN') || pad.held.has('nitro'); } // a car's nitro: N, or its pedal
   const dustColor = () => (THEME_FX[P.ground && P.ground.surf] || THEME_FX[L.theme.ground]).dust;
 
   function onLand(s) {
@@ -12758,7 +12777,7 @@ import * as THREE from 'three';
     if (ISL.race && ISL.race.on) resetRace();
     const me = gpGrid(trk, GP_HERO);
     G.state = 'playing';
-    placePlayer(me, me.face); mountCar(mine);
+    placePlayer(me, me.face); mountCar(mine); P.nitro = 1;
     gpLights(trk, 0); updateCam(0, true); updateRideBtn();
     Snd.startMusic('race'); toast('Гран-при «' + trk.name + '»', laps + ' ' + plural(laps, 'круг', 'круга', 'кругов') + ' по аркам. Жди зелёный!');
   }
@@ -12849,7 +12868,12 @@ import * as THREE from 'three';
       const dl = clamp(r.laneGoal - r.lane, -2.4 * dt, 2.4 * dt); r.lane += dl;
       // how fast: the bend ahead, the rubber band, a burst off the line
       const lead = r.done ? 0 : gpProgS(trk, C, r.s) - me, bendV = trk.vmax[trackAt(trk, r.s + 4).i] * (.94 + r.pace * .06) * C.k;
-      const want = r.done ? 8 : Math.min(bendV, GP_V * C.k * r.pace * clamp(1 - lead * .06, .82, 1.15) * (1 + Math.sin(time * .5 + r.seed) * .03));
+      // their nitro: a full bottle burnt now and then on a straight, filled again as the hero's fills
+      if (r.nos === undefined) { r.nos = 1; r.burn = 0; }
+      if (r.burn > 0) r.burn -= dt; else r.nos = Math.min(1, r.nos + dt * NITRO_FILL);
+      if (!r.done && r.burn <= 0 && r.nos >= 1 && trk.vmax[trackAt(trk, r.s + 14).i] >= 29.5 && bendV >= 28 * C.k && Math.random() < dt * .5) { r.burn = 1 / NITRO_BURN; r.nos = 0; }
+      const nos = r.burn > 0 ? 1.25 : 1;
+      const want = r.done ? 8 : Math.min(bendV, GP_V * C.k * r.pace * nos * clamp(1 - lead * .06, .82, 1.15) * (1 + Math.sin(time * .5 + r.seed) * .03));
       r.spd = damp(r.spd, want, r.spd < want ? 1.1 : 2.6, dt);
       r.s += r.spd * dt;
       const p = trackAt(trk, r.s), x = p.x + p.nx * r.lane, z = p.z + p.nz * r.lane;
@@ -12860,6 +12884,7 @@ import * as THREE from 'three';
       r.g.position.set(x, r.y, z);
       r.g.rotation.set(air ? -.12 : -Math.atan(rise / 4), p.yaw + dl / Math.max(dt, 1e-4) * .06, 0);
       spinRide(r.g, dt, 1);
+      if (r.burn > 0) nitroFlames(r.g, dt);
       if (!air && r.spd > 6 && Math.random() < dt * 5) puff(x - p.tx * 1.4, r.y + .15, z - p.tz * 1.4, 0xd8d8e0, 1, .6, .4, .4, .5);
       if (!r.done && r.s >= total) { r.done = Math.max(1, Math.round(now - C.runAt)); if (!C.firstAt) C.firstAt = now; netNote(r.name + ' на финише: ' + fmtT(r.done)); }
     }
@@ -17568,11 +17593,13 @@ import * as THREE from 'three';
   const TUNE_RIDE = ['Заводская', 'Низкая', 'Высокая'];
   const TUNE_NEON = [['Нет', null], ['Синий', 0x2f8bff], ['Розовый', 0xff3fb0], ['Зелёный', 0x3fff6a], ['Фиолетовый', 0x9a4aff], ['Красный', 0xff3030],
     ['Белый', 0xffffff]];
+  const TUNE_NOS = [['Синее', 0x3fa8ff, 0x9fe8ff], ['Розовое', 0xff4fd0, 0xffc2ee], ['Зелёное', 0x3fff6a, 0xd2ffc0], ['Фиолетовое', 0x9a4aff, 0xdcc4ff],
+    ['Огненное', 0xff7a1a, 0xffe07a]]; // the nitro's flame: its colour and its core
   const CAR_IDS = Object.keys(RIDES).filter((id) => RIDES[id].car); // every real car, in the shop's order (new ones go at the end)
   // the code's fields in order and how many choices each has (w: the factory's wheels, or those of another car)
   const TUNE_F = [['p', TUNE_PAINT.length], ['f', TUNE_FINISH.length], ['d', TUNE_DECAL.length], ['c', TUNE_INK.length], ['n', TUNE_NUM.length],
     ['w', CAR_IDS.length + 1], ['r', TUNE_RIM.length], ['s', TUNE_SPOILER.length], ['h', TUNE_HOOD.length], ['e', TUNE_PIPES.length],
-    ['k', TUNE_KIT.length], ['t', TUNE_ROOF.length], ['y', TUNE_RIDE.length], ['g', TUNE_NEON.length]];
+    ['k', TUNE_KIT.length], ['t', TUNE_ROOF.length], ['y', TUNE_RIDE.length], ['g', TUNE_NEON.length], ['x', TUNE_NOS.length]]; // (new fields at the end: old codes stay good)
   function tuneOf(code) {
     const t = {}; code = typeof code === 'string' ? code : '';
     TUNE_F.forEach(([k, n], i) => { const v = parseInt(code[i] || '0', 36); t[k] = v > 0 && v < n ? v : 0; });
@@ -17870,8 +17897,11 @@ import * as THREE from 'three';
     }
     carParts(body, lib, t, u.paint || lib.mat, u);
     g.add(body); u.body = body;
+    const o = lib.out; // where the nitro flames come out: the pipes, or under the back
+    u.tail = u.pipes.length ? u.pipes : [-.2, .2].map((k) => new T.Vector3(o.cx + k * o.W, o.low(o.box.min.z + o.L * .06) + .15 + body.position.y, o.box.min.z - .05));
+    u.nos = TUNE_NOS[t.x];
     if (t.g) {
-      const o = lib.out, nm = neonMat(t.g); u.neon = new T.Mesh(neonGeo, nm);
+      const nm = neonMat(t.g); u.neon = new T.Mesh(neonGeo, nm);
       u.neon.rotation.x = -Math.PI / 2; u.neon.position.set(o.cx, .05, (o.box.min.z + o.box.max.z) / 2); u.neon.scale.set(o.W * 1.35, o.L * 1.15, 1); u.neon.renderOrder = 2;
       g.add(u.neon);
     }
@@ -17902,6 +17932,15 @@ import * as THREE from 'three';
     const s = performance.now() / 1000, on = Math.floor(s * 6) % 4 < 2;
     SIREN[0].emissiveIntensity = on ? 2.6 : .12; SIREN[1].emissiveIntensity = on ? .12 : 2.6;
     for (const m of NEON_MATS) if (m) m.opacity = .6 + Math.sin(s * 3) * .18;
+  }
+  // blue flames out of a car's tail (its pipes, or under the middle of its back) while its nitro burns, in the colour its
+  // tuning picked
+  function nitroFlames(g, dt) {
+    const u = g.userData; if (!u.tail) return;
+    for (const p of u.tail) if (Math.random() < dt * 45) {
+      _tc.copy(p); g.localToWorld(_tc);
+      glow(_tc.x, _tc.y, _tc.z, u.nos[1], 1, .8, .1, 0, .17, .32); glow(_tc.x, _tc.y, _tc.z, u.nos[2], 1, .4, .1, 0, .1, .18);
+    }
   }
   // flames out of the fiery exhaust at each change up and when the throttle comes off high
   function carPops() {
@@ -17998,7 +18037,8 @@ import * as THREE from 'three';
       const part = (title, k, list) => { const r = sec(title); list.forEach((name, i) => pick(r, k, i, name, null, 'clang')); };
       part('Спойлер', 's', TUNE_SPOILER); part('Капот', 'h', TUNE_HOOD); part('Выхлоп', 'e', TUNE_PIPES); part('Обвес', 'k', TUNE_KIT);
       part('На крыше', 't', TUNE_ROOF); part('Посадка', 'y', TUNE_RIDE);
-      const r = sec('Неон под машиной'); pick(r, 'g', 0, 'Нет'); TUNE_NEON.forEach(([name, col], i) => { if (i) pick(r, 'g', i, name, hexCss(col), 'pop'); });
+      let r = sec('Неон под машиной'); pick(r, 'g', 0, 'Нет'); TUNE_NEON.forEach(([name, col], i) => { if (i) pick(r, 'g', i, name, hexCss(col), 'pop'); });
+      r = sec('Пламя нитро · ' + TUNE_NOS[t.x][0].toLowerCase()); TUNE_NOS.forEach(([name, col, core], i) => pick(r, 'x', i, name, 'radial-gradient(circle, ' + hexCss(core) + ' 25%, ' + hexCss(col) + ' 70%)', 'pop'));
     }
     box.scrollTop = keep;
   }
@@ -18044,17 +18084,30 @@ import * as THREE from 'three';
   // the folk of the grand prix take their bends at nearly 3 g, so every car grips twice its real grip (the cars keep
   // their order and character among themselves)
   const G0 = 9.8, CAR_GRIP = 2;
+  // nitro: a full bottle burns in 2.6 s, fills by itself in 18 s, and a drift fills it faster; while it burns the engine
+  // gives 1.9 times its power (so a car runs about a quarter past its top speed) and pulls half as hard again off the line
+  const NITRO_BURN = 1 / 2.6, NITRO_FILL = 1 / 18, NITRO_DRIFT = .3;
+  function carNitro(dt) {
+    if (P.nitro === undefined) P.nitro = 1;
+    const on = nitroHeld() && !holdStill() && P.nitro > (P.nitroOn ? 0 : .15); // (a little in the bottle to light it)
+    if (on && !P.nitroOn) { Snd.sfx.zoom(); G.kick = Math.max(G.kick, .9); }
+    P.nitroOn = on;
+    P.nitro = clamp(P.nitro + dt * (on ? -NITRO_BURN : NITRO_FILL), 0, 1);
+    if (on) G.kick = Math.max(G.kick, .5); // the view widens while it lasts
+    return on;
+  }
   // how far the front wheels turn: a lot when slow, less at speed, and at speed no more than asks the tyres for their
   // grip (over is how far past it: the drift cars a good way, so a flick of the wheel steps their tail out)
   const carLock = (C, wb, mu, au) => Math.min(lerp(.6, .1, clamp(au / 26, 0, 1)), au > 3 ? Math.atan(wb * mu * G0 * (C.over || 1.1) / (au * au)) : .6);
   function carSim(dt, inp, spdMax, icy) {
     const V = P.veh, C = V.car, wb = V.drive, a = wb * .5, b = wb - a, Iz = a * b * 1.1;
-    const thr = inp.y, want = inp.x, hb = actHeld() && P.onGround;
+    const nos = carNitro(dt), thr = nos && inp.y > -.05 ? 1 : inp.y, want = inp.x, hb = actHeld() && P.onGround; // (nitro keeps the throttle down)
     const st = P.steer || 0; P.steer = st + clamp(want - st, -1, 1) * Math.min(1, (want * st < 0 || Math.abs(want) < Math.abs(st) ? 7 : 3.5) * dt);
     let f = P.facing, u = P.vel.x * Math.sin(f) + P.vel.z * Math.cos(f), w = P.vel.x * Math.cos(f) - P.vel.z * Math.sin(f), r = P.yawRate || 0;
     const off = L.trackGrid && trackDist(P.pos.x, P.pos.z) > TRACK_HW + .8 && !V.rough;
     const mu = (C.mu || 1) * CAR_GRIP * (icy ? .2 : off ? .7 : 1), Nf = G0 * b / wb, Nr = G0 * a / wb;
     const top = V.spd, pw = C.a0 * top * .36, kd = pw / (top * top * top); // the power, and the air that holds it at its top speed
+    const pwN = pw * (nos ? 1.9 : 1), a0N = C.a0 * (nos ? 1.5 : 1);
     const gears = C.gears || 6, gi = P.gear || 0;
     const n = 4, h = dt / n;
     let slip = 0;
@@ -18064,7 +18117,7 @@ import * as THREE from 'three';
       // the pull is the engine's, up to what the driven tyres hold (the rest is wheelspin): all-wheel drive gets away best
       const rear = C.dt === 'fwd' ? 0 : C.dt === 'awd' ? .5 : 1, hold = mu * (C.dt === 'awd' ? G0 : C.dt === 'fwd' ? Nf : Nr + G0 * .12) * 1.25;
       let fx = 0;
-      if (thr > .05) fx = u < -.5 ? mu * G0 * .9 * thr : Math.min(C.a0 * .85, pw / Math.max(u, 2), hold) * thr * (P.shiftT > 0 ? .35 : 1);
+      if (thr > .05) fx = u < -.5 ? mu * G0 * .9 * thr : Math.min(a0N * .85, pwN / Math.max(u, 2), hold) * thr * (P.shiftT > 0 ? .35 : 1);
       else if (thr < -.05) fx = u > .5 ? -mu * G0 * .9 * -thr : u > -top * .35 ? -Math.min(C.a0 * .6, 6) * -thr : 0;
       else fx = -Math.sign(u) * Math.min(au / h, .9); // the engine holds it back a little when the throttle is off
       fx -= kd * u * au + Math.sign(u) * .25; // the air and the tyres rolling
@@ -18108,7 +18161,8 @@ import * as THREE from 'three';
     P.shiftT -= dt;
     if (P.thrW > .5 && thr < .05 && P.rpm > .6 && P.onGround && !C.electric) carPops(); // (and a bang when the throttle comes off high)
     P.thrW = thr;
-    P.rpm = damp(P.rpm || .15, clamp(Math.max(rpm, thr > .05 ? .25 : .12) + (P.onGround ? 0 : .25 * Math.max(0, thr)), 0, 1.08), 12, dt);
+    P.rpm = damp(P.rpm || .15, clamp(Math.max(rpm, thr > .05 ? .25 : .12) + (P.onGround ? 0 : .25 * Math.max(0, thr)) + (nos ? .12 : 0), 0, 1.08), 12, dt);
+    if (slip > .16 && Math.abs(u) > 6 && P.onGround && !nos) P.nitro = Math.min(1, P.nitro + dt * NITRO_DRIFT); // a drift fills the bottle
     // tyre smoke and a squeal when they slide; wheelspin off the line throws it up too
     P.slipT -= dt;
     const spin = P.onGround && thr > .5 && Math.abs(u) < 7 && C.a0 > mu * (C.dt === 'awd' ? G0 : C.dt === 'fwd' ? Nf : Nr + G0 * .12) * .6;
@@ -18121,8 +18175,8 @@ import * as THREE from 'three';
     }
   }
   // the speedometer: the car's real top speed at the top of the game's, and the gear
-  const speedoEl = $('speedo'), spdK = $('spdK'), spdG = $('spdG');
-  let speedoOn = false;
+  const speedoEl = $('speedo'), spdK = $('spdK'), spdG = $('spdG'), spdN = $('spdN'), spdNb = spdN.firstChild, cpNitro = $('cpNitro');
+  let speedoOn = false, spdNk = -1;
   function updateSpeedo() {
     const on = !!(P.veh && P.veh.car && !hudEl.hidden && G.state === 'playing');
     if (on !== speedoOn) { speedoOn = on; speedoEl.hidden = !on; }
@@ -18131,6 +18185,11 @@ import * as THREE from 'three';
     const gt = u < -.5 ? 'R' : P.veh.car.electric || (P.veh.car.gears || 6) === 1 ? 'D' : String((P.gear || 0) + 1);
     if (spdK.textContent !== String(kmh)) spdK.textContent = kmh;
     if (spdG.textContent !== gt) spdG.textContent = gt;
+    const nk = Math.round((P.nitro === undefined ? 1 : P.nitro) * 40) / 40 + (P.nitroOn ? 2 : 0);
+    if (nk !== spdNk) {
+      spdNk = nk; const n = nk % 2;
+      spdNb.style.transform = 'scaleX(' + n + ')'; spdN.classList.toggle('on', !!P.nitroOn); cpNitro.style.setProperty('--n', n);
+    }
   }
 
   function rideModel(id) {
@@ -18322,8 +18381,8 @@ import * as THREE from 'three';
     Object.assign(P, { yawRate: 0, gear: 0, shiftT: 0, rpm: .15, carDelta: 0, slipT: 0 });
     if (def.drive && !G.driveHint) {
       G.driveHint = true;
-      setTimeout(() => toast('Рули как в гонках!', isTouch ? (def.car ? 'Стрелки слева — руль. Справа газ, тормоз (он же назад) и дрифт' : 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль')
-        : 'W газ, S тормоз и назад, A и D руль' + (def.car ? ', Shift ручник' : '')), 1200);
+      setTimeout(() => toast('Рули как в гонках!', isTouch ? (def.car ? 'Стрелки слева — руль. Справа газ, тормоз (он же назад), дрифт и нитро' : 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль')
+        : 'W газ, S тормоз и назад, A и D руль' + (def.car ? ', Shift ручник, N нитро' : '')), 1200);
     }
     rideGroup(P.vehId).visible = true;
     Snd.sfx.mount(); puff(P.pos.x, P.pos.y + .3, P.pos.z, 0xffffff, 8, 2, .6, .5, 1); emit(P.pos.x, P.pos.y + .6, P.pos.z, 0xffe07a, 14, 3, 1, 4, .5);
@@ -18375,7 +18434,7 @@ import * as THREE from 'three';
     g.rotation.y = P.facing + spinAngle();
     const lean = clamp(spd / 12, 0, 1);
     g.rotation.x = id === 'pogo' ? lean * .25 : P.veh.car || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
-    if (P.veh.car) { g.userData.delta = P.carDelta || 0; carTune(g, myTune(id)); }
+    if (P.veh.car) { g.userData.delta = P.carDelta || 0; carTune(g, myTune(id)); if (P.nitroOn) nitroFlames(g, dt); }
     g.rotation.z = id === 'scooter' || id === 'board' || id === 'ski' ? Math.sin(time * 2) * .02 * lean : 0;
     if (id === 'pogo') { const sq = P.onGround ? .8 : clamp(1 + P.vel.y * .01, .9, 1.08); g.scale.set(1, sq, 1); }
     g.position.y += rideBob();
@@ -19569,7 +19628,7 @@ import * as THREE from 'three';
   const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const look = { id: null, x: 0, y: 0 };
   // a car's buttons on a phone: st the left thumbs on the wheel (pointer → -1 or 1), ped the right ones on the pedals
-  // (pointer → gas, brake, drift), held the pedals down
+  // (pointer → gas, brake, drift, nitro), held the pedals down
   const pad = { on: false, st: new Map(), ped: new Map(), held: new Set() };
   let isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
   if (isTouch) document.body.classList.add('touch');
@@ -19591,7 +19650,7 @@ import * as THREE from 'three';
     if (holdStill()) return { x: 0, y: 0 };
     // the car's buttons: the thumb last put on the wheel steers; the brake wins over the gas, and the drift is the
     // handbrake with the throttle down (W with Shift on the keys)
-    if (pad.on) return { x: pad.st.size ? [...pad.st.values()].pop() : 0, y: pad.held.has('brake') ? -1 : pad.held.has('gas') || pad.held.has('drift') ? 1 : 0 };
+    if (pad.on) return { x: pad.st.size ? [...pad.st.values()].pop() : 0, y: pad.held.has('brake') ? -1 : pad.held.has('gas') || pad.held.has('drift') || pad.held.has('nitro') ? 1 : 0 };
     if (stick.id !== null) return { x: clamp(stick.x / .7, -1, 1), y: clamp(stick.y / .7, -1, 1) };
     const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
     return { x: k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft'), y: k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') };
@@ -19728,7 +19787,7 @@ import * as THREE from 'three';
 
   // in a car on a phone: anywhere on the left half steers, to the side of the line between the two arrows the thumb is
   // on; the right thumb has the pedals and slides from one to the next without lifting (gas to drift and back)
-  const carPadEl = $('carPad'), cpL = $('cpL'), cpR = $('cpR'), cpPedals = [$('cpGas'), $('cpBrake'), $('cpDrift')];
+  const carPadEl = $('carPad'), cpL = $('cpL'), cpR = $('cpR'), cpPedals = [$('cpGas'), $('cpBrake'), $('cpDrift'), $('cpNitro')];
   function padSteer(e) {
     const mid = (cpL.getBoundingClientRect().right + cpR.getBoundingClientRect().left) / 2, k = e.clientX < mid ? -1 : 1;
     if (pad.st.get(e.pointerId) !== k) { pad.st.delete(e.pointerId); pad.st.set(e.pointerId, k); padShow(); }
@@ -19784,8 +19843,8 @@ import * as THREE from 'three';
   function updateHowto() {
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
-      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['В машине', ' — стрелки слева рулят, справа газ, тормоз (он же задний ход) и дрифт. '], ['«Оружие» внизу', ' — оружие в любом мире: свайп целится, красная стреляет, «Прицел» — оптика, ✋ — убрать.']]
-      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['X', ' — достать или убрать оружие в любом мире (на Дуэльной арене оно всегда в руках). '], ['С оружием', ' клик — целиться мышью, левая кнопка — огонь, правая или C — прицел, 1–4 — оружие, R — перезарядка. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
+      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['В машине', ' — стрелки слева рулят, справа газ, тормоз (он же задний ход), дрифт и нитро. '], ['«Оружие» внизу', ' — оружие в любом мире: свайп целится, красная стреляет, «Прицел» — оптика, ✋ — убрать.']]
+      : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['В машине', ' Shift — ручник, N — нитро. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['X', ' — достать или убрать оружие в любом мире (на Дуэльной арене оно всегда в руках). '], ['С оружием', ' клик — целиться мышью, левая кнопка — огонь, правая или C — прицел, 1–4 — оружие, R — перезарядка. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
 
@@ -19969,7 +20028,7 @@ import * as THREE from 'three';
   // the parts that show and hide, a bit each
   const NET_VIS = [(h) => h.root, (h) => h.body, (h) => h.eyes[0], (h) => h.eyes[1], (h) => h.happy[0], (h) => h.happy[1], (h) => h.lids[0], (h) => h.lids[1],
     (h) => h.smile, (h) => h.frown, (h) => h.open, (h) => h.grin, (h) => h.mask, (h) => h.shield];
-  const NF_FIRE = 1, NF_NOBLOB = 2, NF_PAUSED = 4;
+  const NF_FIRE = 1, NF_NOBLOB = 2, NF_PAUSED = 4, NF_NOS = 8;
   const saved = store.get('net', {});
   const net = {
     lib: null, room: null, act: null, code: '', state: 'off', err: '', note: '', peers: new Map(), sendT: 0, helloKey: '', from: 'title', waveCd: 0, uiT: 0, listKey: '',
@@ -20002,7 +20061,7 @@ import * as THREE from 'three';
     if (P.riding) { ride = 255; rg = P.riding.g; } else if (P.veh) { ride = RIDE_IDS.indexOf(P.vehId) + 1; rg = rideGroup(P.vehId); }
     let vis = 0;
     NET_VIS.forEach((pick, i) => { if (pick(h).visible) vis |= 1 << i; });
-    const flags = (P.fire ? NF_FIRE : 0) | (P.swim || P.sand || G.state === 'dying' ? NF_NOBLOB : 0) | (G.state === 'paused' || G.state === 'menu' ? NF_PAUSED : 0);
+    const flags = (P.fire ? NF_FIRE : 0) | (P.swim || P.sand || G.state === 'dying' ? NF_NOBLOB : 0) | (G.state === 'paused' || G.state === 'menu' ? NF_PAUSED : 0) | (P.veh && P.veh.car && P.nitroOn ? NF_NOS : 0);
     dv.setUint8(0, NET_V); dv.setUint8(1, loc); dv.setUint8(2, ride); dv.setUint8(3, flags);
     dv.setUint32(4, vis >>> 0, true); dv.setUint32(8, Math.floor(performance.now()) >>> 0, true);
     dv.setFloat32(12, r.position.x, true); dv.setFloat32(16, r.position.y, true); dv.setFloat32(20, r.position.z, true);
@@ -20266,7 +20325,7 @@ import * as THREE from 'three';
       if (u.turret) u.turret.rotation.y = wrapPi(v[0] - v[5]); // a tank's gun looks where its driver looks (a KV-44's small ones too)
       if (u.minis) for (const m of u.minis) m.t.rotation.y = u.turret.rotation.y;
       if (u.skirts && u.look !== g.tk) applyTankLook(rg, g.tk.split('').map(Number));
-      if (u.car) carTune(rg, (g.ct && g.ct[u.car]) || ''); // a real car, tuned as they tuned it
+      if (u.car) { carTune(rg, (g.ct && g.ct[u.car]) || ''); if (g.flags & NF_NOS) nitroFlames(rg, dt); } // a real car, tuned as they tuned it; its nitro
       if (u.wings) { // a dragon: the rider is on its saddle, tipped with it; in the air its wings are spread
         _tc.set(0, RIDES[RIDE_IDS[g.rideNow - 1]].y, .3).applyEuler(rg.rotation); rg.position.set(g.px - _tc.x, g.py - _tc.y, g.pz - _tc.z);
         u.air = rg.position.y - groundAt(g.px, g.pz, rg.position.y + .05, .3) > .5; u.work = clamp(-v[4] * 1.6, 0, 1);
