@@ -88,7 +88,11 @@ the minigun's rattle), and under the water every sound is muffled.
   bring a star each; the best game is kept. "🦖 Выживание" on the title goes straight there
 - Flying dragons: in the air a dragon flies on by itself; the stick turns it and tips its nose up and down (let go and it
   levels out), the jump button beats the wings for speed and height (held, it keeps climbing), the action button breathes
-  fire, ice, leaves, lightning or stars, a puff that pops balloons, knocks enemies over and lights beacons. Diving speeds
+  fire, ice, leaves, lightning or stars: held, a stream out of the dragon's open jaws, hot and narrow at the mouth and
+  wider further out, with smoke (snowflakes, leaves, sparks) at its end, whose shots pop balloons, knock enemies over and
+  light beacons; friends see the stream too. The dragons are a rigged wyvern (models/dragons/wyvern.glb) in each one's
+  colours with a saddle on its back, posed by the game: its wings spread and flap in the air and fold on the ground, its
+  legs tuck in, its tail sways. Diving speeds
   it up, it lands when it comes down slowly and only touches the ground when fast. A hit only slows it. The camera swings
   round behind it. Five dragons with their own speed, turning and climbing; each can be bought in the shops and then
   flies everywhere, in every world and level. "🐉 Драконы" on the title goes straight to the roost
@@ -498,6 +502,7 @@ WebP, meshopt compression; the frog recoloured green and the spiky blob purple, 
 | Мама Бронти | [Apatosaurus](https://poly.pizza/m/fvo0x8Zk3z) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | the baby dinos | [Cute Red Dino](https://poly.pizza/m/WAkBnE6ydO) | Exceptional_3D | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | Дымок and Зарянка | [Dragon Evolved](https://poly.pizza/m/LlwD0QNUPj) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the dragons to ride (models/dragons, recoloured, posed by the game) | [Dragon Rigged](https://poly.pizza/m/WIOTISRjeX) | na3ee1 | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
 | the baby dragons | [Dragon](https://poly.pizza/m/3rUm1cN3yp) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | the chestnut walkers | [Mushnub](https://poly.pizza/m/LWKmS30Xxl) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | Король Каштан | [Mushroom King](https://poly.pizza/m/grnFTziU8u) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
