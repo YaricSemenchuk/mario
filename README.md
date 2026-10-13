@@ -6,10 +6,12 @@ main hero's model in `models/mario.glb`.
 
 Rendering uses PBR materials with a soft rim light on characters, an image-based sky environment
 (horizon glow, a low sun on the evening levels, stars in the dark ones), neutral tone mapping, soft
-shadows, bloom and ambient occlusion. Effects are shader particles (sparks, glow, smoke), shock rings,
+shadows, and bloom with FXAA on the Ultra setting. Effects are shader particles (sparks, glow, smoke), shock rings,
 impact flashes, a short hit-stop and screen shake; every world has its own weather (pollen, petals,
-drifting sand, snow, sprinkles, ash). Quality drops automatically (AO, then bloom, then resolution) when
-the frame rate falls, so older phones stay playable. Needs Safari 16.4+ or a current Chrome/Firefox.
+drifting sand, snow, sprinkles, ash). The Graphics button on the title and in the pause picks Auto, Fast,
+Normal, Fine or Ultra (pixel density 1 / 1.5 / 2, shadow map 1024 or 2048, bloom only on Ultra, its code
+fetched when first picked). Auto starts computers at Fine and touch screens at Normal, steps down while the
+frame rate stays under 45 fps and remembers where it settled. Needs Safari 16.4+ or a current Chrome/Firefox.
 
 Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound effects panned and
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an

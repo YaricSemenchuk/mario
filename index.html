@@ -722,6 +722,7 @@
     <div class="title-modes">
       <button class="btn btn-ghost btn-mode" id="btnReset" type="button" hidden>Новая игра</button>
       <button class="btn btn-ghost btn-mode" id="btnUpdate" type="button">🔄 Обновить игру</button>
+      <button class="btn btn-ghost btn-mode" id="btnGfx" type="button">🖥 Графика</button>
     </div>
     <p class="howto" id="howto"></p>
     <p class="rotate-hint">Поверни телефон горизонтально, так удобнее</p>
@@ -747,6 +748,7 @@
       <button class="btn" id="btnRestart" type="button">Начать уровень заново</button>
       <button class="btn" id="btnToIsland" type="button">На остров</button>
       <button class="btn" id="btnToFlag" type="button">К последнему флажку</button>
+      <button class="btn btn-ghost" id="btnGfxPause" type="button">Графика</button>
       <button class="btn btn-ghost" id="btnMenu" type="button">В меню</button>
     </div>
   </div>
@@ -921,11 +923,6 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 (function () {
   'use strict';
   const $ = (id) => document.getElementById(id);
@@ -1503,7 +1500,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     ring.holes.push(hole);
     const dot = (px, py) => { const [x, y] = at(px, py); const d = new T.Shape(); d.absarc(x, y, 1.1459, 0, Math.PI * 2, false); return d; };
     const geo = new T.ExtrudeGeometry([ring, dot(8.1039, 2.6439), dot(8.1039, 9.1019)],
-      { depth: 1.1, bevelEnabled: true, bevelThickness: .2, bevelSize: .1, bevelSegments: 2, curveSegments: 28 });
+      { depth: 1.1, bevelEnabled: true, bevelThickness: .2, bevelSize: .1, bevelSegments: 1, curveSegments: 16 });
     geo.translate(0, 0, -.55);
     geo.scale(S, S, S);
     geo.computeBoundingSphere();
@@ -20250,29 +20247,57 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   addEventListener('resize', resize);
   addEventListener('orientationchange', () => setTimeout(resize, 200));
 
-  // ---------- post-processing, three quality tiers ----------
-  // 2: bloom + ambient occlusion + 2048 shadows (desktop), 1: bloom (phones), 0: plain render
-  let quality = 2, composer = null, bloomPass = null;
+  // ---------- graphics quality ----------
+  // Four levels: how many pixels are drawn (a retina screen at 2 draws four times as many as at 1) and how sharp the
+  // shadows are. Ultra adds a post-processing chain on top that makes the bright bits glow (lamps, fire, lava, the star):
+  // the scene goes into a half-float target, then bloom and FXAA. That chain costs a few times what drawing straight to
+  // the screen does, so only a player picks it, and its code is fetched when it is first needed. (The chain used to be
+  // on by default with ambient occlusion and 4x MSAA on that target: 24 fps on an M4 at a retina window, against 160+
+  // without it.) Auto starts computers at Fine and touch screens at Normal, steps down while the frame rate stays low and
+  // remembers where it settled, so the next visit starts there instead of stuttering first.
+  const GFX = [
+    { name: 'быстрая', pr: 1, shadow: 1024 },
+    { name: 'обычная', pr: 1.5, shadow: 1024 },
+    { name: 'красивая', pr: 2, shadow: 2048 },
+    { name: 'ультра', pr: 2, shadow: 2048, bloom: true },
+  ];
+  let gfxMode = 'auto', quality = 2, composer = null, bloomPass = null, fxLib = null, fxLoading = false;
+  function setQuality(q) {
+    quality = q;
+    const g = GFX[q];
+    if (sun.shadow.mapSize.x !== g.shadow) { sun.shadow.mapSize.set(g.shadow, g.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+    sun.castShadow = true;
+    pixelRatio = Math.min(window.devicePixelRatio || 1, g.pr);
+    renderer.setPixelRatio(pixelRatio);
+    buildComposer();
+    resize();
+    perfAcc = perfN = 0;
+    gfxLabel();
+  }
   function buildComposer() {
-    if (composer) { composer.dispose(); composer = null; }
-    const size = quality >= 2 ? 2048 : 1024;
-    if (sun.shadow.mapSize.x !== size) { sun.shadow.mapSize.set(size, size); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
-    if (quality === 0) return;
+    if (composer) { composer.dispose(); composer = null; bloomPass = null; }
+    if (!GFX[quality].bloom) return;
+    if (!fxLib) { loadFx(); return; }
+    const { EffectComposer, RenderPass, UnrealBloomPass, OutputPass, FXAAPass } = fxLib;
     const w = window.innerWidth, h = window.innerHeight;
-    const rt = new T.WebGLRenderTarget(w * pixelRatio, h * pixelRatio, { type: T.HalfFloatType, samples: 4 });
+    // no MSAA on the target: resolving four samples of a half-float buffer cost more than the rest of the frame
+    const rt = new T.WebGLRenderTarget(w * pixelRatio, h * pixelRatio, { type: T.HalfFloatType });
     composer = new EffectComposer(renderer, rt);
     composer.setPixelRatio(pixelRatio); composer.setSize(w, h);
     composer.addPass(new RenderPass(scene, camera));
-    if (quality >= 2) {
-      const ao = new GTAOPass(scene, camera, w, h);
-      ao.blendIntensity = .85;
-      composer.addPass(ao);
-    }
     // only emissive things (fire, lava, the star) are bright enough to glow
     bloomPass = new UnrealBloomPass(new T.Vector2(w, h), .5, .45, 2);
     applyBloom();
     composer.addPass(bloomPass);
     composer.addPass(new OutputPass());
+    composer.addPass(new FXAAPass());
+  }
+  function loadFx() {
+    if (fxLoading) return;
+    fxLoading = true;
+    Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'FXAAPass'].map((n) => import('three/addons/postprocessing/' + n + '.js')))
+      .then((mods) => { fxLib = Object.assign({}, ...mods); buildComposer(); })
+      .catch(() => { fxLoading = false; }); // offline: the plain picture goes on, and the next pick of Ultra tries again
   }
   // the lava world glows from its floor; elsewhere only emissive bits (the star, fire) are bright enough
   function applyBloom() { if (!bloomPass || !L) return; const lava = L.lavaY !== null; bloomPass.threshold = lava ? .9 : 1.6; bloomPass.strength = lava ? .55 : .35; }
@@ -20280,15 +20305,34 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
   let perfAcc = 0, perfN = 0;
   function watchPerf(dt) {
-    if (G.state !== 'playing' && G.state !== 'title') { perfAcc = perfN = 0; return; }
+    if (gfxMode !== 'auto' || (G.state !== 'playing' && G.state !== 'title')) { perfAcc = perfN = 0; return; }
     perfAcc += dt; perfN++;
     if (perfAcc < 2.5) return;
     const fps = perfN / perfAcc; perfAcc = perfN = 0;
-    if (fps >= 42) return;
-    if (quality > 0) { quality--; buildComposer(); }
-    else if (pixelRatio > 1) { pixelRatio = Math.max(1, pixelRatio - .25); renderer.setPixelRatio(pixelRatio); resize(); }
-    else if (sun.castShadow) sun.castShadow = false;
+    if (fps >= 45) return;
+    if (quality > 0) { setQuality(quality - 1); store.set('gfxAuto', quality); }
+    else if (sun.castShadow) sun.castShadow = false; // the last resort, for this visit only
   }
+  function gfxBoot() {
+    const m = store.get('gfx', 'auto');
+    gfxMode = GFX[m] ? m : 'auto';
+    const auto = store.get('gfxAuto', null);
+    setQuality(gfxMode !== 'auto' ? gfxMode : GFX[auto] && !GFX[auto].bloom ? auto : isTouch ? 1 : 2);
+  }
+  // one button on the title and one in the pause: Auto, then each level by hand, then Auto again (which starts afresh)
+  function cycleGfx(e) {
+    e.currentTarget.blur(); Snd.sfx.ui();
+    gfxMode = gfxMode === 'auto' ? 0 : gfxMode < GFX.length - 1 ? gfxMode + 1 : 'auto';
+    store.set('gfx', gfxMode);
+    if (gfxMode === 'auto') store.set('gfxAuto', isTouch ? 1 : 2);
+    setQuality(gfxMode === 'auto' ? (isTouch ? 1 : 2) : gfxMode);
+  }
+  function gfxLabel() {
+    const t = 'Графика: ' + (gfxMode === 'auto' ? 'авто' : GFX[quality].name);
+    $('btnGfx').textContent = '🖥 ' + t; $('btnGfxPause').textContent = gfxMode === 'auto' ? t + ' (' + GFX[quality].name + ')' : t;
+  }
+  $('btnGfx').addEventListener('click', cycleGfx);
+  $('btnGfxPause').addEventListener('click', cycleGfx);
 
   function step(dt) {
     time += dt;
@@ -20419,9 +20463,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
     if (booted) return;
     booted = true; window.__hopBooted = true;
     if (data && typeof data.best === 'number') G.best = Math.max(G.best, data.best);
-    quality = isTouch ? 1 : 2;
-    resize();
-    buildComposer();
+    gfxBoot();
     toTitle();
     netOnBoot();
     updOnBoot();
