@@ -90,7 +90,10 @@
   #speedo b { font: 900 34px/1 var(--ui); font-variant-numeric: tabular-nums; min-width: 2.4ch; text-align: right; }
   #speedo span { font: 800 12px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
   #speedo i { font: 900 15px/1 var(--ui); font-style: normal; color: var(--gold); margin-left: 4px; }
-  body.touch #speedo { bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); }
+  /* on a phone the car fills the middle of the screen and the wheel and pedals the bottom: the speed goes up top, in
+     the HUD's row when it is wide enough and under it otherwise */
+  body.touch #speedo { top: calc(env(safe-area-inset-top, 0px) + 60px); bottom: auto; }
+  @media (orientation: landscape) and (min-width: 640px) { body.touch #speedo { top: calc(env(safe-area-inset-top, 0px) + 14px); } }
   #track small { font: 800 10px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); text-shadow: var(--outline); }
   #track span { font: 900 14px/1.25 var(--ui); color: var(--white); text-shadow: var(--outline); }
 
@@ -144,6 +147,42 @@
     display: grid; place-items: center; color: var(--ink); pointer-events: auto; touch-action: none;
   }
   #btnCam:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  /* in a car: the wheel under the left thumb (left, right), the pedals under the right (gas, brake) and the drift above
+     the brake; m the margin, s a steering arrow, g the gas pedal's width, b the brake's */
+  #touch { --m: 20px; --s: 96px; --g: 96px; --b: 84px; --y: calc(env(safe-area-inset-bottom, 0px) + 22px); }
+  @media (orientation: portrait) { #touch { --m: 14px; --s: min(84px, 20vw); --g: min(88px, 21vw); --b: min(76px, 18vw); } }
+  #carPad { position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; }
+  .cp {
+    position: absolute; bottom: var(--y); box-sizing: border-box; padding: 0; border-radius: 22px; cursor: pointer;
+    border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); color: var(--ink);
+    display: grid; place-items: center; align-content: center; gap: 3px; font: 900 11px/1 var(--ui); letter-spacing: .08em;
+    pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  .cp.on { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .cp-steer { width: var(--s); height: var(--s); background: rgba(255, 255, 255, .82); pointer-events: none; } /* the left half takes the touches */
+  .cp-steer.on { background: var(--gold); }
+  #cpL { left: calc(env(safe-area-inset-left, 0px) + var(--m)); }
+  #cpR { left: calc(env(safe-area-inset-left, 0px) + var(--m) + var(--s) + 12px); }
+  #cpGas { right: calc(env(safe-area-inset-right, 0px) + var(--m)); width: var(--g); height: calc(var(--g) * 1.36); background: rgba(111, 214, 92, .95); }
+  #cpGas.on { background: #a2f28f; }
+  #cpBrake { right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + 12px); width: var(--b); height: var(--b); background: rgba(240, 80, 58, .92); }
+  #cpBrake.on { background: #ff7a5c; }
+  #cpDrift {
+    right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + 12px); bottom: calc(var(--y) + var(--b) + 12px);
+    width: var(--b); height: calc(var(--b) * .86); background: rgba(143, 211, 255, .95);
+  }
+  #cpDrift.on { background: #d2edff; }
+  /* the action button is the drift now and the camera follows the car by itself; the jump stays, small, over the gas */
+  body.car-pad #stickBase, body.car-pad #btnAct, body.car-pad #btnCam { display: none; }
+  body.car-pad #btnJump {
+    width: 62px; height: 62px; right: calc(env(safe-area-inset-right, 0px) + var(--m) + (var(--g) - 62px) / 2);
+    bottom: calc(var(--y) + var(--g) * 1.36 + 14px); font-size: 8px; letter-spacing: .04em;
+  }
+  body.car-pad #btnJump svg { width: 20px; height: 20px; }
+  body.car-pad #btnWave {
+    right: calc(env(safe-area-inset-right, 0px) + var(--m) + var(--g) + 12px + (var(--b) - 50px) / 2);
+    bottom: calc(var(--y) + var(--b) * 1.86 + 26px);
+  }
 
   /* ---------- the Duel Arena: the crosshair, the sniper's scope, the hit mark, the gun bar, the duel's panel ---------- */
   #gunUi { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 5; pointer-events: none; }
@@ -637,6 +676,22 @@
 <div id="touch" hidden>
   <div id="stickZone"><div id="stickBase"><div id="stickKnob"></div></div></div>
   <div id="lookZone"></div>
+  <div id="carPad" hidden>
+    <div class="cp cp-steer" id="cpL" aria-hidden="true"><svg viewBox="0 0 24 24" width="38" height="38"><path d="M16 4.5 6.5 12l9.5 7.5z" fill="currentColor" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/></svg></div>
+    <div class="cp cp-steer" id="cpR" aria-hidden="true"><svg viewBox="0 0 24 24" width="38" height="38"><path d="M8 4.5 17.5 12 8 19.5z" fill="currentColor" stroke="currentColor" stroke-width="2.6" stroke-linejoin="round"/></svg></div>
+    <button class="cp" id="cpDrift" data-k="drift" type="button" aria-label="Дрифт">
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M3.5 18.5c5.5 0 7-3 8.5-6.5s3.5-6 8-6" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M16.5 3.2 20.4 6l-3.4 3.3" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 13.5h3M5 9.5h3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <span>ДРИФТ</span>
+    </button>
+    <button class="cp" id="cpBrake" data-k="brake" type="button" aria-label="Тормоз и задний ход">
+      <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 18.5 4.5 7.5h15z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <span>ТОРМОЗ</span>
+    </button>
+    <button class="cp" id="cpGas" data-k="gas" type="button" aria-label="Газ">
+      <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true"><path d="M12 5.5 19.5 16.5h-15z" fill="currentColor" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <span>ГАЗ</span>
+    </button>
+  </div>
   <button id="btnCam" type="button" aria-label="Камера за спину">
     <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M17.5 3.5v4.2h-4.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </button>
@@ -9917,7 +9972,7 @@ import * as THREE from 'three';
   }
   function oneUp() { P.happyT = .9; G.lives++; Snd.sfx.oneUp(); popup('+1 ЖИЗНЬ', P.pos.x, P.pos.y + 2.4, P.pos.z, 'gold'); }
   function jumpHeld() { return JUMP_KEYS.some((k) => keys.has(k)) || touchJump.held; }
-  function actHeld() { return ACT_KEYS.some((k) => keys.has(k)) || touchAct.id !== null; }
+  function actHeld() { return ACT_KEYS.some((k) => keys.has(k)) || touchAct.id !== null || pad.held.has('drift'); }
   const dustColor = () => (THEME_FX[P.ground && P.ground.surf] || THEME_FX[L.theme.ground]).dust;
 
   function onLand(s) {
@@ -10107,7 +10162,7 @@ import * as THREE from 'three';
   // what the touch buttons say: jump and hit, fire with the pepper, on a dragon a beat of the wings and its breath
   let btnMode = '';
   function updateButtons() {
-    updateKvBtns();
+    updateKvBtns(); updateCarPad();
     const W = P.veh && P.veh.wings, gun = !!(P.veh && P.veh.cannon), salvo = gun && !!P.veh.hull, gw = gunOn() ? gunCur() : null;
     const mode = gw ? 'g:' + gw.kind : W ? W.breath : salvo ? 'salvo' : gun ? 'gun' : P.fire ? 'fire' : '';
     if (mode === btnMode) return;
@@ -17689,8 +17744,8 @@ import * as THREE from 'three';
     Object.assign(P, { yawRate: 0, gear: 0, shiftT: 0, rpm: .15, carDelta: 0, slipT: 0 });
     if (def.drive && !G.driveHint) {
       G.driveHint = true;
-      setTimeout(() => toast('Рули как в гонках!', isTouch ? 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль. Красная кнопка — ручник'
-        : 'W газ, S тормоз и назад, A и D руль, Shift ручник'), 1200);
+      setTimeout(() => toast('Рули как в гонках!', isTouch ? (def.car ? 'Стрелки слева — руль. Справа газ, тормоз (он же назад) и дрифт' : 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль')
+        : 'W газ, S тормоз и назад, A и D руль' + (def.car ? ', Shift ручник' : '')), 1200);
     }
     rideGroup(P.vehId).visible = true;
     Snd.sfx.mount(); puff(P.pos.x, P.pos.y + .3, P.pos.z, 0xffffff, 8, 2, .6, .5, 1); emit(P.pos.x, P.pos.y + .6, P.pos.z, 0xffe07a, 14, 3, 1, 4, .5);
@@ -18934,6 +18989,9 @@ import * as THREE from 'three';
   const touchJump = { id: null, held: false }, touchAct = { id: null };
   const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
   const look = { id: null, x: 0, y: 0 };
+  // a car's buttons on a phone: st the left thumbs on the wheel (pointer → -1 or 1), ped the right ones on the pedals
+  // (pointer → gas, brake, drift), held the pedals down
+  const pad = { on: false, st: new Map(), ped: new Map(), held: new Set() };
   let isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0 || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
   if (isTouch) document.body.classList.add('touch');
 
@@ -18952,6 +19010,9 @@ import * as THREE from 'three';
   // on the touch stick a push two thirds of the way is already full
   function readDrive() {
     if (holdStill()) return { x: 0, y: 0 };
+    // the car's buttons: the thumb last put on the wheel steers; the brake wins over the gas, and the drift is the
+    // handbrake with the throttle down (W with Shift on the keys)
+    if (pad.on) return { x: pad.st.size ? [...pad.st.values()].pop() : 0, y: pad.held.has('brake') ? -1 : pad.held.has('gas') || pad.held.has('drift') ? 1 : 0 };
     if (stick.id !== null) return { x: clamp(stick.x / .7, -1, 1), y: clamp(stick.y / .7, -1, 1) };
     const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
     return { x: k('KeyD', 'ArrowRight') - k('KeyA', 'ArrowLeft'), y: k('KeyW', 'ArrowUp') - k('KeyS', 'ArrowDown') };
@@ -19023,14 +19084,18 @@ import * as THREE from 'three';
   }
   stickZone.addEventListener('pointerdown', (e) => {
     e.preventDefault(); Snd.init();
+    if (pad.on) { try { stickZone.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } padSteer(e); return; }
     if (stick.id !== null) return;
     stick.id = e.pointerId; try { stickZone.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
     const r = stickZone.getBoundingClientRect();
     stick.ox = e.clientX - r.left; stick.oy = e.clientY - r.top;
     placeStick(stick.ox, stick.oy); stickBase.classList.add('active'); stickMove(e);
   });
-  stickZone.addEventListener('pointermove', (e) => { if (e.pointerId === stick.id) stickMove(e); });
-  const stickEnd = (e) => { if (e.pointerId !== stick.id) return; stick.id = null; stick.x = stick.y = 0; restStick(); };
+  stickZone.addEventListener('pointermove', (e) => { if (pad.st.has(e.pointerId)) padSteer(e); else if (e.pointerId === stick.id) stickMove(e); });
+  const stickEnd = (e) => {
+    if (pad.st.delete(e.pointerId)) { padShow(); return; }
+    if (e.pointerId !== stick.id) return; stick.id = null; stick.x = stick.y = 0; restStick();
+  };
   stickZone.addEventListener('pointerup', stickEnd); stickZone.addEventListener('pointercancel', stickEnd); stickZone.addEventListener('lostpointercapture', stickEnd);
 
   // touch: swipe on the right half turns the camera
@@ -19082,10 +19147,51 @@ import * as THREE from 'three';
   }
   function kvLoad(b, k) { const v = Math.round(clamp(k, 0, 1) * 20) / 20; if (b.kvCd !== v) { b.kvCd = v; b.style.setProperty('--cd', v); } }
 
+  // in a car on a phone: anywhere on the left half steers, to the side of the line between the two arrows the thumb is
+  // on; the right thumb has the pedals and slides from one to the next without lifting (gas to drift and back)
+  const carPadEl = $('carPad'), cpL = $('cpL'), cpR = $('cpR'), cpPedals = [$('cpGas'), $('cpBrake'), $('cpDrift')];
+  function padSteer(e) {
+    const mid = (cpL.getBoundingClientRect().right + cpR.getBoundingClientRect().left) / 2, k = e.clientX < mid ? -1 : 1;
+    if (pad.st.get(e.pointerId) !== k) { pad.st.delete(e.pointerId); pad.st.set(e.pointerId, k); padShow(); }
+  }
+  function pedalAt(x, y) {
+    for (const b of cpPedals) { const r = b.getBoundingClientRect(); if (x > r.left - 10 && x < r.right + 10 && y > r.top - 10 && y < r.bottom + 10) return b.dataset.k; }
+    return null; // off them all the thumb keeps the pedal it was on
+  }
+  function padShow() {
+    pad.held = new Set(pad.ped.values());
+    const x = pad.st.size ? [...pad.st.values()].pop() : 0;
+    cpL.classList.toggle('on', x < 0); cpR.classList.toggle('on', x > 0);
+    for (const b of cpPedals) b.classList.toggle('on', pad.held.has(b.dataset.k));
+  }
+  for (const b of cpPedals) {
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); Snd.init();
+      pad.ped.set(e.pointerId, b.dataset.k); padShow();
+      try { b.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+    });
+    b.addEventListener('pointermove', (e) => {
+      if (!pad.ped.has(e.pointerId)) return;
+      const k = pedalAt(e.clientX, e.clientY);
+      if (k && k !== pad.ped.get(e.pointerId)) { pad.ped.set(e.pointerId, k); padShow(); }
+    });
+    const end = (e) => { if (pad.ped.delete(e.pointerId)) padShow(); };
+    b.addEventListener('pointerup', end); b.addEventListener('pointercancel', end); b.addEventListener('lostpointercapture', end);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  // the car's buttons are there in a car (a real one, with its handbrake) unless the guns are out: those keep the stick
+  function updateCarPad() {
+    const on = isTouch && G.state === 'playing' && !!(P.veh && P.veh.car) && !gunOn();
+    if (on === pad.on) return;
+    pad.on = on; carPadEl.hidden = !on; document.body.classList.toggle('car-pad', on);
+    stick.id = null; stick.x = stick.y = 0; restStick(); pad.st.clear(); pad.ped.clear(); padShow();
+  }
+
   function showTouch(on) { touchEl.hidden = !on; if (on) restStick(); }
   function resetTouch() {
     stick.id = null; stick.x = stick.y = 0; look.id = null; touchJump.id = null; touchJump.held = false; touchAct.id = null;
     btnJump.classList.remove('on'); btnAct.classList.remove('on'); restStick();
+    pad.st.clear(); pad.ped.clear(); padShow();
   }
   addEventListener('touchstart', () => {
     if (isTouch) return;
@@ -19099,7 +19205,7 @@ import * as THREE from 'three';
   function updateHowto() {
     const el = $('howto'); el.textContent = '';
     const lines = isTouch
-      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['«Оружие» внизу', ' — оружие в любом мире: свайп целится, красная стреляет, «Прицел» — оптика, ✋ — убрать.']]
+      ? [['Левый палец', ' — бег. '], ['Жёлтая кнопка', ' — прыжок, держи дольше — выше. '], ['Красная', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Свайп справа', ' — камера. '], ['В машине', ' — стрелки слева рулят, справа газ, тормоз (он же задний ход) и дрифт. '], ['«Оружие» внизу', ' — оружие в любом мире: свайп целится, красная стреляет, «Прицел» — оптика, ✋ — убрать.']]
       : [['WASD / стрелки', ' — бег. '], ['Пробел', ' — прыжок, держи дольше — выше. '], ['Shift / F', ' — удар: вихрь на земле, в прыжке — удар с неба. '], ['Мышь или Q/E', ' — камера. '], ['V', ' — транспорт из лавки. '], ['На драконе', ' A/D — поворот, W/S — нос вверх-вниз, пробел — взмах. '], ['В танке', ' Shift / F — выстрел, пушка наводится сама. '], ['На КВ-44', ' C — гранатомёт, R — ракетница. '], ['X', ' — достать или убрать оружие в любом мире (на Дуэльной арене оно всегда в руках). '], ['С оружием', ' клик — целиться мышью, левая кнопка — огонь, правая или C — прицел, 1–4 — оружие, R — перезарядка. '], ['G', ' — помахать друзьям. '], ['B', ' — мешок в «99 ночах». '], ['Esc', ' — пауза.']];
     for (const [b, t] of lines) { const s = document.createElement('b'); s.textContent = b; el.append(s, t); }
   }
