@@ -3819,6 +3819,146 @@ import * as THREE from 'three';
     return { g, wings, tip, active: false, t: 0, x: 0, y: 0, z: 0, el: null, span: null, lines: [], idx: 0, from: null, to: null, gift: false };
   })();
 
+  // ---------- character models ----------
+  // Downloaded low-poly characters (models/chars/*.glb, credits in the README) stand in for the ones built from spheres.
+  // The game itself is untouched: every enemy, NPC and boss is still made from its built geometry, and a sweep twice a
+  // second finds the meshes of the geometries below, hides them (an invisible material keeps them out of the picture and
+  // the shadows) and hangs the model on them, so it moves, turns, hops and squashes with them. A model is fetched when
+  // its character first shows up (and all of them in the background after the title), the built one stands in till then
+  // and for good if the file cannot be had. Skinned models get a skeleton each and play walk or run by how fast they go.
+  // The files were packed for this: one primitive per model with the material colours in the vertex colours, the
+  // animations the game plays, meshopt compression. Kept as built on purpose: Promobot (the brand mascot), the Roblox
+  // folk (already the real Roblox look), and the ones no model fits (the shell and cloud bosses, the pterodactyl, the
+  // forest bear and the deer, Dino and the dragons you ride, Spark and the fairy).
+  const QT = Math.PI / 2;
+  const CHARS = {
+    // geometry: f the file, yaw the turn that makes it face +z, clips [idle, walk, run], run the speed for the run (m/s),
+    // len how far past the built one's length it may reach (the apatosaurus is mostly neck and tail)
+    walker: { f: 'walker', clips: ['Idle', 'Walk', 'Walk'] }, spiky: { f: 'spiky', clips: ['Idle', 'Walk', 'Walk'] },
+    hopper: { f: 'hopper', clips: ['Idle', 'Walk', 'Walk'] }, medusa: { f: 'medusa' },
+    flyer: { f: 'flyer', clips: ['Flying_Idle', 'Flying_Idle', 'Fast_Flying'], run: 4 },
+    raptor: { f: 'raptor' }, trike: { f: 'trike' }, rex: { f: 'rex' }, bunny: { f: 'bunny', yaw: QT },
+    wolf: { f: 'wolf', clips: ['Idle', 'Walk', 'Gallop'] }, alpha: { f: 'wolf', clips: ['Idle', 'Walk', 'Gallop'], tint: 0x5a5c70 },
+    frog: { f: 'frog' }, penguin: { f: 'penguin' }, hedgehog: { f: 'hedgehog' }, cat: { f: 'cat', yaw: QT }, crab: { f: 'crab', yaw: -QT },
+    camel: { f: 'camel' }, snowman: { f: 'snowman', yaw: QT }, ginger: { f: 'ginger', yaw: QT }, gingerGran: { f: 'ginger', yaw: QT, tint: 0xd8c0a8 },
+    bear: { f: 'gummy' }, commander: { f: 'panda' }, turtle: { f: 'turtle' }, turtleGran: { f: 'turtle', tint: 0xb8c8a0 },
+    octopus: { f: 'octopus' }, dolphin: { f: 'dolphin' }, alien: { f: 'alien' }, caveman: { f: 'caveman' }, cavegirl: { f: 'cavegirl' },
+    bronto: { f: 'bronto', len: 2.6 }, hatchling: { f: 'hatchling', yaw: QT },
+    dragonElder: { f: 'dragonBig', clips: ['Flying_Idle', 'Flying_Idle', 'Fast_Flying'] },
+    dragonMama: { f: 'dragonBig', clips: ['Flying_Idle', 'Flying_Idle', 'Fast_Flying'], tint: 0xffd0e0 },
+    babyDragon: { f: 'dragonSmall', clips: ['Flying_Idle', 'Flying_Idle', 'Fast_Flying'] },
+    kidDino: { f: 'kidDino' },
+    // bosses: the king is the walker's geometry scaled up, the Megabot its own
+    king: { f: 'king' }, mech: { f: 'mech' },
+  };
+  const BOSS_ONLY = new Set(['king']); // kinds that no geometry leads to: the sweep picks them from the boss
+  const LEG_GEOS = ['raptorLeg', 'trikeLeg', 'rexLeg', 'wolfLeg', 'alphaLeg'];
+  const MAT_NONE = new T.MeshBasicMaterial({ visible: false });
+  const charLibs = {}, charLive = [], _cw = new T.Vector3(), _cb = new T.Box3(), _cv = new T.Vector3();
+  let charKitP = null, charByGeo = null, charHide = null, charSweepT = 0;
+  function charKit() {
+    return charKitP || (charKitP = Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/libs/meshopt_decoder.module.js'),
+      import('three/addons/utils/SkeletonUtils.js')]).then(([{ GLTFLoader }, { MeshoptDecoder }, SU]) => ({ loader: new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), clone: SU.clone })));
+  }
+  // one file, fetched once: its scene, clips, game material and its box at rest
+  function charLib(f) {
+    if (charLibs[f]) return charLibs[f];
+    const lib = charLibs[f] = { ready: false, failed: false, mats: {} };
+    lib.wait = charKit().then((kit) => kit.loader.loadAsync('models/chars/' + f + '.glb').then((g) => {
+      let mesh = null; g.scene.traverse((o) => { if (o.isMesh) mesh = o; });
+      g.scene.updateMatrixWorld(true);
+      lib.box = new T.Box3().setFromObject(g.scene, true);
+      shared(mesh.geometry);
+      // a skinned mesh in view is culled against bounds three works out from its bones on every frame: 1.6 ms of an M4's
+      // frame for one frog in sight, against nothing for drawing the few thousand triangles of all of them anyway
+      if (mesh.isSkinnedMesh) mesh.frustumCulled = false;
+      // the colours are in the vertices; a texture of one colour (the packer folds it into the factor) stays as the colour
+      lib.mat = addRim(std({ vertexColors: true, roughness: .55, map: mesh.material.map || null, color: mesh.material.color }));
+      mesh.material = lib.mat;
+      Object.assign(lib, { scene: g.scene, clips: g.animations, skinned: !!mesh.isSkinnedMesh, clone: kit.clone, ready: true });
+    })).catch(() => { lib.failed = true; });
+    return lib;
+  }
+  // the scale and place that fit a model, turned to face +z, into the built geometry's height (and not much past its length)
+  function charFit(lib, c, geo) {
+    if (!geo.boundingBox) geo.computeBoundingBox();
+    const gb = geo.boundingBox, yaw = c.yaw || 0, cs = Math.cos(yaw), sn = Math.sin(yaw);
+    _cb.makeEmpty();
+    for (let i = 0; i < 8; i++) {
+      const x = i & 1 ? lib.box.max.x : lib.box.min.x, y = i & 2 ? lib.box.max.y : lib.box.min.y, z = i & 4 ? lib.box.max.z : lib.box.min.z;
+      _cb.expandByPoint(_cv.set(x * cs + z * sn, y, -x * sn + z * cs));
+    }
+    const s = Math.min((gb.max.y - gb.min.y) / (_cb.max.y - _cb.min.y), (c.len || 1.25) * (gb.max.z - gb.min.z) / (_cb.max.z - _cb.min.z));
+    return { s, x: (gb.min.x + gb.max.x) / 2 - (_cb.min.x + _cb.max.x) / 2 * s, y: gb.min.y - _cb.min.y * s, z: (gb.min.z + gb.max.z) / 2 - (_cb.min.z + _cb.max.z) / 2 * s };
+  }
+  function charMat(lib, c) {
+    if (!c.tint) return lib.mat;
+    return lib.mats[c.tint] || (lib.mats[c.tint] = addRim(std({ vertexColors: true, roughness: .55, map: lib.mat.map, color: new T.Color(c.tint).multiply(lib.mat.color) })));
+  }
+  // hang kind's model on the built mesh o; false while the file is still on its way
+  function charWear(o, kind) {
+    const c = CHARS[kind], lib = charLib(c.f);
+    if (lib.failed) { o.userData.glb = 'none'; return true; }
+    if (!lib.ready) return false;
+    const fit = charFit(lib, c, o.geometry), model = lib.skinned ? lib.clone(lib.scene) : lib.scene.clone();
+    const holder = new T.Group(); holder.position.set(fit.x, fit.y, fit.z); holder.rotation.y = c.yaw || 0; holder.scale.setScalar(fit.s); holder.add(model);
+    const boss = L.boss && L.boss.body === o ? L.boss : null;
+    let mat = charMat(lib, c);
+    if (boss) { mat = mat.clone(); mat.onBeforeCompile = lib.mat.onBeforeCompile; mat.customProgramCacheKey = lib.mat.customProgramCacheKey; boss.mat = mat; } // its hit flash
+    model.traverse((m) => { if (m.isMesh) { m.material = mat; m.castShadow = o.castShadow; m.receiveShadow = o.receiveShadow; } });
+    o.material = MAT_NONE; o.userData.glb = kind; o.add(holder);
+    // the built parts the model replaces: legs, a bee's wings, the king's crown, the Megabot's eye
+    const p = o.parent;
+    if (p) p.traverse((m) => { if (m !== o && m.isMesh && (charHide.has(m.geometry) || m.material === MAT.bugWing)) m.material = MAT_NONE; });
+    if (boss && boss.crown) boss.crown.visible = false;
+    if (boss && boss.eyeMat) for (const ch of o.children) if (ch.isMesh && ch.material === boss.eyeMat) ch.visible = false;
+    const it = { o, c, model, mixer: null, acts: null, cur: -1, px: NaN, pz: 0, spd: 0 };
+    if (lib.clips.length) {
+      it.mixer = new T.AnimationMixer(model);
+      it.acts = (c.clips || ['Idle', 'Walk', 'Run']).map((n) => { const clip = lib.clips.find((a) => a.name === n) || lib.clips.find((a) => a.name === 'Idle') || lib.clips[0]; return it.mixer.clipAction(clip); });
+      it.acts[0].play(); it.acts[0].time = Math.random() * it.acts[0].getClip().duration; it.cur = 0; // out of step with the others
+    }
+    charLive.push(it);
+    return true;
+  }
+  const inScene = (o) => { while (o.parent) o = o.parent; return o === scene; };
+  const shown = (o) => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  function charSweep() {
+    if (!charByGeo) {
+      charByGeo = new Map(Object.keys(CHARS).filter((k) => !BOSS_ONLY.has(k) && GEO[k]).map((k) => [GEO[k], k]));
+      charHide = new Set(LEG_GEOS.map((k) => GEO[k]));
+    }
+    scene.traverse((o) => {
+      if (!o.isMesh || o.userData.glb || o.material === MAT_NONE) return;
+      let kind = charByGeo.get(o.geometry);
+      if (!kind) return;
+      if (L.boss && L.boss.body === o && L.boss.type === 'king') kind = 'king';
+      charWear(o, kind);
+    });
+    for (let i = charLive.length - 1; i >= 0; i--) if (!inScene(charLive[i].o)) { const it = charLive[i]; if (it.mixer) it.mixer.stopAllAction(); charLive.splice(i, 1); }
+  }
+  // every frame: the sweep now and then, and each near, shown model plays idle, walk or run by its speed over the ground
+  function charAnimate(dt) {
+    charSweepT -= dt;
+    if (charSweepT <= 0) { charSweepT = .5; charSweep(); }
+    for (const it of charLive) {
+      it.o.getWorldPosition(_cw);
+      const sp = Number.isNaN(it.px) ? 0 : Math.hypot(_cw.x - it.px, _cw.z - it.pz) / Math.max(dt, 1e-3);
+      it.px = _cw.x; it.pz = _cw.z;
+      it.spd = damp(it.spd, Math.min(sp, 30), 6, dt);
+      if (!it.mixer || _cw.distanceToSquared(camera.position) > 4900 || !shown(it.o)) continue;
+      const k = it.spd > (it.c.run || 3.4) ? 2 : it.spd > .35 ? 1 : 0;
+      if (k !== it.cur && it.acts[k] !== it.acts[it.cur]) { it.acts[k].reset().fadeIn(.2).play(); it.acts[it.cur].fadeOut(.2); }
+      it.cur = k;
+      it.mixer.update(dt * (k === 1 ? clamp(it.spd / 1.6, .6, 1.8) : 1));
+    }
+  }
+  // after the title is up, every model in turn, so the worlds open with them
+  function charPreload() {
+    const files = [...new Set(Object.values(CHARS).map((c) => c.f))];
+    files.reduce((p, f) => p.then(() => charLib(f).wait), Promise.resolve()).catch(() => {});
+  }
+
   // ================= particles =================
   // Soft round sprites in three pools: 'dot' (normal blending: dust, debris, confetti), 'glow' (additive: sparks,
   // fire, magic) and 'puff' (grows while it fades: smoke and dust clouds). Sizes are world-space diameters.
@@ -20428,6 +20568,7 @@ import * as THREE from 'three';
     const rev = P.veh && P.veh.fly && !P.onGround ? Math.max(spdNow, 8) : spdNow;
     Snd.motor(playing && P.veh && P.veh.motor ? .35 + clamp(rev / Math.max(12, P.veh.spd), 0, 1) * .65 : 0, P.veh && P.veh.motor ? P.veh.motor : 1, P.veh && P.veh.wob);
     updateNpcs(dt);
+    charAnimate(dt);
     updateAmbient(dt);
     animateRide(dt);
     animateVehicle(dt);
@@ -20467,6 +20608,7 @@ import * as THREE from 'three';
     toTitle();
     netOnBoot();
     updOnBoot();
+    setTimeout(charPreload, 2500);
     last = performance.now();
     requestAnimationFrame(frame);
   }
