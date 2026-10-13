@@ -2792,7 +2792,7 @@ import * as THREE from 'three';
   const pawLeg = (fur, paw) => mergedGeo([[SPH_HI, fur, M4(0, -.2, 0, .09, .24, .1)], [CYL, fur, M4(0, -.45, .01, .05, .3, .05)], [SPH_HI, paw, M4(0, -.6, .04, .08, .05, .11)]]);
   GEO.wolfLeg = pawLeg(0x8a90a4, 0x6a6f82);
   GEO.alphaLeg = pawLeg(0x3f4152, 0x2b2c3a);
-  GEO.bear = mergedGeo([
+  GEO.forestBear = mergedGeo([
     [SPH_HI, 0x7a4a2a, M4(0, 1.0, -.1, .72, .64, .98)], [SPH_HI, 0x6a3e22, M4(0, 1.42, .2, .5, .3, .5)], [SPH_HI, 0xa87a50, M4(0, .86, .2, .5, .4, .6)],
     [SPH_HI, 0x7a4a2a, M4(0, 1.3, .86, .43, .41, .41)], [SPH_HI, 0xc8a070, M4(0, 1.2, 1.2, .21, .17, .19)], [SPH_HI, INK, M4(0, 1.27, 1.37, .08, .06, .05)],
     [TORUS_ARC, 0x5a2a1a, M4(0, 1.12, 1.33, .07, .05, .05)], ...eyesAt(.16, 1.42, 1.15, .95, .45),
@@ -10389,12 +10389,12 @@ import * as THREE from 'three';
     wolf: { hw: .45, h: 1.35, spd: 5.6, legs: [[-.17, .62, .36], [.17, .62, .36], [-.17, .62, -.36], [.17, .62, -.36]], leg: 'wolfLeg', pounce: true, hp: 2, loot: ['meat', 'pelt'] },
     alpha: { hw: .55, h: 1.7, spd: 6.1, scale: 1.25, legs: [[-.17, .62, .36], [.17, .62, .36], [-.17, .62, -.36], [.17, .62, -.36]], leg: 'alphaLeg', pounce: true, hp: 3,
       loot: ['meat', 'pelt', 'pelt'] },
-    bear: { hw: .9, h: 1.9, spd: 3, legs: [[-.4, .68, .55], [.4, .68, .55], [-.4, .68, -.6], [.4, .68, -.6]], leg: 'bearLeg', charge: true, hp: 4, loot: ['meat', 'meat', 'pelt'] },
+    bear: { hw: .9, h: 1.9, spd: 3, geo: 'forestBear', legs: [[-.4, .68, .55], [.4, .68, .55], [-.4, .68, -.6], [.4, .68, -.6]], leg: 'bearLeg', charge: true, hp: 4, loot: ['meat', 'meat', 'pelt'] },
     bunny: { hw: .3, h: .75, spd: 6.4, legs: [], flee: true, hp: 1, loot: ['meat', 'foot'] },
   };
   function foeMesh(type) {
     const F = FOES[type], g = new T.Group(), body = new T.Group(); g.add(body);
-    const m = new T.Mesh(GEO[type], MAT.char); m.castShadow = true; body.add(m);
+    const m = new T.Mesh(GEO[F.geo || type], MAT.char); m.castShadow = true; body.add(m);
     const legs = F.legs ? F.legs.map(([x, y, z]) => {
       const pv = new T.Group(); pv.position.set(x, y, z);
       const lm = new T.Mesh(GEO[F.leg], MAT.char); lm.castShadow = true; pv.add(lm); body.add(pv); return pv;
