@@ -2,7 +2,7 @@
 
 A 3D platformer that runs in any mobile or desktop browser. Plain HTML with
 WebGL via Three.js 0.186 (ES modules from jsDelivr), no build step: the whole game lives in `index.html`, and the
-main hero's model in `models/mario.glb`, the other characters' in `models/chars/` (see Credits).
+main hero's model in `models/mario.glb`, the other characters' in `models/chars/` and the cars' in `models/cars/` (see Credits).
 
 Rendering uses PBR materials with a soft rim light on characters, an image-based sky environment
 (horizon glow, a low sun on the evening levels, stars in the dark ones), neutral tone mapping, soft
@@ -263,13 +263,17 @@ the minigun's rattle), and under the water every sound is muffled.
     white lines, red and white kerbs round the bends and arches over the road: the Sunny Ring (about 650 m a lap, three
     laps) round a lake with an island, stands full of fans along its straight; the Figure Eight (about 700 m, three laps),
     whose loops cross on a bridge, one way over it and the other under it; and the Forest Track (about 1050 m, two laps)
-    through the pines, up a hill that ends in a kicker and a jump. The paddock's garage has six cars on turntables (the
-    kart, the roadster, the formula car, the monster truck, the moon rover and the stone car): a blue pad before one puts
-    the hero in it, lent for free there, and the ride button calls it
+    through the pines, up a hill that ends in a kicker and a jump. The paddock's garage has fourteen cars on turntables:
+    the kart, a Ferrari F40, a formula car, the monster truck, the moon rover and the stone car in the back row, and in
+    a row by the gate a Lamborghini Aventador, a Nissan GT-R, a Chevrolet Camaro, a Dodge Challenger, a Toyota AE86, a
+    DeLorean, a Mazda RX-7 and a Cybertruck: a blue pad before one puts the hero in it, lent for free there, and the
+    ride button calls it
     - a grand prix on each track, from the red pad by its start: a grid of six behind a gantry with start lights that go
-      red one by one and then green, the hero against five of the folk in the other cars (Ping, Kvak, Murr, Foma and
-      Mishka). They drive the track's line on their own, slow for the bends, change lanes to get past, fly off the jump,
-      and like the dragons of the cup go a little faster when behind; bumping into one pushes the cars apart. The arches
+      red one by one and then green, the hero against five of the folk in other cars (Ping, Kvak, Murr, Foma and
+      Mishka; a different line-up on each track). They drive the track's line on their own, slow for the bends, change
+      lanes to get past, fly off the jump, and like the dragons of the cup go a little faster when behind; they also
+      drive to the hero's car, quicker against a supercar and easier on the DeLorean, so any car can win. Bumping into
+      one pushes the cars apart. The arches
       are taken in turn (the next one glows yellow, an arrow over the hero points to it), the line under the buttons
       shows the place, the lap and the arch, and in a race every car but the monster truck is slow on the grass. A
       win brings the track's star; the first three get badges, and the best time on each track is kept
@@ -326,16 +330,22 @@ the minigun's rattle), and under the water every sound is muffled.
     steering wheel that turns into the corners), a snowboard that flies on snow, ice and sand, a jet ski for the water, a pogo stick that bounces by itself and
     squashes spiky shells, a little cloud that glides, jumps in the air and skims water, a six-wheeled moon rover, skis,
     a UFO whose beam pulls in badges, a helicopter, the stone car of the cave folk (no floor: the driver's feet run along
-    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with twelve turrets, three race
-    cars (a yellow roadster with a spoiler; a blue formula car, the fastest on tarmac; a green monster truck on giant
-    knobbly wheels that jumps high and minds no grass), all with wheels that roll and steer like the kart's, and five
-    dragons that fly (listed last).
-    The cars (the kart, the three race cars, the moon rover and the stone car) drive like cars, not like the hero on foot:
-    up and down on the stick (W and S) are the throttle and the brake (held at a stop, reverse), left and right turn the
-    wheel. They are fast (the kart 19 m/s, the monster truck 19, the roadster 22, the formula car 25), and the view widens
-    and the engine revs up as they speed up. A car turns only while it rolls, and the faster it goes the less the wheel
-    turns, so a fast car takes a bend wide and wants the brake before a hairpin; the tyres let it slide a little, more on grass and ice, and nothing steers
-    it in the air. The camera swings round behind it by itself (dragging still turns it).
+    the ground under it, its stone rollers bowl enemies over), a tank with a gun, the KV-44 with twelve turrets, real
+    cars (models in `models/cars/`: a Ferrari F40, a formula car, a monster truck, a Lamborghini Aventador, a Nissan
+    GT-R, a Chevrolet Camaro, a Dodge Challenger, a Toyota AE86, a DeLorean, a Mazda RX-7 and a Cybertruck; the kart too)
+    with wheels that roll and front wheels that steer, bodies that lean in the bends and squat and dive on their springs,
+    and five dragons that fly (listed last). In a closed car the hero is out of sight; he shows only in the kart.
+    The real cars drive as a simulation of a car (a bicycle model with tyre slip): up and down on the stick (W and S)
+    are the throttle and the brake (held at a stop, reverse), left and right turn the wheel, and the action button
+    (Shift) is the handbrake that throws the car into a drift. Each has its own top speed, pull and grip from the real
+    car: an all-wheel-drive Lamborghini or GT-R hooks up and corners flat, a rear-driven Challenger, Camaro, RX-7 or
+    AE86 steps its tail out under power and drifts, the kart and the formula car grip hardest. The tyres hold about twice
+    their real grip (the tracks and the folk of the grand prix want quick cornering), the wheel turns less at speed and
+    never further than the tyres can follow, and the car steadies itself in a slide past 15 degrees, so it stays easy to
+    drive. Gears change by themselves with the engine note, tyres smoke and squeal when they slide or spin, and a
+    speedometer under the picture shows the car's real top speed at the top of the game's and the gear. The camera rides
+    low behind a car, as in a racing game (dragging still turns it). The moon rover and the stone car keep the simpler
+    driving: they turn only while they roll, round a circle the wheel's angle gives.
     "Транспорт и оружие" in the pause card, in any world or level, opens a garage with the rides the hero has (a tap puts
     him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon, and on the
     Speedway the car from its garage) and the
@@ -484,3 +494,23 @@ WebP, meshopt compression; the frog recoloured green and the spiky blob purple, 
 | the forest rabbits | [Rabbit](https://poly.pizza/m/eIA8cNdEn-4) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
 | Мегабот | [Robot Enemy Large Gun](https://poly.pizza/m/mWojM4i2IH) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
 | the Dino kid | [Animated Platformer Character](https://poly.pizza/m/kKtL4zvS3n) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+
+The cars (`models/cars/*.glb`) are low-poly models from [Poly Pizza](https://poly.pizza), most of them fan models of real
+cars; the names and looks of those cars belong to their makers. Changes to every one: turned to face forward and scaled
+to the real car's length, its four wheels found and split off round their own axles, the rest joined into one mesh with
+the material colours moved into vertex colours, heavy wheels simplified, textures shrunk to WebP, meshopt compression.
+
+| In the game | Model | Author | Licence |
+|---|---|---|---|
+| the kart | [Go Kart](https://poly.pizza/m/MkByxZCSMA) | Zsky | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Ferrari F40 | [Ferrari F40](https://poly.pizza/m/RTwim9bhNd) | PuKkBuMXDD | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| the formula car | [Racing car](https://poly.pizza/m/EMcTJiXibv) | scaranto | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the monster truck | [Jeep](https://poly.pizza/m/etWba3RYzmi) | Gilang Romadhan | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Lamborghini Aventador | [CAR Model](https://poly.pizza/m/5zUWP5UsLg-) | Ignition Labs | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Nissan GT-R | [Nissan GTR](https://poly.pizza/m/a_HKCtYAv2W) | David Sirera | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Chevrolet Camaro | [Chevrolet Camaro](https://poly.pizza/m/kVcKsd2dEk) | PuKkBuMXDD | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Dodge Challenger | [2015 Dodge Challenger](https://poly.pizza/m/1jB8I4t5w4) | Grzybek | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Toyota AE86 | [Toyota AE86](https://poly.pizza/m/ZEFWmOPSgh) | IvOfficial | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| DeLorean | [DeLorean DMC-12](https://poly.pizza/m/1uZKezeldGG) | David Sirera | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Mazda RX-7 | [Mazda RX-7](https://poly.pizza/m/SnIoWlh7S2) | IvOfficial | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Cybertruck | [Cybertruck](https://poly.pizza/m/Jpar3f32mt) | Mobolaji | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
