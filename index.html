@@ -83,6 +83,14 @@
     position: absolute; right: calc(env(safe-area-inset-right, 0px) + 12px); top: calc(env(safe-area-inset-top, 0px) + 58px);
     max-width: min(64vw, 340px); display: grid; justify-items: end; gap: 3px; text-align: right;
   }
+  #speedo {
+    position: fixed; z-index: 4; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); transform: translateX(-50%);
+    display: flex; align-items: baseline; gap: 6px; pointer-events: none; color: var(--white); text-shadow: var(--outline);
+  }
+  #speedo b { font: 900 34px/1 var(--ui); font-variant-numeric: tabular-nums; min-width: 2.4ch; text-align: right; }
+  #speedo span { font: 800 12px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; }
+  #speedo i { font: 900 15px/1 var(--ui); font-style: normal; color: var(--gold); margin-left: 4px; }
+  body.touch #speedo { bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); }
   #track small { font: 800 10px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); text-shadow: var(--outline); }
   #track span { font: 900 14px/1.25 var(--ui); color: var(--white); text-shadow: var(--outline); }
 
@@ -623,6 +631,7 @@
     </button>
   </div>
   <div id="track" role="status" hidden><small></small><span></span></div>
+  <div id="speedo" hidden><b id="spdK">0</b><span>км/ч</span><i id="spdG">1</i></div>
 </header>
 
 <div id="touch" hidden>
@@ -2396,10 +2405,9 @@ import * as THREE from 'three';
   };
   // The go-kart, like a real racing kart: a low chrome tube frame, red side pods and a red nose fairing with a white stripe
   // down it and a number plate (a black 1 on a white disc in a red ring), fat rounded bumpers, a black bucket seat, the
-  // engine beside it with two chrome exhausts flaring up behind, wide black tyres on red rims. The wheels (GEO.kart.wheel,
-  // front and rear) and the steering wheel (GEO.kart.steer) are meshes of their own, so they roll and steer (rideModel,
-  // spinRide), and the hands hold the steering wheel at its sides. KART: the steering wheel's middle, its tilt towards the
-  // driver and its radius; the axles (x, y, z) and the wheels' radii and widths
+  // engine beside it with two chrome exhausts flaring up behind. Since the real cars came (carModel) this built body only
+  // stands in for a moment while the kart's model is fetched. KART: the steering wheel's middle, its tilt towards the
+  // driver and its radius; the axles (x, y, z) and the wheels' radii and widths, which the body is laid out round
   const KART = { steer: [0, .93, .36], tilt: .78, r: .17, front: [.64, .25, .66, .25, .26], rear: [.66, .3, -.62, .3, .34] };
   GEO.rides.kart = (() => {
     const R = 0xe3262b, W = 0xffffff, K = 0x24262c, CH = 0xd2d7e0, GR = 0x4a4f5c, XV = new T.Vector3(1, 0, 0);
@@ -2451,55 +2459,15 @@ import * as THREE from 'three';
       ...pipe(-.4), ...pipe(-.24),
     ]);
   })();
-  GEO.kart = (() => {
-    const R = 0xe3262b, K = 0x24262c, CH = 0xd2d7e0, WCYL = shared(new T.CylinderGeometry(1, 1, 1, 24));
-    // a wheel round its axle (x): a fat tyre, a red rim with white lips, a chrome hub
-    const wheel = (r, w) => mergedGeo([
-      [DONUT, K, M4(0, 0, 0, r / 1.42, r / 1.42, w / .84, 0, Math.PI / 2, 0)],
-      [WCYL, R, M4(0, 0, 0, r * .6, w * .78, r * .6, 0, 0, Math.PI / 2)],
-      [TORUS, 0xffffff, M4(-w * .39, 0, 0, r * 1.15, r * 1.15, r * 1.15, 0, Math.PI / 2, 0)], [TORUS, 0xffffff, M4(w * .39, 0, 0, r * 1.15, r * 1.15, r * 1.15, 0, Math.PI / 2, 0)],
-      [CYL, CH, M4(0, 0, 0, r * .2, w * .86, r * .2, 0, 0, Math.PI / 2)], [SPH_HI, CH, M4(-w * .43, 0, 0, r * .09, r * .09, r * .09)], [SPH_HI, CH, M4(w * .43, 0, 0, r * .09, r * .09, r * .09)],
-    ]);
-    // the steering wheel facing +z, its top up: a black rim with a red piece on top, three spokes and a chrome hub
-    const rim = shared(new T.TorusGeometry(1, .15, 8, 36)), top = shared(new T.TorusGeometry(1, .17, 8, 10, 1));
-    return {
-      wheel: { f: wheel(KART.front[3], KART.front[4]), r: wheel(KART.rear[3], KART.rear[4]) },
-      steer: mergedGeo([
-        [rim, K, M4(0, 0, 0, KART.r, KART.r, KART.r)], [top, R, M4(0, 0, 0, KART.r, KART.r, KART.r, 0, 0, Math.PI / 2 - .5)],
-        [BOX, K, M4(-.09, 0, 0, .15, .022, .016)], [BOX, K, M4(.09, 0, 0, .15, .022, .016)], [BOX, K, M4(0, -.09, 0, .022, .15, .016)],
-        [CYL, CH, M4(0, 0, 0, .045, .05, .045, Math.PI / 2, 0, 0)], [SPH_HI, R, M4(0, 0, .026, .026, .026, .012)],
-      ]),
-    };
-  })();
-  // The Speedway's race cars (and the shop's): a yellow roadster, a blue formula car, a green monster truck. Built like the
-  // kart: the body in one merged mesh (GEO.rides), the wheels meshes of their own that roll (the front ones steer) and the
-  // kart's steering wheel (rideModel, spinRide). CARS: each one's steering wheel (middle, tilt, radius) and axles (x, y, z,
-  // wheel radius, width) in the kart's layout. The hero sits RIDES[id].y up and seatZ along, and every steering wheel
-  // stands .81 over his seat and .44 before it, where his hands reach it on the kart
+  // The Speedway's first cars, built: a yellow roadster, a blue formula car, a green monster truck. Like the kart, these
+  // bodies now only stand in while the real cars' models are fetched (carModel). CARS: each one's steering wheel (middle,
+  // tilt, radius) and axles (x, y, z, wheel radius, width), which its body is laid out round
   const CARS = {
     kart: KART,
     sport: { steer: [0, 1.09, .19], tilt: KART.tilt, r: KART.r, front: [.78, .32, 1.02, .32, .26], rear: [.78, .34, -1.04, .34, .3] },
     f1: { steer: [0, .91, .34], tilt: KART.tilt, r: KART.r, front: [.8, .3, 1.12, .3, .3], rear: [.8, .35, -1.16, .35, .4] },
     monster: { steer: [0, 2.06, .14], tilt: KART.tilt, r: KART.r, front: [1.04, .62, 1.14, .62, .52], rear: [1.04, .62, -1.14, .62, .52] },
   };
-  GEO.car = (() => {
-    const K = 0x24262c, CH = 0xd2d7e0, CAR_CYL = shared(new T.CylinderGeometry(1, 1, 1, 24));
-    // a wheel round its axle (x): a tyre, a rim with spokes (or the monster truck's knobbly tread), a chrome hub
-    const wheel = (r, w, rim, spokes, lugs) => mergedGeo([
-      [DONUT, K, M4(0, 0, 0, r / 1.42, r / 1.42, w / .84, 0, Math.PI / 2, 0)],
-      [CAR_CYL, rim, M4(0, 0, 0, r * .6, w * .78, r * .6, 0, 0, Math.PI / 2)],
-      ...Array.from({ length: spokes }, (_, i) => [BOX, CH, M4(0, 0, 0, w * .82, r * 1.02, r * .08, i / spokes * Math.PI, 0, 0)]),
-      ...Array.from({ length: lugs }, (_, i) => { const a = i / lugs * Math.PI * 2; return [BOX, K, M4(0, Math.cos(a) * r * .96, Math.sin(a) * r * .96, w * .96, r * .14, r * .2, a, 0, 0)]; }),
-      [CYL, CH, M4(0, 0, 0, r * .2, w * .86, r * .2, 0, 0, Math.PI / 2)], [SPH_HI, CH, M4(-w * .43, 0, 0, r * .09, r * .09, r * .09)], [SPH_HI, CH, M4(w * .43, 0, 0, r * .09, r * .09, r * .09)],
-    ]);
-    const pair = (C, rim, spokes, lugs) => ({ f: wheel(C.front[3], C.front[4], rim, spokes, lugs), r: wheel(C.rear[3], C.rear[4], rim, spokes, lugs) });
-    return {
-      kart: GEO.kart.wheel,
-      sport: pair(CARS.sport, 0xb8bfcc, 3, 0),
-      f1: pair(CARS.f1, 0xffd23f, 0, 0),
-      monster: pair(CARS.monster, 0xffd23f, 3, 16),
-    };
-  })();
   // the roadster: a yellow body with rounded ends and fenders over the wheels, two black stripes over the hood and the
   // deck, an open top with a black bucket seat, a windscreen, a spoiler over the tail, chrome bumpers and two exhausts
   GEO.rides.sport = (() => {
@@ -9372,10 +9340,13 @@ import * as THREE from 'three';
 
     // --- the paddock: the gate home, the garage of cars to pick, the shop, the host ---
     B.warp('island', 0, -16, 0, Math.PI);
-    GP_CARS.forEach((id, i) => B.carStand(id, -25 + i * 10, 0, 18, 0, RIDES[id].name));
+    GP_CARS.slice(0, 6).forEach((id, i) => B.carStand(id, -25 + i * 10, 0, 18, 0, RIDES[id].name));
+    GP_REAL.forEach((id, i) => B.carStand(id, -24.5 + i * 7, 0, -3.5, 0, RIDES[id].name)); // the real cars in a row nearer the gate
+    carPreload();
     B.npc('robot', 7, 0, 4, 'Промобот', () => [
       'Добро пожаловать на Автодром! Тут три трассы, и на каждой свой Гран-при.',
-      'В гараже шесть машин. Встань на синий коврик перед любой, и она твоя, пока ты здесь. Кнопка транспорта зовёт её же.',
+      'В гараже четырнадцать машин, восемь настоящих в ряду у ворот. Встань на синий коврик перед любой, и она твоя, пока ты здесь. Кнопка транспорта зовёт её же.',
+      'У каждой машины свой характер: полный привод держит дорогу, задний любит занос. Shift или красная кнопка — ручник, с ним легко уйти в дрифт.',
       'Спорткар и Болид самые быстрые на асфальте. Монстр-трак медленнее, зато в гонке не вязнет на траве. На траве все остальные тормозят!',
       'Солнечное кольцо прямо на севере, Восьмёрка на востоке, Лесная трасса на западе. Иди по асфальтовой дорожке.',
       'Проезжай в арки по порядку: следующая горит жёлтым, стрелка над тобой показывает к ней.',
@@ -10233,6 +10204,7 @@ import * as THREE from 'three';
     if (P.swim) { swimDash(); return; }
     if (P.veh && P.veh.wings) { breathe(); return; }
     if (P.veh && P.veh.cannon) { tankFire(); return; }
+    if (P.veh && P.veh.car) return; // in a car the button is the handbrake (carSim reads it held)
     if (P.fire) { throwFire(); return; }
     if (P.onGround || P.coyote > 0 || P.veh || P.sand) { spin(); return; } // on a ride or in quicksand the button always spins
     const gy = groundAt(P.pos.x, P.pos.z, P.pos.y + .05, HW * .8);
@@ -11008,7 +10980,7 @@ import * as THREE from 'three';
       if (gunOn()) spdMax *= gunSpeedK(); // slower through a scope and with a spinning minigun
       if (V && P.onGround && L.trackGrid && (gpOn() || duelRacing()) && !V.rough && !V.wings && !V.fly && !V.hover && !V.glide && !V.cannon
         && trackDist(P.pos.x, P.pos.z) > TRACK_HW + .8) spdMax *= V.grass || .7; // a car in a race on the grass beside the Speedway's roads
-      if (V && V.drive && !P.swim && !P.sand && !slide) carDrive(dt, readDrive(), spdMax, icy); // a car drives like a car
+      if (V && V.drive && !P.swim && !P.sand && !slide) (V.car ? carSim : carDrive)(dt, readDrive(), spdMax, icy); // a car drives like a car
       else {
       let tx = wx, tz = wz;
       if (V && V.cannon && mag > .08) { // a tank turns on its tracks at its own pace, and drives only the way it faces
@@ -12571,7 +12543,8 @@ import * as THREE from 'three';
   // ---------- the Speedway: the cars in the garage, and a grand prix on each track ----------
   // Stepping on the pad before a car puts the hero in it; the one picked is the one the ride button calls there, lent for
   // free unless it is one of our own. The cars on the turntables swing a little, and the one the hero drives is away.
-  const GP_CARS = ['kart', 'sport', 'f1', 'monster', 'rover', 'stonecar'];
+  const GP_CARS = ['kart', 'sport', 'f1', 'monster', 'rover', 'stonecar'], GP_REAL = ['aventador', 'gtr', 'camaro', 'challenger', 'ae86', 'delorean', 'rx7', 'cybertruck'];
+  GP_CARS.push(...GP_REAL);
   function pickCar(id) {
     SAVE.car = id; saveGame();
     mountCar(id);
@@ -12629,11 +12602,14 @@ import * as THREE from 'three';
       seq: Array.from({ length: laps }, () => trk.gates.map((g, i) => i).slice(1).concat(0)).flat() };
     for (const m of trk.arches) { m.material = MAT.ringDim; m.scale.setScalar(ARCH_K); }
     trk.arches[C.seq[0]].material = MAT.ring;
-    // the folk on the grid, each in a car of another kind than the hero's
-    const mine = gpCar(), cars = GP_CARS.filter((id) => id !== mine), slots = [0, 1, 3, 4, 5];
+    // the folk on the grid, each in a car of another kind than the hero's (a different line-up on each track); in a closed
+    // car the driver is out of sight
+    const mine = gpCar(), cars = GP_CARS.filter((id) => id !== mine && RIDES[id].car), slots = [0, 1, 3, 4, 5];
+    // the folk drive to the hero's car: quicker against a supercar, easier on an old DeLorean, so any car can win
+    const MC = RIDES[mine]; C.k = clamp(Math.sqrt(MC.spd / 22) * Math.pow((MC.car ? MC.car.mu : 1.1) / 1.1, .25), .85, 1.1);
     C.riv = GP_RIVALS.map(([name, kind, pace], i) => {
-      const car = cars[i % cars.length], g = rideModel(car), rider = new T.Mesh(GEO[kind], MAT.char), sl = gpGrid(trk, slots[i]);
-      rider.scale.setScalar(.56); rider.position.set(0, RIDES[car].y + .3, RIDES[car].seatZ || 0); rider.castShadow = true; g.add(rider); L.group.add(g);
+      const car = cars[(i * 3 + ti * 2) % cars.length], g = rideModel(car), rider = new T.Mesh(GEO[kind], MAT.char), sl = gpGrid(trk, slots[i]);
+      rider.scale.setScalar(.56); rider.position.set(0, RIDES[car].y + .3, RIDES[car].seatZ || 0); rider.castShadow = true; rider.visible = !!RIDES[car].car.open; g.add(rider); L.group.add(g);
       g.position.set(sl.x, sl.y, sl.z); g.rotation.y = sl.face;
       return { name, g, car, pace, s: sl.s, lane: sl.lane, laneGoal: sl.lane, laneT: 3 + i, spd: 0, y: sl.y, vy: 0, done: 0, seed: i * 1.7 };
     });
@@ -12730,8 +12706,8 @@ import * as THREE from 'three';
       else if (r.laneT <= 0) { r.laneT = 2 + Math.random() * 3; r.laneGoal = (Math.random() * 2 - 1) * lim; }
       const dl = clamp(r.laneGoal - r.lane, -2.4 * dt, 2.4 * dt); r.lane += dl;
       // how fast: the bend ahead, the rubber band, a burst off the line
-      const lead = r.done ? 0 : gpProgS(trk, C, r.s) - me, bendV = trk.vmax[trackAt(trk, r.s + 4).i] * (.94 + r.pace * .06);
-      const want = r.done ? 8 : Math.min(bendV, GP_V * r.pace * clamp(1 - lead * .06, .82, 1.15) * (1 + Math.sin(time * .5 + r.seed) * .03));
+      const lead = r.done ? 0 : gpProgS(trk, C, r.s) - me, bendV = trk.vmax[trackAt(trk, r.s + 4).i] * (.94 + r.pace * .06) * C.k;
+      const want = r.done ? 8 : Math.min(bendV, GP_V * C.k * r.pace * clamp(1 - lead * .06, .82, 1.15) * (1 + Math.sin(time * .5 + r.seed) * .03));
       r.spd = damp(r.spd, want, r.spd < want ? 1.1 : 2.6, dt);
       r.s += r.spd * dt;
       const p = trackAt(trk, r.s), x = p.x + p.nx * r.lane, z = p.z + p.nz * r.lane;
@@ -17096,7 +17072,8 @@ import * as THREE from 'three';
   // New ones go at the end: a friend's packet names the ride by its place in this list (RIDE_IDS).
   const RIDES = {
     scooter: { name: 'Самокат', price: 90, sub: 'Быстрый и вёрткий', spd: 11.5, acc: 34, jump: 1, air: 0, y: .22, pose: 'stand' },
-    kart: { name: 'Карт', price: 160, sub: 'Лёгкий и шустрый, сбивает врагов на ходу', spd: 19, acc: 26, jump: .82, air: 0, y: .12, seatZ: -.08, pose: 'sit', bump: true, motor: 1, drive: 1.8 },
+    kart: { name: 'Карт', price: 160, sub: 'Лёгкий и вёрткий, держит любой поворот', spd: 19, acc: 26, jump: .82, air: 0, y: .02, seatZ: -.3, pose: 'sit', bump: true, motor: 1, drive: 1.06,
+      hw: .55, car: { f: 'kart', kmh: 110, a0: 8, dt: 'rwd', mu: 1.5, assist: 4.5, gears: 1, over: 1, open: [0, .52, .3, .12] } },
     board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, surfs: ['snow', 'glacier', 'sand', 'canyon'], acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
     jetski: { name: 'Водный скутер', price: 140, sub: 'Мчится по воде, на суше медленный', spd: 6.5, water: 14.5, acc: 26, jump: .95, air: 0, y: .3, pose: 'sit', floats: true, motor: 1.4 },
     pogo: { name: 'Пого-палка', price: 110, sub: 'Сама прыгает и давит даже колючек', spd: 7.5, acc: 30, jump: 1.25, air: 0, y: .38, pose: 'pogo', pogo: true },
@@ -17125,15 +17102,34 @@ import * as THREE from 'three';
     kv44: { name: 'КВ-44', price: 500, sub: 'Двенадцать башен, гранатомёт и ракетница! Красная кнопка даёт залп из всех пушек. Толстая броня: +1 сердечко в танковом бою', spd: 8, acc: 13, jump: .45, air: 0, y: 2.71,
       pose: 'hatch', cannon: true, bump: true, hw: 1.3, hull: [BIG_TANKS.kv44.hw * BIG_TANKS.kv44.sc, BIG_TANKS.kv44.hd * BIG_TANKS.kv44.sc], turn: 1.9,
       seatZ: BIG_TANKS.kv44.big.at[2] * BIG_TANKS.kv44.sc, motor: .4, wob: 'tread', launchers: true },
-    // the Speedway's race cars (CARS): a roadster; a formula car, the quickest on the tarmac but slowest on the grass
-    // beside it in a race (grass: its speed there); a monster truck that jumps high and minds no grass (rough). The cars
-    // drive like cars (carDrive): drive is the wheelbase their turns are worked out from
-    sport: { name: 'Спорткар', price: 240, sub: 'Быстрый и красивый, сбивает врагов на ходу', spd: 22, acc: 30, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2,
-      drive: 2.1 },
-    f1: { name: 'Болид', price: 350, sub: 'Самый быстрый на асфальте, но на траве вязнет', spd: 25, acc: 34, jump: .6, air: 0, y: .1, seatZ: -.1, pose: 'sit', bump: true, motor: 1.6, grass: .55,
-      drive: 2.3 },
+    // The Speedway's cars, real ones (models/cars, carModel). They drive like cars (carSim): drive is the wheelbase, and car
+    // holds what makes each one itself: f its file, kmh its real top speed (for the speedometer), a0 how hard it pulls away
+    // (m/s²), dt the driven wheels (rwd slides its tail out under power, awd hooks up, fwd pushes wide), mu the tyres'
+    // grip, assist how much the car helps keep it straight (low on the drift cars), gears, and for the kart, the only one
+    // the hero shows in, where its steering wheel is (x, y, z, radius). The formula car is the quickest on the tarmac but
+    // slowest on the grass beside it in a race (grass: its speed there); the monster truck jumps high and minds no grass.
+    sport: { name: 'Ferrari F40', price: 240, sub: 'Легенда восьмидесятых: задний привод, 324 км/ч', spd: 25, acc: 30, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2,
+      drive: 2.78, hw: .85, car: { f: 'sport', kmh: 324, a0: 8.5, dt: 'rwd', mu: 1.1, assist: 1.4 } },
+    f1: { name: 'Болид F1', price: 350, sub: 'Самый быстрый на асфальте, но на траве вязнет', spd: 27, acc: 34, jump: .6, air: 0, y: .1, seatZ: -.1, pose: 'sit', bump: true, motor: 1.6, grass: .55,
+      drive: 2.99, hw: .85, car: { f: 'f1', kmh: 350, a0: 10.5, dt: 'rwd', mu: 1.65, assist: 2.2, gears: 7 } },
     monster: { name: 'Монстр-трак', price: 300, sub: 'Колёса выше тебя! Высоко прыгает и не вязнет на траве', spd: 19, acc: 26, jump: 1.3, air: 0, y: 1.25, seatZ: -.3, pose: 'sit', bump: true,
-      motor: .7, hw: .75, rough: true, drive: 2.3 },
+      motor: .7, hw: 1, rough: true, drive: 2.8, car: { f: 'monster', kmh: 160, a0: 7, dt: 'awd', mu: .95, assist: 2.4, gears: 4 } },
+    aventador: { name: 'Lamborghini Aventador', price: 600, sub: 'Полный привод, 350 км/ч и разгон как из пушки', spd: 26.5, acc: 30, jump: .8, air: 0, y: .25, pose: 'sit', bump: true,
+      motor: 1.25, drive: 2.68, hw: .9, car: { f: 'aventador', kmh: 350, a0: 10, dt: 'awd', mu: 1.15, assist: 1.8, gears: 7 } },
+    gtr: { name: 'Nissan GT-R', price: 450, sub: 'Годзилла: полный привод, цепко держит дорогу', spd: 24.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.1,
+      drive: 2.68, hw: .85, car: { f: 'gtr', kmh: 315, a0: 9, dt: 'awd', mu: 1.15, assist: 1.8 } },
+    camaro: { name: 'Chevrolet Camaro', price: 380, sub: 'Американский мускул: мощный и с заносом', spd: 23, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: .85,
+      drive: 3, hw: .9, car: { f: 'camaro', kmh: 290, a0: 7.8, dt: 'rwd', mu: 1, assist: .9, over: 1.45 } },
+    challenger: { name: 'Dodge Challenger', price: 420, sub: 'Восемь цилиндров: рвёт с места и любит дрифт', spd: 24, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: .8,
+      drive: 2.93, hw: .9, car: { f: 'challenger', kmh: 320, a0: 8.2, dt: 'rwd', mu: .95, assist: .7, gears: 8, over: 1.55 } },
+    ae86: { name: 'Toyota AE86', price: 260, sub: 'Лёгкая и послушная: король дрифта', spd: 20, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.35,
+      drive: 2.37, hw: .8, car: { f: 'ae86', kmh: 200, a0: 6, dt: 'rwd', mu: 1.05, assist: .55, gears: 5, over: 1.6 } },
+    delorean: { name: 'DeLorean', price: 300, sub: 'Машина из «Назад в будущее»: на 141 км/ч держись крепче', spd: 18.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: .95,
+      drive: 2.44, hw: .85, car: { f: 'delorean', kmh: 175, a0: 5.5, dt: 'rwd', mu: .95, assist: 1.6, gears: 5 } },
+    rx7: { name: 'Mazda RX-7', price: 340, sub: 'Роторный мотор поёт до самой отсечки', spd: 22.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.5,
+      drive: 2.44, hw: .8, car: { f: 'rx7', kmh: 250, a0: 7.2, dt: 'rwd', mu: 1.05, assist: .8, gears: 5, over: 1.45 } },
+    cybertruck: { name: 'Cybertruck', price: 500, sub: 'Электрический и тяжёлый: тихий, но разгон бешеный', spd: 21.5, acc: 30, jump: .7, air: 0, y: .45, pose: 'sit', bump: true, motor: .55,
+      drive: 3.56, hw: 1, car: { f: 'cybertruck', kmh: 210, a0: 9.5, dt: 'awd', mu: 1, assist: 2, gears: 1, electric: true } },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -17356,7 +17352,156 @@ import * as THREE from 'three';
 
   // ---------- rides: bought in the shop, called with the ride button (or V) in the open worlds ----------
   // a ride's model, ours or a friend's: the merged mesh, plus the helicopter's rotors and the UFO's beam
+  // ---------- real cars ----------
+  // models/cars/*.glb (credits in the README) were packed for the game: each faces +z at its real length in metres and
+  // has a body and four wheels round their own axles (wheel_fl, wheel_fr, wheel_rl, wheel_rr; l is +x, the car's left).
+  // A car is fetched the first time it is needed (and all of the Speedway's when the hero gets there), the old built
+  // one standing in meanwhile. The front wheels sit on pivots that steer, all four roll (spinRide) and the body leans
+  // on its springs. Only the kart is open: in the rest the hero is out of sight, as in a real car.
+  const carLibs = {};
+  function carLib(f) {
+    if (carLibs[f]) return carLibs[f];
+    const lib = carLibs[f] = { ready: false, failed: false };
+    lib.wait = charKit().then((kit) => kit.loader.loadAsync('models/cars/' + f + '.glb')).then((g) => {
+      const mats = new Map(), game = (m) => {
+        if (!mats.has(m)) mats.set(m, addRim(std({ vertexColors: true, map: m.map || null, color: m.color, roughness: .36, metalness: .18 }), .22));
+        return mats.get(m);
+      };
+      g.scene.traverse((o) => { if (o.isMesh) { shared(o.geometry); o.material = game(o.material); o.castShadow = true; } });
+      lib.body = g.scene.getObjectByName('body');
+      lib.wheels = ['wheel_fl', 'wheel_fr', 'wheel_rl', 'wheel_rr'].map((n) => g.scene.getObjectByName(n));
+      lib.r = lib.wheels.map((w) => new T.Box3().setFromObject(w).getSize(_cv).y / 2);
+      lib.ready = true;
+    }).catch(() => { lib.failed = true; });
+    return lib;
+  }
+  function carModel(id) {
+    const C = RIDES[id].car, g = new T.Group(), u = g.userData; g.rotation.order = 'YXZ';
+    Object.assign(u, { kw: [], front: [], steer: new T.Object3D(), st: 0, lp: null, ly: 0, vf: 0, roll: 0, pitch: 0, body: null });
+    const stand = new T.Mesh(GEO.rides[id] || GEO.rides.sport, MAT.char); stand.castShadow = true; g.add(stand);
+    if (C.open) u.grips = wheelGrips(C.open[0], C.open[1], C.open[2], C.open[3], -.9).map((p) => { const o = new T.Object3D(); o.position.fromArray(p); g.add(o); return o; });
+    const lib = carLib(C.f);
+    const wear = () => {
+      if (!lib.ready) return;
+      g.remove(stand);
+      u.body = lib.body.clone(); g.add(u.body);
+      lib.wheels.forEach((w, i) => {
+        const m = w.clone(), at = w.position.clone(); m.position.set(0, 0, 0);
+        if (i < 2) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
+        u.kw.push([m, lib.r[i]]);
+      });
+    };
+    if (lib.ready) wear(); else lib.wait.then(wear);
+    return g;
+  }
+  // every car of the Speedway, one after another, so the garage fills with the real ones
+  function carPreload() {
+    [...new Set(Object.values(RIDES).filter((r) => r.car).map((r) => r.car.f))].reduce((p, f) => p.then(() => carLib(f).wait), Promise.resolve()).catch(() => {});
+  }
+
+  // A real car, simulated (the "arcade simulator" the player asked for). A bicycle model: the front and rear axle each
+  // push sideways by how far their tyres slip from the way they roll (slip angle), up to the grip the load on them and
+  // the tyres' mu allow; that turns the car and holds it in a bend, so it understeers when the front runs out of grip
+  // and steps its tail out when the rear does. The driven wheels share that grip with pulling: a rear-driven car given
+  // full throttle in a bend loosens its tail, an all-wheel drive pulls through. The handbrake (the action button, Shift)
+  // takes the rear's grip and slides it into a drift. Power is a car's own: it pulls hard off the line (a0, as far as the
+  // tyres hold) and less the faster it goes (constant power), until the air holds it at its top speed; gears are for the
+  // engine note and a short dip at each change. The brake stops at what the tyres can take, and from a stop it backs up.
+  // The steering locks less at speed, and each car has an assist that leans the turn towards where the wheels point: a
+  // lot on the kart and the formula car, little on the drift cars. Few small steps per frame keep the tyres stable.
+  // CAR_GRIP: the arcade's share. Real tyres hold about 1 g in a bend; the tracks were laid out for quicker cornering and
+  // the folk of the grand prix take their bends at nearly 3 g, so every car grips twice its real grip (the cars keep
+  // their order and character among themselves)
+  const G0 = 9.8, CAR_GRIP = 2;
+  // how far the front wheels turn: a lot when slow, less at speed, and at speed no more than asks the tyres for their
+  // grip (over is how far past it: the drift cars a good way, so a flick of the wheel steps their tail out)
+  const carLock = (C, wb, mu, au) => Math.min(lerp(.6, .1, clamp(au / 26, 0, 1)), au > 3 ? Math.atan(wb * mu * G0 * (C.over || 1.1) / (au * au)) : .6);
+  function carSim(dt, inp, spdMax, icy) {
+    const V = P.veh, C = V.car, wb = V.drive, a = wb * .5, b = wb - a, Iz = a * b * 1.1;
+    const thr = inp.y, want = inp.x, hb = actHeld() && P.onGround;
+    const st = P.steer || 0; P.steer = st + clamp(want - st, -1, 1) * Math.min(1, (want * st < 0 || Math.abs(want) < Math.abs(st) ? 7 : 3.5) * dt);
+    let f = P.facing, u = P.vel.x * Math.sin(f) + P.vel.z * Math.cos(f), w = P.vel.x * Math.cos(f) - P.vel.z * Math.sin(f), r = P.yawRate || 0;
+    const off = L.trackGrid && trackDist(P.pos.x, P.pos.z) > TRACK_HW + .8 && !V.rough;
+    const mu = (C.mu || 1) * CAR_GRIP * (icy ? .2 : off ? .7 : 1), Nf = G0 * b / wb, Nr = G0 * a / wb;
+    const top = V.spd, pw = C.a0 * top * .36, kd = pw / (top * top * top); // the power, and the air that holds it at its top speed
+    const gears = C.gears || 6, gi = P.gear || 0;
+    const n = 4, h = dt / n;
+    let slip = 0;
+    for (let k = 0; k < n; k++) {
+      const au = Math.abs(u), lock = carLock(C, wb, mu, au), delta = -P.steer * lock;
+      // what the wheels and the brakes ask of the road, along the car
+      // the pull is the engine's, up to what the driven tyres hold (the rest is wheelspin): all-wheel drive gets away best
+      const rear = C.dt === 'fwd' ? 0 : C.dt === 'awd' ? .5 : 1, hold = mu * (C.dt === 'awd' ? G0 : C.dt === 'fwd' ? Nf : Nr + G0 * .12) * 1.25;
+      let fx = 0;
+      if (thr > .05) fx = u < -.5 ? mu * G0 * .9 * thr : Math.min(C.a0 * .85, pw / Math.max(u, 2), hold) * thr * (P.shiftT > 0 ? .35 : 1);
+      else if (thr < -.05) fx = u > .5 ? -mu * G0 * .9 * -thr : u > -top * .35 ? -Math.min(C.a0 * .6, 6) * -thr : 0;
+      else fx = -Math.sign(u) * Math.min(au / h, .9); // the engine holds it back a little when the throttle is off
+      fx -= kd * u * au + Math.sign(u) * .25; // the air and the tyres rolling
+      if (spdMax < top && au > spdMax) fx -= Math.sign(u) * (au - spdMax) * 1.6; // the grass beside a race track holds it back
+      if (hb) fx -= Math.sign(u) * Math.min(au / h, 3.5);
+      // how much of each axle's grip is left for the sideways push after its share of the pull (an arcade's share: a
+      // floored rear-driven car loosens its tail, it does not let go)
+      const pullR = Math.abs(fx) * (fx > 0 ? rear : .4), pullF = Math.abs(fx) * (fx > 0 ? 1 - rear : .6);
+      const capF = mu * Nf * (1 - .45 * clamp(pullF / (mu * Nf), 0, 1));
+      let capR = mu * Nr * (1 - .55 * clamp(pullR / (mu * Nr), 0, 1));
+      if (hb) capR *= .4;
+      if (!P.onGround) { r *= Math.exp(-.6 * h); if (Math.abs(r) > 6) r = Math.sign(r) * 6; f += r * h; continue; } // in the air nothing grips
+      if (au > 3) {
+        const cs = mu * G0 / .1, sg = Math.sign(u) || 1;
+        const af = Math.atan2(w + a * r, au) - delta * sg, ar = Math.atan2(w - b * r, au);
+        const fyf = clamp(-cs * af, -capF, capF), fyr = clamp(-cs * ar, -capR, capR);
+        const du = fx - fyf * Math.sin(delta) + w * r, dw = fyf * Math.cos(delta) + fyr - u * r, dr = (a * fyf * Math.cos(delta) - b * fyr) / Iz;
+        u += du * h; w += dw * h; r += dr * h;
+        // the assist: the turn is drawn towards what the wheels ask for (not while the handbrake is on), and the harder
+        // the further the car slides past 15 degrees, so a drift holds while it is a drift and a spin is caught
+        if (!hb) {
+          const rm = mu * G0 * 1.1 / au, rk = clamp(u * Math.tan(delta) / wb, -rm, rm), past = clamp((Math.abs(Math.atan2(w, au)) - .26) / .5, 0, 1) * 5;
+          r += (rk - r) * (1 - Math.exp(-((C.assist || 1.5) + past) * h)); w *= Math.exp(-past * .5 * h);
+        }
+        slip = Math.max(slip, Math.abs(ar), hb ? .3 : 0);
+      } else { // slow: the wheels simply roll where they point
+        u += fx * h; r = u * Math.tan(delta) / wb; w *= Math.exp(-10 * h);
+      }
+      // a spin is caught before it goes round and round: the slide past 70 degrees scrubs off
+      const beta = Math.atan2(w, Math.abs(u) + .01);
+      if (Math.abs(beta) > 1.2) w *= Math.exp(-6 * h);
+      f += r * h;
+    }
+    P.facing = wrapPi(f); P.yawRate = r; P.carDelta = -P.steer * carLock(C, wb, mu, Math.abs(u));
+    P.vel.x = u * Math.sin(P.facing) + w * Math.cos(P.facing); P.vel.z = u * Math.cos(P.facing) - w * Math.sin(P.facing);
+    // the gearbox: up near the top of a gear, down low in one; the engine note rides on the revs
+    const gtop = (i) => top * (gears === 1 ? 1 : .3 + .7 * i / (gears - 1));
+    let rpm = Math.abs(u) / gtop(gi);
+    if (gears > 1 && rpm > .96 && gi < gears - 1 && thr > .05 && P.onGround) { P.gear = gi + 1; P.shiftT = .16; rpm = Math.abs(u) / gtop(gi + 1); }
+    else if (gi > 0 && rpm < .42) P.gear = gi - 1;
+    P.shiftT -= dt;
+    P.rpm = damp(P.rpm || .15, clamp(Math.max(rpm, thr > .05 ? .25 : .12) + (P.onGround ? 0 : .25 * Math.max(0, thr)), 0, 1.08), 12, dt);
+    // tyre smoke and a squeal when they slide; wheelspin off the line throws it up too
+    P.slipT -= dt;
+    const spin = P.onGround && thr > .5 && Math.abs(u) < 7 && C.a0 > mu * (C.dt === 'awd' ? G0 : C.dt === 'fwd' ? Nf : Nr + G0 * .12) * .6;
+    if (P.onGround && (slip > .16 || spin) && (Math.abs(u) > 4 || spin)) {
+      for (const sd of [-1, 1]) if (Math.random() < dt * 26) {
+        const bx = P.pos.x - Math.sin(P.facing) * b + Math.cos(P.facing) * sd * .7, bz = P.pos.z - Math.cos(P.facing) * b - Math.sin(P.facing) * sd * .7;
+        puff(bx, P.pos.y + .2, bz, 0xe8e8ee, 1, 1.4, .6, .55, .9);
+      }
+      if (P.slipT <= 0) { P.slipT = .3; Snd.sfx.skid(); }
+    }
+  }
+  // the speedometer: the car's real top speed at the top of the game's, and the gear
+  const speedoEl = $('speedo'), spdK = $('spdK'), spdG = $('spdG');
+  let speedoOn = false;
+  function updateSpeedo() {
+    const on = !!(P.veh && P.veh.car && !hudEl.hidden && G.state === 'playing');
+    if (on !== speedoOn) { speedoOn = on; speedoEl.hidden = !on; }
+    if (!on) return;
+    const u = P.vel.x * Math.sin(P.facing) + P.vel.z * Math.cos(P.facing), kmh = Math.round(Math.abs(u) / P.veh.spd * P.veh.car.kmh);
+    const gt = u < -.5 ? 'R' : P.veh.car.electric || (P.veh.car.gears || 6) === 1 ? 'D' : String((P.gear || 0) + 1);
+    if (spdK.textContent !== String(kmh)) spdK.textContent = kmh;
+    if (spdG.textContent !== gt) spdG.textContent = gt;
+  }
+
   function rideModel(id) {
+    if (RIDES[id] && RIDES[id].car) return carModel(id);
     if (id === 'kv44') { // the whole long tank in a group of its own (the ride's group stays unscaled), its parts at hand
       const g = new T.Group(), t = bigTankModel('kv44'); g.add(t); g.rotation.order = 'YXZ';
       kvLaunchers(t); Object.assign(g.userData, t.userData);
@@ -17372,18 +17517,7 @@ import * as THREE from 'three';
       u.rollers = [.95, -.95].map((z) => { const r = new T.Mesh(GEO.roller, MAT.char); r.position.set(0, .45, z); r.castShadow = true; g.add(r); return r; });
       u.roll = 0; u.lp = null;
     } else if (id === 'tank') tankParts(g, 'tank');
-    else if (CARS[id]) { // a car: wheels that roll (the front ones on pivots that steer) and a steering wheel that turns
-      const C = CARS[id], W = GEO.car[id];
-      u.kw = []; u.front = [];
-      for (const [A, geo] of [[C.front, W.f], [C.rear, W.r]]) for (const k of [-1, 1]) {
-        const m = new T.Mesh(geo, MAT.char), at = new T.Vector3(k * A[0], A[1], A[2]); m.castShadow = true; u.kw.push([m, A[3]]);
-        if (A === C.front) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
-      }
-      const sp = new T.Group(); sp.position.set(...C.steer); sp.rotation.x = C.tilt; g.add(sp);
-      u.steer = new T.Mesh(GEO.kart.steer, MAT.char); u.steer.castShadow = true; sp.add(u.steer);
-      u.grips = [-1, 1].map((k) => { const o = new T.Object3D(); o.position.set(k * C.r * Math.sin(1.35), C.r * Math.cos(1.35), 0); u.steer.add(o); return o; });
-      Object.assign(u, { st: 0, lp: null, ly: 0 });
-    } else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
+    else if (GEO.wings[id]) { // a dragon: two wings on pivots at the shoulders, folded while it walks
       u.wings = GEO.wings[id].map((geo, i) => {
         const pv = new T.Group(); pv.position.set((i ? -1 : 1) * WING_AT[0], WING_AT[1], WING_AT[2]);
         const w = new T.Mesh(geo, MAT.char); w.castShadow = true; pv.add(w); g.add(pv); return pv;
@@ -17472,8 +17606,17 @@ import * as THREE from 'three';
         for (const [m, r] of u.kw) m.rotation.x += fwd / r;
         u.st = damp(u.st, dt > 0 ? clamp(wrapPi(yaw - u.ly) / dt * .3, -1, 1) : 0, 8, dt);
       } else u.lp = new T.Vector3();
+      // a real car's body leans out of its turns and squats and dives on its springs, from how it moves (so friends' and
+      // the folk's cars do too): sideways pull is speed times the rate of turn, the pitch comes from the change of speed
+      if (u.body && dt > 0 && u.lp.lengthSq() > 0) {
+        const fwd = ((p.x - u.lp.x) * Math.sin(yaw) + (p.z - u.lp.z) * Math.cos(yaw)) / dt, yr = wrapPi(yaw - u.ly) / dt;
+        const ax = clamp((fwd - u.vf) / dt, -14, 14); u.vf = fwd;
+        u.roll = damp(u.roll, clamp(fwd * yr * .008, -.08, .08), 6, dt); u.pitch = damp(u.pitch, clamp(-ax * .006, -.05, .05), 5, dt);
+        u.body.rotation.set(u.pitch, 0, u.roll);
+      }
       u.lp.copy(p); u.ly = yaw;
-      for (const f of u.front) f.rotation.y = u.st * .45;
+      const sa = u.delta !== undefined ? u.delta : u.st * .45; u.delta = undefined; // (the hero's car sets its true angle each frame)
+      for (const f of u.front) f.rotation.y = sa;
       u.steer.rotation.z = -u.st * 1.4;
     }
     if (u.rollers) {
@@ -17543,9 +17686,11 @@ import * as THREE from 'three';
     }
     if (P.swim) { const wy = waterAt(P.pos.x, P.pos.z); P.swim = false; P.dive = false; if (wy !== null) P.pos.y = wy; }
     P.spinT = 0; P.flipT = 0; P.jumpN = 0; P.wallSlide = false; P.wallT = 0; P.skidT = 0; P.airJumps = def.air; P.steer = 0;
+    Object.assign(P, { yawRate: 0, gear: 0, shiftT: 0, rpm: .15, carDelta: 0, slipT: 0 });
     if (def.drive && !G.driveHint) {
       G.driveHint = true;
-      setTimeout(() => toast('Рули как в гонках!', isTouch ? 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль' : 'W газ, S тормоз и назад, A и D руль'), 1200);
+      setTimeout(() => toast('Рули как в гонках!', isTouch ? 'Джойстик: вверх газ, вниз тормоз и назад, в стороны руль. Красная кнопка — ручник'
+        : 'W газ, S тормоз и назад, A и D руль, Shift ручник'), 1200);
     }
     rideGroup(P.vehId).visible = true;
     Snd.sfx.mount(); puff(P.pos.x, P.pos.y + .3, P.pos.z, 0xffffff, 8, 2, .6, .5, 1); emit(P.pos.x, P.pos.y + .6, P.pos.z, 0xffe07a, 14, 3, 1, 4, .5);
@@ -17596,7 +17741,8 @@ import * as THREE from 'three';
     g.position.set(P.pos.x, P.pos.y, P.pos.z);
     g.rotation.y = P.facing + spinAngle();
     const lean = clamp(spd / 12, 0, 1);
-    g.rotation.x = id === 'pogo' ? lean * .25 : CARS[id] || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
+    g.rotation.x = id === 'pogo' ? lean * .25 : P.veh.car || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
+    if (P.veh.car) g.userData.delta = P.carDelta || 0;
     g.rotation.z = id === 'scooter' || id === 'board' || id === 'ski' ? Math.sin(time * 2) * .02 * lean : 0;
     if (id === 'pogo') { const sq = P.onGround ? .8 : clamp(1 + P.vel.y * .01, .9, 1.08); g.scale.set(1, sq, 1); }
     g.position.y += rideBob();
@@ -18412,6 +18558,7 @@ import * as THREE from 'three';
     if (P.veh && P.veh.drive && !snap && drag === null && look.id === null && !keys.has('KeyQ') && !keys.has('KeyE') && G.state === 'playing') {
       const sp = Math.hypot(P.vel.x, P.vel.z);
       cam.yaw = angleDamp(cam.yaw, wrapPi(P.facing - Math.PI), 1 + clamp(sp / 6, 0, 1) * 3, dt); cam.yawGoal = null;
+      if (P.veh.car) cam.pitch = damp(cam.pitch, .2, 2, dt); // a real car's camera rides low behind it, as in a racing game
     }
     const holdY = G.state === 'dying' && G.dieKind === 'fall';
     const ty = holdY ? cam.ty : P.pos.y + (P.veh && P.veh.wings ? .9 : P.veh && P.veh.cannon ? (P.veh.hull ? 1.3 : .4) : 0);
@@ -18423,7 +18570,8 @@ import * as THREE from 'three';
       // (a cave can ask for a looser camera: `dist` and `pitch`)
       const cave = L.caves ? L.caves.find((c) => P.pos.x > c.x0 && P.pos.x < c.x1 && P.pos.z > c.z0 && P.pos.z < c.z1 && P.pos.y < c.y1) : null;
       cam.tight = !!cave; cam.tightPitch = cave ? cave.pitch || .16 : .16;
-      const far = cam.distGoal + (P.big ? .9 : 0) + (P.riding || P.veh ? (P.veh && P.veh.wings ? (flying ? 3.6 : 2.4) : P.veh && P.veh.fly ? 2.2 : P.veh && P.veh.cannon ? (P.veh.hull ? 4 : 1.8) : .9) : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
+      const far = P.veh && P.veh.car ? 4 + P.veh.drive * 1.3 + (cam.distGoal > 10 ? 2 : 0) // (close behind a real car, by its length)
+        : cam.distGoal + (P.big ? .9 : 0) + (P.riding || P.veh ? (P.veh && P.veh.wings ? (flying ? 3.6 : 2.4) : P.veh && P.veh.fly ? 2.2 : P.veh && P.veh.cannon ? (P.veh.hull ? 4 : 1.8) : .9) : 0) + (L.boss && L.boss.active && !L.boss.gone ? 2.2 : 0);
       cam.dist = damp(cam.dist, cave ? cave.dist || 4.2 : far, 4, dt);
     }
     // field of view widens for a moment on big launches and while the dino runs flat out
@@ -19447,6 +19595,7 @@ import * as THREE from 'three';
       const kk = clamp(1 - (feetY - gy) * .07, .35, 1);
       bl.visible = true; bl.position.set(g.px, gy + .03, g.pz); bl.scale.setScalar(kk * (g.ride ? 1.5 : v[2] > 1.1 ? 1.25 : 1)); bl.material.opacity = .34 * kk;
     }
+    const fr = g.rideNow && RIDES[RIDE_IDS[g.rideNow - 1]]; if (fr && fr.car && !fr.car.open) r.visible = false; // a friend in a closed car
     netPlaceTag(g, shown, dist, now);
   }
 
@@ -20566,7 +20715,8 @@ import * as THREE from 'three';
       (P.riding || P.veh) && P.onGround ? clamp(spdNow / RIDE_SPD, 0, 1) * .35 : 0) : 0);
     // the kart and the jet ski hum, higher the faster they go; a helicopter in the air works hard even hanging still
     const rev = P.veh && P.veh.fly && !P.onGround ? Math.max(spdNow, 8) : spdNow;
-    Snd.motor(playing && P.veh && P.veh.motor ? .35 + clamp(rev / Math.max(12, P.veh.spd), 0, 1) * .65 : 0, P.veh && P.veh.motor ? P.veh.motor : 1, P.veh && P.veh.wob);
+    if (playing && P.veh && P.veh.car) Snd.motor(.4 + clamp(P.rpm, 0, 1) * .6, P.veh.motor * (.55 + clamp(P.rpm, 0, 1.1) * .8), P.veh.wob);
+    else Snd.motor(playing && P.veh && P.veh.motor ? .35 + clamp(rev / Math.max(12, P.veh.spd), 0, 1) * .65 : 0, P.veh && P.veh.motor ? P.veh.motor : 1, P.veh && P.veh.wob);
     updateNpcs(dt);
     charAnimate(dt);
     updateAmbient(dt);
@@ -20587,12 +20737,13 @@ import * as THREE from 'three';
     updatePops(dt);
     updateBubbles();
     updateHud();
+    updateSpeedo();
     gunHud(dt);
     updateTracers(dt);
     updateUnderwater();
     // through a scope the camera is at the hero's eyes: he is not drawn (friends still see him)
     const heroVis = hero.root.visible;
-    if (gunScoped()) hero.root.visible = false;
+    if (gunScoped() || (P.veh && P.veh.car && !P.veh.car.open)) hero.root.visible = false;
     renderScene();
     hero.root.visible = heroVis;
   }
