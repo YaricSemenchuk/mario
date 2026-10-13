@@ -2,14 +2,16 @@
 
 A 3D platformer that runs in any mobile or desktop browser. Plain HTML with
 WebGL via Three.js 0.186 (ES modules from jsDelivr), no build step: the whole game lives in `index.html`, and the
-main hero's model in `models/mario.glb`.
+main hero's model in `models/mario.glb`, the other characters' in `models/chars/` (see Credits).
 
 Rendering uses PBR materials with a soft rim light on characters, an image-based sky environment
 (horizon glow, a low sun on the evening levels, stars in the dark ones), neutral tone mapping, soft
-shadows, bloom and ambient occlusion. Effects are shader particles (sparks, glow, smoke), shock rings,
+shadows, and bloom with FXAA on the Ultra setting. Effects are shader particles (sparks, glow, smoke), shock rings,
 impact flashes, a short hit-stop and screen shake; every world has its own weather (pollen, petals,
-drifting sand, snow, sprinkles, ash). Quality drops automatically (AO, then bloom, then resolution) when
-the frame rate falls, so older phones stay playable. Needs Safari 16.4+ or a current Chrome/Firefox.
+drifting sand, snow, sprinkles, ash). The Graphics button on the title and in the pause picks Auto, Fast,
+Normal, Fine or Ultra (pixel density 1 / 1.5 / 2, shadow map 1024 or 2048, bloom only on Ultra, its code
+fetched when first picked). Auto starts computers at Fine and touch screens at Normal, steps down while the
+frame rate stays under 45 fps and remembers where it settled. Needs Safari 16.4+ or a current Chrome/Firefox.
 
 Sound is synthesised with WebAudio: a compressor and reverb on the mix, sound effects panned and
 attenuated by where they happen, footsteps per surface, chiptune music with drums, an arpeggio and an
@@ -441,3 +443,44 @@ The Mario model is ["Mario obj"](https://sketchfab.com/3d-models/mario-obj-c549d
 [MatiasH290](https://sketchfab.com/matias029), licensed under
 [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/). Changes: turned to stand y up in metres, textures shrunk to
 512 px JPEG, positions and normals quantized. Mario is a character of Nintendo.
+
+The other characters (`models/chars/*.glb`) are low-poly models from [Poly Pizza](https://poly.pizza). Changes to every
+one: parts joined into one mesh with the material colours moved into vertex colours, parts held in a hand or worn on the
+head bound to that joint, only the animations the game plays kept, heavy ones simplified, textures shrunk to 256 px
+WebP, meshopt compression; the frog recoloured green and the spiky blob purple, the penguin's ice floe removed.
+
+| In the game | Model | Author | Licence |
+|---|---|---|---|
+| Квак and the frogs | [Frog](https://poly.pizza/m/37wofOCOzG) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Пинг and the penguins | [Peppermint Penguin](https://poly.pizza/m/dLdYN_-2dlE) | Damon Pidhajecky | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Фома and the hedgehogs | [Hedgehog](https://poly.pizza/m/8UNni5IvK_c) | Poly by Google | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Мурр and the cats | [Cat](https://poly.pizza/m/4Pp1CY3bC43) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Капитан Клешня and the crabs | [Crab](https://poly.pizza/m/bmZ6-LnPmp0) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| the camels | [Camel](https://poly.pizza/m/9mu4MbU4QtJ) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Пломбир the snowman | [Snowman](https://poly.pizza/m/aVl3UrWiDg1) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| the gingerbread folk | [Gingerbread](https://poly.pizza/m/AoZ5bbpoqh) | Polygonal Mind | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the gummy-bear bakers | [Gummy Bear](https://poly.pizza/m/5zl16PPAItW) | Poly by Google | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Командир Мишка | [Panda](https://poly.pizza/m/q1uJ28Hs8T) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the sea turtles | [Turtle](https://poly.pizza/m/0Sylqo1dCfu) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Инка the octopus | [Octopus](https://poly.pizza/m/6KQsV8qo5E0) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Брызга the dolphin | [Dolphin](https://poly.pizza/m/7wJMjOLO72P) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| the aliens | [Alien](https://poly.pizza/m/HYUUkdugoP) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Вождь Уга | [Characters Shaun](https://poly.pizza/m/eJFT9MxzOM) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Ула | [Anne](https://poly.pizza/m/tZYaOQ4l94) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Мама Бронти | [Apatosaurus](https://poly.pizza/m/fvo0x8Zk3z) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the baby dinos | [Cute Red Dino](https://poly.pizza/m/WAkBnE6ydO) | Exceptional_3D | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Дымок and Зарянка | [Dragon Evolved](https://poly.pizza/m/LlwD0QNUPj) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the baby dragons | [Dragon](https://poly.pizza/m/3rUm1cN3yp) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the chestnut walkers | [Mushnub](https://poly.pizza/m/LWKmS30Xxl) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Король Каштан | [Mushroom King](https://poly.pizza/m/grnFTziU8u) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Колючка | [Green Spiky Blob](https://poly.pizza/m/IoWG5F9WUc) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Попрыгун | [Pink Slime](https://poly.pizza/m/AyP8sQmDLh) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| Жужа | [Armabee](https://poly.pizza/m/42djT5zJnx) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the jellyfish | [Jellyfish](https://poly.pizza/m/dA5osnS0Rzj) | Poly by Google | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| the raptors | [Velociraptor](https://poly.pizza/m/cnlGH2UcDd) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the triceratops | [Triceratops](https://poly.pizza/m/IGvrUqGrRM) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the T-rex | [T-Rex](https://poly.pizza/m/UYtneO5FpF) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the wolves | [Wolf](https://poly.pizza/m/P1gU3Qkr9r) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the forest rabbits | [Rabbit](https://poly.pizza/m/eIA8cNdEn-4) | jeremy | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |
+| Мегабот | [Robot Enemy Large Gun](https://poly.pizza/m/mWojM4i2IH) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| the Dino kid | [Animated Platformer Character](https://poly.pizza/m/kKtL4zvS3n) | Quaternius | [CC0](https://creativecommons.org/publicdomain/zero/1.0/) |
