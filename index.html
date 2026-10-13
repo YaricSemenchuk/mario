@@ -503,6 +503,48 @@
     max-height: max(150px, calc(100dvh - 330px)); overflow-y: auto; padding: 2px 4px 6px 2px; overscroll-behavior: contain;
   }
   .shop-sec { grid-column: 1 / -1; margin: 6px 0 -2px; font: 800 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-soft); text-align: left; }
+  /* ---------- the tuning shop: the car on its turntable fills what the card leaves; the card beside it or under it ---------- */
+  #scrTune { background: none; padding: 0; display: block; overflow: hidden; touch-action: none; }
+  #tuneView { position: absolute; top: 0; right: 0; bottom: 0; left: 0; touch-action: none; cursor: grab; }
+  .tune-panel {
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 56dvh; box-sizing: border-box;
+    display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 10px; touch-action: pan-y;
+    padding: 12px calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 12px) calc(env(safe-area-inset-left, 0px) + 14px);
+    background: var(--paper); color: var(--ink); border-top: 3px solid var(--ink); border-radius: 20px 20px 0 0; box-shadow: 0 -4px 0 rgba(28, 30, 59, .25);
+  }
+  @media (orientation: landscape) {
+    .tune-panel {
+      top: 0; left: auto; width: min(420px, 48vw); max-height: none; border-top: 0; border-left: 3px solid var(--ink); border-radius: 20px 0 0 20px;
+      padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 14px) calc(env(safe-area-inset-bottom, 0px) + 12px) 14px;
+    }
+  }
+  .tune-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; text-align: center; }
+  .tune-head h2 { margin: 3px 0 0; font: 900 22px/1.05 var(--ui); }
+  .tune-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tune-tab {
+    min-width: 0; padding: 9px 2px 8px; cursor: pointer; color: var(--ink); background: rgba(255, 255, 255, .6); border: 3px solid var(--ink); border-radius: 12px;
+    font: 800 12px/1 var(--ui); letter-spacing: .02em; text-transform: uppercase; box-shadow: 0 3px 0 var(--ink); overflow-wrap: anywhere;
+  }
+  .tune-tab[aria-selected="true"] { background: var(--gold); }
+  .tune-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 6px; padding: 2px 2px 8px; }
+  .tune-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tune-sw { position: relative; width: 38px; height: 38px; padding: 0; border-radius: 50%; border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); cursor: pointer; }
+  .tune-sw.own { border-style: dashed; }
+  .tune-sw[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .tune-sw[aria-pressed="true"]::after {
+    content: '✓'; position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: grid; place-items: center;
+    font: 900 17px/1 var(--ui); color: var(--white); text-shadow: var(--outline);
+  }
+  .tune-chip {
+    padding: 9px 12px; cursor: pointer; color: var(--ink); background: var(--white); border: 3px solid var(--ink); border-radius: 12px;
+    box-shadow: 0 3px 0 var(--ink); font: 800 13px/1.1 var(--ui);
+  }
+  .tune-chip[aria-pressed="true"] { background: var(--gold); }
+  .tune-chip:active, .tune-sw:active, .tune-tab:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  .tune-chip:focus-visible, .tune-sw:focus-visible, .tune-tab:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+  .tune-panel .btn { padding: 11px 10px; font-size: 15px; }
+  /* while the shop is open only it and the canvas show: the HUD and the world's labels belong to the game behind it */
+  body.tuning > :not(#scrTune):not(#game):not(#errBar) { visibility: hidden !important; }
   /* the workbench by the campfire in the Dark Forest: what lies on it, and what it makes */
   #scrCraft .card { width: min(620px, 100%); }
   #scrCraft .shop-list {
@@ -808,6 +850,7 @@
     <div class="card-actions">
       <button class="btn btn-main" id="btnResume" type="button">Продолжить</button>
       <button class="btn" id="btnGarage" type="button">Транспорт и оружие</button>
+      <button class="btn" id="btnTune" type="button">Тюнинг машин</button>
       <button class="btn" id="btnPauseNet" type="button">Играть с друзьями</button>
       <button class="btn" id="btnRestart" type="button">Начать уровень заново</button>
       <button class="btn" id="btnToIsland" type="button">На остров</button>
@@ -883,6 +926,29 @@
     </div>
     <div class="shop-list" id="shopList" role="tabpanel"></div>
     <div class="card-actions"><button class="btn btn-ghost" id="btnShopClose" type="button">Уйти</button></div>
+  </div>
+</section>
+
+<section class="screen" id="scrTune" hidden aria-label="Тюнинг-ателье">
+  <div id="tuneView"></div>
+  <div class="tune-panel">
+    <div class="tune-head">
+      <button class="icon-btn" id="tunePrev" type="button" aria-label="Предыдущая машина">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15.5 5 8 12l7.5 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div><p class="eyebrow">Тюнинг-ателье · бесплатно</p><h2 id="tuneName">Машина</h2></div>
+      <button class="icon-btn" id="tuneNext" type="button" aria-label="Следующая машина">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8.5 5 16 12l-7.5 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="tune-tabs" role="tablist" aria-label="Разделы тюнинга">
+      <button class="tune-tab" type="button" role="tab" data-tt="paint" aria-selected="true">Покраска</button>
+      <button class="tune-tab" type="button" role="tab" data-tt="wheels" aria-selected="false">Колёса</button>
+      <button class="tune-tab" type="button" role="tab" data-tt="decal" aria-selected="false">Наклейки</button>
+      <button class="tune-tab" type="button" role="tab" data-tt="parts" aria-selected="false">Запчасти</button>
+    </div>
+    <div class="tune-list" id="tuneList" role="tabpanel"></div>
+    <div class="btn-row"><button class="btn btn-ghost" id="tuneReset" type="button">Как с завода</button><button class="btn btn-go" id="tuneDone" type="button">Готово</button></div>
   </div>
 </section>
 
@@ -5943,6 +6009,7 @@ import * as THREE from 'three';
       // a car on a turntable in the Speedway's garage, a blue pad before it that puts the hero in it
       carStand(id, x, top, d, yaw, name) {
         const z = -d, g = rideModel(id), fx = Math.sin(yaw), fz = Math.cos(yaw);
+        carTune(g, myTune(id)); // (our own tuning on the garage's cars)
         near.add(CYL_HI, 0xb8bfcc, M4(x, top + .15, z, 3, .3, 3)); near.add(CYL_HI, 0xe8352a, M4(x, top + .31, z, 3.02, .04, 3.02));
         addSolid(x - 2.2, top, z - 2.2, x + 2.2, top + .3, z + 2.2, 'hard');
         g.position.set(x, top + .3, z); g.rotation.y = yaw; add(g);
@@ -9405,6 +9472,7 @@ import * as THREE from 'three';
       'Спорткар и Болид самые быстрые на асфальте. Монстр-трак медленнее, зато в гонке не вязнет на траве. На траве все остальные тормозят!',
       'Солнечное кольцо прямо на севере, Восьмёрка на востоке, Лесная трасса на западе. Иди по асфальтовой дорожке.',
       'Проезжай в арки по порядку: следующая горит жёлтым, стрелка над тобой показывает к ней.',
+      'Хочешь свою машину покрасить или поставить спойлер? Мастер Гайка у восточной дороги делает тюнинг бесплатно.',
       'Понравилась машина? Кот Турбо в лавке продаёт её насовсем, тогда она поедет с тобой в любой мир.',
       'С друзьями тут гоняют на зелёных ковриках у стартов: все из комнаты едут вместе, каждый на своей машине.',
     ]);
@@ -9412,6 +9480,22 @@ import * as THREE from 'three';
     B.npc('cat', -24.6, 0, 4, 'Кот Турбо', ['Мр-р-р! Я кузен Мурра, самый быстрый кот на свете. Почти.', 'Спорткар, Болид и Монстр-трак есть у меня в лавке, навсегда. Поедут во все миры!',
       'Карт тоже у меня. Он лёгкий и шустрый, и на нём тоже можно выиграть!'], { yaw: -Math.PI / 2 });
     B.sign(-4, 0, 9, ['Гараж:', 'выбери машину']);
+    // the tuning shop: a bay by the east road, open to the paddock, a yellow pad inside that opens it, and its mechanic
+    for (const [x, d] of [[25.6, 3.6], [30.4, 3.6], [25.6, 8.4], [30.4, 8.4]]) { B.decor(BOX, 0xe8352a, x, 1.6, d, .3, 3.2, .3); addSolid(x - .15, 0, -d - .15, x + .15, 3.2, -d + .15, 'hard'); }
+    B.decor(BOX, 0x3a3f52, 28, 3.3, 6, 5.6, .25, 5.6); B.decor(BOX, 0xffd23f, 25.45, 3.3, 6, .12, .5, 5.6);
+    B.decor(BOX, 0x4a4f62, 30.55, 1.6, 6, .15, 3.2, 4.5); addSolid(30.45, 0, -8.25, 30.65, 3.2, -3.75, 'hard');
+    B.decor(BOX, 0x2b2f3d, 28, .02, 6, 4.8, .04, 4.8);
+    B.decor(BOX, 0xe8352a, 29.9, .55, 8, .7, 1.1, .5); B.decor(BOX, 0xb8bfcc, 29.9, 1.12, 8, .74, .04, .54); // a tool chest
+    B.tyres(29.6, 0, 4.4);
+    B.pad('tune', 28, 0, 6);
+    B.sign(24.6, 0, 9.6, ['Тюнинг-', 'ателье'], -Math.PI / 2);
+    B.npc('builder', 25.4, 0, 6, 'Мастер Гайка', () => [
+      'Привет! Я Мастер Гайка, а это моё тюнинг-ателье. Всё бесплатно!',
+      'Встань на жёлтый коврик, и я покажу машину на подъёмнике. Покрасим, наклеим пламя или номер, поставим спойлер, новые диски, неон.',
+      'У каждой машины свой тюнинг. Сделаешь Ferrari синей, а Lamborghini с полосами, и каждая такой и останется.',
+      'Друзья в комнате видят твою машину такой, какой ты её сделал. Мигалку на крыше тоже!',
+      'Тюнинг есть и в паузе, в любом мире: кнопка «Тюнинг машин».',
+    ], { yaw: -Math.PI / 2 });
     B.sign(-8, 0, 30.5, ['Солнечное', 'кольцо']); B.sign(36, 0, 7.5, ['Восьмёрка', 'на восток →']); B.sign(-36, 0, 7.5, ['← Лесная', 'трасса']);
     for (const [x, d] of [[-30, -10], [30, -10], [-30, 26], [30, 26]]) B.tyres(x, 0, d);
     for (let d = -9; d <= 13; d += 2) B.coin(0, 1.2, d);
@@ -9778,7 +9862,7 @@ import * as THREE from 'three';
   function loadLevel(def) {
     if (L && L.def.nights) ntLeave();
     if (L && L.def.duels) duLeave();
-    if (L) { gunLeave(); scene.remove(L.group); disposeGroup(L.group); }
+    if (L) { gunLeave(); for (const st of L.carStands) carDrop(st.g); scene.remove(L.group); disposeGroup(L.group); }
     bubblesEl.textContent = '';
     fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true; $('result').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
@@ -11783,13 +11867,16 @@ import * as THREE from 'three';
     // the Roblox world: the furthest obby stage reached, the most Color Block rounds lasted
     rbStage: 0, rbCb: 0,
     // the Speedway: the car picked in its garage, the best grand prix time on each track (ms)
-    car: 'kart', rcBest: [0, 0, 0] });
+    car: 'kart', rcBest: [0, 0, 0],
+    // the tuning shop: each real car's tuning code under its id (only the cars changed from the factory's)
+    tune: {} });
   const SAVE = Object.assign(SAVE_NEW(), store.get('save', {}));
   // older saves: the island's red badges and froglets had lists of their own, and the turquoise cap was the default
   if (SAVE.red) { SAVE.sets.red = SAVE.red; delete SAVE.red; }
   if (SAVE.frogs) { SAVE.sets.frogs = SAVE.frogs; delete SAVE.frogs; }
   if (!SAVE.caps.includes('auto')) SAVE.caps.unshift('auto');
   if (SAVE.cap === 'classic') SAVE.cap = 'auto';
+  if (!SAVE.tune || typeof SAVE.tune !== 'object' || Array.isArray(SAVE.tune)) SAVE.tune = {};
   // Mario became the main hero (2026-09-28): a save still in the classic costume puts him on, once (the classic stays in the shop)
   if (!SAVE.marioOn) { if (SAVE.skin === 'classic') SAVE.skin = 'mario'; SAVE.marioOn = 1; }
   // players from before the island keep the levels they had opened
@@ -16922,7 +17009,7 @@ import * as THREE from 'three';
         pd.armed = false;
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
         else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
-        else if (pd.kind === 'craft') ntCraftPad();
+        else if (pd.kind === 'craft') ntCraftPad(); else if (pd.kind === 'tune') tuneOpen();
         else if (pd.kind === 'car') pickCar(pd.data); else if (pd.kind === 'gp') gpStart(pd.data); else if (pd.kind === 'gpf') gpFriends(pd.data);
         else if (pd.kind === 'cb') cbStart(); else if (pd.kind === 'rbwarp') rbContinue(); else if (pd.kind === 'rbhome') rbHome();
         else if (pd.kind === 'duel' || pd.kind === 'snipe') ftStart(pd.kind === 'duel' ? 'arena' : 'snipe');
@@ -17128,7 +17215,7 @@ import * as THREE from 'three';
   const RIDES = {
     scooter: { name: 'Самокат', price: 90, sub: 'Быстрый и вёрткий', spd: 11.5, acc: 34, jump: 1, air: 0, y: .22, pose: 'stand' },
     kart: { name: 'Карт', price: 160, sub: 'Лёгкий и вёрткий, держит любой поворот', spd: 19, acc: 26, jump: .82, air: 0, y: .02, seatZ: -.3, pose: 'sit', bump: true, motor: 1, drive: 1.06,
-      hw: .55, car: { f: 'kart', kmh: 110, a0: 8, dt: 'rwd', mu: 1.5, assist: 4.5, gears: 1, over: 1, open: [0, .52, .3, .12] } },
+      hw: .55, car: { f: 'kart', paint: [0, .086, .722], kmh: 110, a0: 8, dt: 'rwd', mu: 1.5, assist: 4.5, gears: 1, over: 1, open: [0, .52, .3, .12] } },
     board: { name: 'Сноуборд', price: 120, sub: 'Летит по снегу, льду и песку', spd: 10, snow: 15, surfs: ['snow', 'glacier', 'sand', 'canyon'], acc: 30, jump: 1.12, air: 0, y: .14, pose: 'board' },
     jetski: { name: 'Водный скутер', price: 140, sub: 'Мчится по воде, на суше медленный', spd: 6.5, water: 14.5, acc: 26, jump: .95, air: 0, y: .3, pose: 'sit', floats: true, motor: 1.4 },
     pogo: { name: 'Пого-палка', price: 110, sub: 'Сама прыгает и давит даже колючек', spd: 7.5, acc: 30, jump: 1.25, air: 0, y: .38, pose: 'pogo', pogo: true },
@@ -17161,30 +17248,31 @@ import * as THREE from 'three';
     // holds what makes each one itself: f its file, kmh its real top speed (for the speedometer), a0 how hard it pulls away
     // (m/s²), dt the driven wheels (rwd slides its tail out under power, awd hooks up, fwd pushes wide), mu the tyres'
     // grip, assist how much the car helps keep it straight (low on the drift cars), gears, and for the kart, the only one
-    // the hero shows in, where its steering wheel is (x, y, z, radius). The formula car is the quickest on the tarmac but
+    // the hero shows in, where its steering wheel is (x, y, z, radius); paint is the car's own colour as its model has it (linear),
+    // which the tuning shop finds and repaints. The formula car is the quickest on the tarmac but
     // slowest on the grass beside it in a race (grass: its speed there); the monster truck jumps high and minds no grass.
     sport: { name: 'Ferrari F40', price: 240, sub: 'Легенда восьмидесятых: задний привод, 324 км/ч', spd: 25, acc: 30, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2,
-      drive: 2.78, hw: .85, car: { f: 'sport', kmh: 324, a0: 8.5, dt: 'rwd', mu: 1.1, assist: 1.4 } },
+      drive: 2.78, hw: .85, car: { f: 'sport', paint: [.447, .165, 0], kmh: 324, a0: 8.5, dt: 'rwd', mu: 1.1, assist: 1.4 } },
     f1: { name: 'Болид F1', price: 350, sub: 'Самый быстрый на асфальте, но на траве вязнет', spd: 27, acc: 34, jump: .6, air: 0, y: .1, seatZ: -.1, pose: 'sit', bump: true, motor: 1.6, grass: .55,
-      drive: 2.99, hw: .85, car: { f: 'f1', kmh: 350, a0: 10.5, dt: 'rwd', mu: 1.65, assist: 2.2, gears: 7 } },
+      drive: 2.99, hw: .85, car: { f: 'f1', paint: [.506, .027, .024], kmh: 350, a0: 10.5, dt: 'rwd', mu: 1.65, assist: 2.2, gears: 7 } },
     monster: { name: 'Монстр-трак', price: 300, sub: 'Колёса выше тебя! Высоко прыгает и не вязнет на траве', spd: 19, acc: 26, jump: 1.3, air: 0, y: 1.25, seatZ: -.3, pose: 'sit', bump: true,
-      motor: .7, hw: 1, rough: true, drive: 2.8, car: { f: 'monster', kmh: 160, a0: 7, dt: 'awd', mu: .95, assist: 2.4, gears: 4 } },
+      motor: .7, hw: 1, rough: true, drive: 2.8, car: { f: 'monster', paint: [.898, .016, .016], kmh: 160, a0: 7, dt: 'awd', mu: .95, assist: 2.4, gears: 4 } },
     aventador: { name: 'Lamborghini Aventador', price: 600, sub: 'Полный привод, 350 км/ч и разгон как из пушки', spd: 26.5, acc: 30, jump: .8, air: 0, y: .25, pose: 'sit', bump: true,
-      motor: 1.25, drive: 2.68, hw: .9, car: { f: 'aventador', kmh: 350, a0: 10, dt: 'awd', mu: 1.15, assist: 1.8, gears: 7 } },
+      motor: 1.25, drive: 2.68, hw: .9, car: { f: 'aventador', paint: [1, .5, 0], kmh: 350, a0: 10, dt: 'awd', mu: 1.15, assist: 1.8, gears: 7 } },
     gtr: { name: 'Nissan GT-R', price: 450, sub: 'Годзилла: полный привод, цепко держит дорогу', spd: 24.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.1,
-      drive: 2.68, hw: .85, car: { f: 'gtr', kmh: 315, a0: 9, dt: 'awd', mu: 1.15, assist: 1.8 } },
+      drive: 2.68, hw: .85, car: { f: 'gtr', paint: [.02, .075, .337], kmh: 315, a0: 9, dt: 'awd', mu: 1.15, assist: 1.8 } },
     camaro: { name: 'Chevrolet Camaro', price: 380, sub: 'Американский мускул: мощный и с заносом', spd: 23, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: .85,
-      drive: 3, hw: .9, car: { f: 'camaro', kmh: 290, a0: 7.8, dt: 'rwd', mu: 1, assist: .9, over: 1.45 } },
+      drive: 3, hw: .9, car: { f: 'camaro', paint: [.388, .012, .02], kmh: 290, a0: 7.8, dt: 'rwd', mu: 1, assist: .9, over: 1.45 } },
     challenger: { name: 'Dodge Challenger', price: 420, sub: 'Восемь цилиндров: рвёт с места и любит дрифт', spd: 24, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: .8,
-      drive: 2.93, hw: .9, car: { f: 'challenger', kmh: 320, a0: 8.2, dt: 'rwd', mu: .95, assist: .7, gears: 8, over: 1.55 } },
+      drive: 2.93, hw: .9, car: { f: 'challenger', paint: [.106, 0, 0], kmh: 320, a0: 8.2, dt: 'rwd', mu: .95, assist: .7, gears: 8, over: 1.55 } },
     ae86: { name: 'Toyota AE86', price: 260, sub: 'Лёгкая и послушная: король дрифта', spd: 20, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.35,
-      drive: 2.37, hw: .8, car: { f: 'ae86', kmh: 200, a0: 6, dt: 'rwd', mu: 1.05, assist: .55, gears: 5, over: 1.6 } },
+      drive: 2.37, hw: .8, car: { f: 'ae86', paint: [.8, .8, .8], kmh: 200, a0: 6, dt: 'rwd', mu: 1.05, assist: .55, gears: 5, over: 1.6 } },
     delorean: { name: 'DeLorean', price: 300, sub: 'Машина из «Назад в будущее»: на 141 км/ч держись крепче', spd: 18.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: .95,
-      drive: 2.44, hw: .85, car: { f: 'delorean', kmh: 175, a0: 5.5, dt: 'rwd', mu: .95, assist: 1.6, gears: 5 } },
+      drive: 2.44, hw: .85, car: { f: 'delorean', paint: [.318, .404, .431], kmh: 175, a0: 5.5, dt: 'rwd', mu: .95, assist: 1.6, gears: 5 } },
     rx7: { name: 'Mazda RX-7', price: 340, sub: 'Роторный мотор поёт до самой отсечки', spd: 22.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.5,
-      drive: 2.44, hw: .8, car: { f: 'rx7', kmh: 250, a0: 7.2, dt: 'rwd', mu: 1.05, assist: .8, gears: 5, over: 1.45 } },
+      drive: 2.44, hw: .8, car: { f: 'rx7', paint: [1, 1, 1], kmh: 250, a0: 7.2, dt: 'rwd', mu: 1.05, assist: .8, gears: 5, over: 1.45 } },
     cybertruck: { name: 'Cybertruck', price: 500, sub: 'Электрический и тяжёлый: тихий, но разгон бешеный', spd: 21.5, acc: 30, jump: .7, air: 0, y: .45, pose: 'sit', bump: true, motor: .55,
-      drive: 3.56, hw: 1, car: { f: 'cybertruck', kmh: 210, a0: 9.5, dt: 'awd', mu: 1, assist: 2, gears: 1, electric: true } },
+      drive: 3.56, hw: 1, car: { f: 'cybertruck', paint: [.384, .4, .42], kmh: 210, a0: 9.5, dt: 'awd', mu: 1, assist: 2, gears: 1, electric: true } },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -17365,6 +17453,7 @@ import * as THREE from 'three';
   }
   function closeMenu() {
     if (G.state !== 'menu') return;
+    tuneHide();
     G.state = 'playing'; showScreen(null); showTouch(isTouch); input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false;
     last = performance.now();
   }
@@ -17426,25 +17515,20 @@ import * as THREE from 'three';
       lib.body = g.scene.getObjectByName('body');
       lib.wheels = ['wheel_fl', 'wheel_fr', 'wheel_rl', 'wheel_rr'].map((n) => g.scene.getObjectByName(n));
       lib.r = lib.wheels.map((w) => new T.Box3().setFromObject(w).getSize(_cv).y / 2);
+      carSplit(lib, Object.values(RIDES).find((r) => r.car && r.car.f === f).car.paint);
       lib.ready = true;
     }).catch(() => { lib.failed = true; });
     return lib;
   }
   function carModel(id) {
     const C = RIDES[id].car, g = new T.Group(), u = g.userData; g.rotation.order = 'YXZ';
-    Object.assign(u, { kw: [], front: [], steer: new T.Object3D(), st: 0, lp: null, ly: 0, vf: 0, roll: 0, pitch: 0, body: null });
+    Object.assign(u, { car: id, kw: [], front: [], steer: new T.Object3D(), st: 0, lp: null, ly: 0, vf: 0, roll: 0, pitch: 0, body: null, want: '', tune: '', dressed: false });
     const stand = new T.Mesh(GEO.rides[id] || GEO.rides.sport, MAT.char); stand.castShadow = true; g.add(stand);
     if (C.open) u.grips = wheelGrips(C.open[0], C.open[1], C.open[2], C.open[3], -.9).map((p) => { const o = new T.Object3D(); o.position.fromArray(p); g.add(o); return o; });
     const lib = carLib(C.f);
-    const wear = () => {
-      if (!lib.ready) return;
-      g.remove(stand);
-      u.body = lib.body.clone(); g.add(u.body);
-      lib.wheels.forEach((w, i) => {
-        const m = w.clone(), at = w.position.clone(); m.position.set(0, 0, 0);
-        if (i < 2) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
-        u.kw.push([m, lib.r[i]]);
-      });
+    const wear = () => { // the body and the wheels, as the car's tuning asks (carTune may have said before the model came)
+      if (!lib.ready || u.dressed) return;
+      g.remove(stand); u.dressed = true; carDress(g, id, u.want);
     };
     if (lib.ready) wear(); else lib.wait.then(wear);
     return g;
@@ -17452,6 +17536,492 @@ import * as THREE from 'three';
   // every car of the Speedway, one after another, so the garage fills with the real ones
   function carPreload() {
     [...new Set(Object.values(RIDES).filter((r) => r.car).map((r) => r.car.f))].reduce((p, f) => p.then(() => carLib(f).wait), Promise.resolve()).catch(() => {});
+  }
+
+  // ---------- the tuning shop: each real car's own paint, stickers, wheels and parts, all free ----------
+  // A car's tuning is a code, one base-36 digit for each field of TUNE_F (0 is the factory's everywhere), kept in
+  // SAVE.tune under the car's id and sent to the friends, who see our cars as we made them. It works on the car's own
+  // parts (carSplit, once a model is in): the body's triangles in two groups, the paint (car.paint, the car's own colour)
+  // and the rest, so the paint takes a colour, a finish and the stickers while the glass, the lights and the trim stay as
+  // they were; each wheel's in two, the tyre and the rim; and the parts that bolt on go where the car's outline says.
+  const TUNE_PAINT = [['Заводской', null], ['Красный', 0xe8262b], ['Оранжевый', 0xff7a1a], ['Жёлтый', 0xffd21f], ['Лайм', 0x9be22d],
+    ['Зелёный', 0x1f9e4a], ['Бирюзовый', 0x18c4b8], ['Голубой', 0x4cc3ff], ['Синий', 0x1f4fd8], ['Фиолетовый', 0x7a3ce0], ['Розовый', 0xff5fb0],
+    ['Белый', 0xf4f4f0], ['Серебристый', 0xb8bec8], ['Графит', 0x4a4f58], ['Чёрный', 0x15161a], ['Золотой', 0xd9a93a]];
+  const TUNE_FINISH = [['Глянец', .36, .18], ['Металлик', .24, .72], ['Матовое', .8, 0], ['Хром', .06, 1]]; // roughness, metalness
+  const TUNE_DECAL = ['Без рисунка', 'Гоночные полосы', 'Пламя', 'Молния', 'Шашечки', 'Звёзды', 'Тигр', 'Камуфляж'];
+  const TUNE_INK = [['Белый', 0xffffff], ['Чёрный', 0x15161a], ['Золотой', 0xffc53d], ['Красный', 0xe8262b], ['Синий', 0x2f6bff],
+    ['Зелёный', 0x37c45a], ['Розовый', 0xff5fb0], ['Оранжевый', 0xff8a1a]];
+  const TUNE_NUM = ['Без номера', '1', '7', '13', '23', '42', '77', '99'];
+  const TUNE_RIM = [['Заводские', null], ['Хром', 0xe8ecf2], ['Золото', 0xf2c14e], ['Чёрные', 0x1c1d22], ['Белые', 0xffffff], ['Красные', 0xe8262b],
+    ['Синие', 0x2f6bff], ['Неоновые', 0x6dff4a], ['Розовые', 0xff5fb0]];
+  const TUNE_SPOILER = ['Нет', 'Утиный хвост', 'Крыло', 'Большое крыло'];
+  const TUNE_HOOD = ['Заводской', 'Воздухозаборник', 'Компрессор'];
+  const TUNE_PIPES = ['Заводской', 'Две трубы', 'Четыре трубы', 'С огнём'];
+  const TUNE_KIT = ['Нет', 'Спортивный'];
+  const TUNE_ROOF = ['Ничего', 'Мигалка', 'Багажник', 'Шашка такси', 'Прожекторы'];
+  const TUNE_RIDE = ['Заводская', 'Низкая', 'Высокая'];
+  const TUNE_NEON = [['Нет', null], ['Синий', 0x2f8bff], ['Розовый', 0xff3fb0], ['Зелёный', 0x3fff6a], ['Фиолетовый', 0x9a4aff], ['Красный', 0xff3030],
+    ['Белый', 0xffffff]];
+  const CAR_IDS = Object.keys(RIDES).filter((id) => RIDES[id].car); // every real car, in the shop's order (new ones go at the end)
+  // the code's fields in order and how many choices each has (w: the factory's wheels, or those of another car)
+  const TUNE_F = [['p', TUNE_PAINT.length], ['f', TUNE_FINISH.length], ['d', TUNE_DECAL.length], ['c', TUNE_INK.length], ['n', TUNE_NUM.length],
+    ['w', CAR_IDS.length + 1], ['r', TUNE_RIM.length], ['s', TUNE_SPOILER.length], ['h', TUNE_HOOD.length], ['e', TUNE_PIPES.length],
+    ['k', TUNE_KIT.length], ['t', TUNE_ROOF.length], ['y', TUNE_RIDE.length], ['g', TUNE_NEON.length]];
+  function tuneOf(code) {
+    const t = {}; code = typeof code === 'string' ? code : '';
+    TUNE_F.forEach(([k, n], i) => { const v = parseInt(code[i] || '0', 36); t[k] = v > 0 && v < n ? v : 0; });
+    return t;
+  }
+  const tuneCode = (t) => { const s = TUNE_F.map(([k]) => (t[k] || 0).toString(36)).join(''); return /^0+$/.test(s) ? '' : s; };
+  const tuneClean = (code) => (typeof code === 'string' && code.length <= 32 ? tuneCode(tuneOf(code)) : ''); // from a save or a friend
+  const myTune = (id) => tuneClean(SAVE.tune[id]);
+  // ours for the friends: only the cars changed from the factory's
+  const tuneSend = () => { const o = {}; for (const id of CAR_IDS) { const c = myTune(id); if (c) o[id] = c; } return o; };
+
+  // the paint (the triangles of the car's own colour; on the textured cars the texture under them is read too), the rims,
+  // and the car's outline in metres on the car (its box, and along it how high its middle and its sides reach and how
+  // low it goes), all worked out once a model is in
+  const gam = (v) => Math.pow(Math.max(0, v), 1 / 2.2);
+  const hsv = (r, g, b) => { // hue in degrees, saturation, value
+    const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+    let h = d < 1e-6 ? 0 : mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h *= 60; if (h < 0) h += 360;
+    return [h, mx ? d / mx : 0, mx];
+  };
+  function carSplit(lib, key) {
+    const shell = lib.body, mesh = shell.isMesh ? shell : shell.getObjectByProperty('isMesh', true);
+    shell.parent.updateMatrixWorld(true);
+    lib.mat = mesh.material;
+    lib.toCar = new T.Matrix4().copy(shell.parent.matrixWorld).invert().multiply(mesh.matrixWorld); // the mesh's numbers to metres
+    const g = mesh.geometry, pos = g.attributes.position, col = g.attributes.color, uv = g.attributes.uv, map = lib.mat.map;
+    let px = null, tw = 0, th = 0;
+    if (map && uv && map.image) {
+      tw = map.image.width; th = map.image.height;
+      const cv = document.createElement('canvas'); cv.width = tw; cv.height = th;
+      const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(map.image, 0, 0); px = cx.getImageData(0, 0, tw, th).data;
+    }
+    // a colour is the paint's when it has the key's hue (a deep colour, darker or lighter as a texture's shading has it, but not
+    // as dark as the trim nor as bright as the lamps), or when it is the key itself (white, silver, grey)
+    const kg = key.map(gam), K = hsv(kg[0], kg[1], kg[2]), deep = K[1] > .35;
+    const like = (c) => {
+      const r = gam(c[0]), gr = gam(c[1]), b = gam(c[2]);
+      if (!deep) return Math.abs(r - kg[0]) < .1 && Math.abs(gr - kg[1]) < .1 && Math.abs(b - kg[2]) < .1;
+      const [h, sa, va] = hsv(r, gr, b), dh = Math.abs(((h - K[0] + 540) % 360) - 180);
+      return dh < 18 && sa > K[1] * .45 && va > K[2] * .5 && va < K[2] * 1.6 + .05;
+    };
+    const ix = g.index ? g.index.array : null, n = ix ? ix.length : pos.count, keep = [], paint = [], c = [0, 0, 0];
+    for (let t = 0; t < n; t += 3) {
+      const a = ix ? ix[t] : t, b = ix ? ix[t + 1] : t + 1, d = ix ? ix[t + 2] : t + 2;
+      for (let k = 0; k < 3; k++) c[k] = col ? (col.getComponent(a, k) + col.getComponent(b, k) + col.getComponent(d, k)) / 3 : 1;
+      if (px) {
+        let u = (uv.getX(a) + uv.getX(b) + uv.getX(d)) / 3, v = (uv.getY(a) + uv.getY(b) + uv.getY(d)) / 3;
+        u -= Math.floor(u); v -= Math.floor(v);
+        const o = (Math.min(th - 1, (v * th) | 0) * tw + Math.min(tw - 1, (u * tw) | 0)) * 4;
+        for (let k = 0; k < 3; k++) c[k] *= Math.pow(px[o + k] / 255, 2.2);
+      }
+      (like(c) ? paint : keep).push(a, b, d);
+    }
+    const order = (first, second, count) => {
+      const arr = new (count > 65535 ? Uint32Array : Uint16Array)(first.length + second.length); arr.set(first); arr.set(second, first.length);
+      return arr;
+    };
+    g.setIndex(new T.BufferAttribute(order(keep, paint, pos.count), 1)); g.clearGroups(); g.addGroup(0, keep.length, 0); g.addGroup(keep.length, paint.length, 1);
+    // each wheel: the tyre, and the rim inside 72% of its radius (by where its faces are, as the colours tell nothing on some)
+    lib.ww = lib.wheels.map((w) => {
+      const m = w.isMesh ? w : w.getObjectByProperty('isMesh', true), wg = m.geometry, wp = wg.attributes.position, wi = wg.index.array;
+      wg.computeBoundingBox(); const bb = wg.boundingBox, cy = (bb.min.y + bb.max.y) / 2, cz = (bb.min.z + bb.max.z) / 2;
+      const rr = Math.max(bb.max.y - bb.min.y, bb.max.z - bb.min.z) / 2 * .72, tyre = [], rim = [];
+      for (let t = 0; t < wi.length; t += 3) {
+        let y = 0, z = 0; for (let k = 0; k < 3; k++) { y += wp.getY(wi[t + k]); z += wp.getZ(wi[t + k]); }
+        (Math.hypot(y / 3 - cy, z / 3 - cz) < rr ? rim : tyre).push(wi[t], wi[t + 1], wi[t + 2]);
+      }
+      wg.setIndex(new T.BufferAttribute(order(tyre, rim, wp.count), 1)); wg.clearGroups(); wg.addGroup(0, tyre.length, 0); wg.addGroup(tyre.length, rim.length, 1);
+      return new T.Box3().setFromObject(w).getSize(_cv).x;
+    });
+    // the outline, by rays at the body (a low-poly side is one long face with no corner in its middle): how high the top
+    // is along the car, in the middle and over where a wing's struts stand, and how low the side comes down at a point
+    const N = 24, v = new T.Vector3(), box = new T.Box3(), ray = new T.Raycaster(), DOWN = new T.Vector3(0, -1, 0), IN = new T.Vector3(-1, 0, 0);
+    for (let i = 0; i < pos.count; i++) box.expandByPoint(v.fromBufferAttribute(pos, i).applyMatrix4(lib.toCar));
+    const z0 = box.min.z, L = box.max.z - z0, W = box.max.x - box.min.x, cx = (box.min.x + box.max.x) / 2;
+    const hit = (o, dir) => { ray.set(o, dir); ray.far = 30; const h = ray.intersectObject(shell, true); return h.length ? h[0].point : null; };
+    const down = (x, z) => { const h = hit(v.set(x, box.max.y + 2, z), DOWN); return h ? h.y : -9; };
+    const top = new Float32Array(N), side = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const z = z0 + L * (i + .5) / N;
+      top[i] = Math.max(down(cx, z), down(cx - W * .08, z), down(cx + W * .08, z));
+      side[i] = Math.max(down(cx - W * .27, z), down(cx + W * .27, z));
+    }
+    for (const a of [top, side]) { // (a slice the rays missed takes its neighbour's)
+      for (let i = 1; i < N; i++) if (a[i] === -9) a[i] = a[i - 1];
+      for (let i = N - 2; i >= 0; i--) if (a[i] === -9) a[i] = a[i + 1];
+      if (a[0] === -9) a.fill(box.max.y);
+    }
+    const lows = new Map();
+    const low = (z) => { // from the left, rising: the first height the side is there
+      const k = Math.round(z * 50);
+      if (!lows.has(k)) {
+        let y = box.min.y;
+        for (let h = box.min.y; h < box.max.y; h += .03) { const p = hit(v.set(box.max.x + 1, h, z), IN); if (p && p.x > cx) { y = h; break; } }
+        lows.set(k, y);
+      }
+      return lows.get(k);
+    };
+    const at = (a, z) => { const f = clamp((z - z0) / L * N - .5, 0, N - 1), i = Math.floor(f), j = Math.min(N - 1, i + 1); return lerp(a[i], a[j], f - i); };
+    lib.out = { box, L, W, cx, top: (z) => at(top, z), side: (z) => at(side, z), low };
+  }
+
+  // the paint's material for one car: its colour (the factory's keeps the vertex colours and the texture) and finish,
+  // the rim light of the game's materials, and the stickers, drawn on a canvas (tuneLivery) and laid on in the shader
+  // from the side on the sides and from above on top, so they stay on the paint and never cross the glass
+  const LV_NONE = new T.DataTexture(new Uint8Array(4), 1, 1); LV_NONE.needsUpdate = true;
+  function carPaint(lib, t, lv) {
+    const col = TUNE_PAINT[t.p][1], F = TUNE_FINISH[t.f], own = col === null, b = lib.out.box;
+    const m = std({ color: own ? 0xffffff : col, vertexColors: own, map: own ? lib.mat.map : null, roughness: F[1], metalness: F[2] });
+    const uni = { rimColor: RIM, rimK: { value: .22 }, lvMap: { value: lv || LV_NONE }, lvOn: { value: lv ? 1 : 0 }, toCar: { value: lib.toCar },
+      lvBox: { value: new T.Vector4(b.min.z, b.max.z, b.min.y, b.max.y) }, lvX: { value: new T.Vector2(b.min.x, b.max.x) } };
+    m.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, uni);
+      sh.vertexShader = 'uniform mat4 toCar;\nvarying vec3 vCarP;\nvarying vec3 vCarN;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+        '#include <begin_vertex>\n  vCarP = (toCar * vec4(transformed, 1.0)).xyz; vCarN = mat3(toCar) * objectNormal;');
+      sh.fragmentShader = 'uniform vec3 rimColor;\nuniform float rimK;\nuniform sampler2D lvMap;\nuniform float lvOn;\nuniform vec4 lvBox;\nuniform vec2 lvX;\n'
+        + 'varying vec3 vCarP;\nvarying vec3 vCarN;\n' + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+  if (lvOn > .5) { // the stickers: the left side in the canvas's top quarter, the right side in the next, the top in the lower half
+    vec3 cn = normalize(vCarN);
+    float fu = clamp((lvBox.y - vCarP.z) / (lvBox.y - lvBox.x), .002, .998), hv = clamp((vCarP.y - lvBox.z) / (lvBox.w - lvBox.z), .03, .97);
+    float sd = smoothstep(.3, .55, abs(cn.x)), tp = smoothstep(.35, .6, cn.y) * (1. - sd);
+    vec4 s = sd > tp ? texture2D(lvMap, cn.x > 0. ? vec2(fu, .75 + hv * .25) : vec2(1. - fu, .5 + hv * .25))
+      : texture2D(lvMap, vec2(fu, clamp((vCarP.x - lvX.x) / (lvX.y - lvX.x), .03, .97) * .5));
+    diffuseColor.rgb = mix(diffuseColor.rgb, s.rgb, s.a * max(sd, tp));
+  }`).replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  float rimF = 1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);\n'
+        + '  totalEmissiveRadiance += rimColor * (diffuseColor.rgb * .55 + .45) * (rimK * rimF * rimF * rimF);');
+    };
+    m.customProgramCacheKey = () => 'carpaint';
+    m.userData.lv = lv;
+    return m;
+  }
+
+  // the stickers on a 512 × 512 canvas: the left side in the top quarter (the front at the left, the roof line at the top;
+  // the paint shows from about a third of the way down), the right side in the next quarter drawn as its mirror (so the
+  // art runs back from the front on both sides and the number still reads), and the top in the lower half (the front at
+  // the left, across the car downwards)
+  const tuneRnd = (seed) => { let s = seed; return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646; };
+  const mixCss = (a, b, k) => '#' + new T.Color(a).lerp(new T.Color(b), k).getHexString();
+  function starPath(c, x, y, r) {
+    c.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r * .45 : r; c.lineTo(x + Math.cos(a) * q, y + Math.sin(a) * q); }
+    c.closePath(); c.fill();
+  }
+  function flames(c, x0, y0, len, h, n) { // tongues licking back from x0 across a band y0 ± h/2
+    c.beginPath(); c.moveTo(x0, y0 - h / 2);
+    for (let i = 0; i < n; i++) {
+      const ya = y0 - h / 2 + h * i / n, yb = ya + h / n, l = len * (.55 + .45 * Math.abs(Math.sin(i * 1.9 + .7)));
+      c.bezierCurveTo(x0 + l * .5, ya - h * .06, x0 + l * .85, ya, x0 + l, ya + (yb - ya) * .3);
+      c.bezierCurveTo(x0 + l * .75, ya + (yb - ya) * .55, x0 + l * .45, yb, x0 + l * .3, yb);
+    }
+    c.lineTo(x0, y0 + h / 2); c.closePath(); c.fill();
+  }
+  function camo(c, w, h, a, b, seed) {
+    const R = tuneRnd(seed);
+    for (let i = 0; i < 46; i++) { c.fillStyle = i % 2 ? a : b; c.beginPath(); c.ellipse(R() * w, R() * h, 14 + R() * 26, 8 + R() * 16, R() * 3, 0, Math.PI * 2); c.fill(); }
+  }
+  const zigzag = (c, pts) => { c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke(); };
+  function liverySide(c, d, ink, hot) { // 512 × 128
+    c.fillStyle = c.strokeStyle = ink; c.lineJoin = 'miter';
+    if (d === 1) { c.fillRect(0, 86, 512, 8); c.fillRect(0, 99, 512, 4); }
+    else if (d === 2) { flames(c, 0, 80, 330, 64, 5); c.fillStyle = hot; flames(c, 0, 80, 210, 34, 4); }
+    else if (d === 3) { c.lineWidth = 12; zigzag(c, [[8, 62], [190, 56], [168, 80], [350, 66], [326, 92], [508, 72]]); }
+    else if (d === 4) { for (let x = 0; x < 512; x += 12) for (let r = 0; r < 2; r++) if ((x / 12 + r) % 2 === 0) c.fillRect(x, 90 + r * 12, 12, 12); }
+    else if (d === 5) { const R = tuneRnd(7); for (let i = 0; i < 9; i++) starPath(c, 40 + i * 52 + R() * 20, 58 + R() * 44, 8 + R() * 12); }
+    else if (d === 6) {
+      for (let x = 30; x < 500; x += 44) {
+        c.beginPath(); c.moveTo(x, 128); c.lineTo(x + 22, 128); c.lineTo(x + 40, 60 + (x % 3) * 6); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(x + 14, 34); c.lineTo(x + 30, 34); c.lineTo(x + 36, 72); c.closePath(); c.fill();
+      }
+    } else if (d === 7) camo(c, 512, 128, ink, mixCss(ink, 0x000000, .45), 11);
+  }
+  function liveryTop(c, d, ink, hot) { // 512 × 256, the middle of the car along y = 128
+    c.fillStyle = c.strokeStyle = ink; c.lineJoin = 'miter';
+    if (d === 1) { c.fillRect(0, 96, 512, 22); c.fillRect(0, 138, 512, 22); }
+    else if (d === 2) { flames(c, 0, 128, 230, 170, 6); c.fillStyle = hot; flames(c, 0, 128, 150, 90, 5); }
+    else if (d === 3) { c.lineWidth = 14; zigzag(c, [[0, 128], [70, 108], [62, 140], [150, 118], [140, 150], [230, 128]]); }
+    else if (d === 4) { for (let x = 208; x < 336; x += 16) for (let y = 0; y < 256; y += 16) if (((x - 208) / 16 + y / 16) % 2 === 0) c.fillRect(x, y, 16, 16); }
+    else if (d === 5) { const R = tuneRnd(3); for (let i = 0; i < 12; i++) starPath(c, 30 + R() * 450, 40 + R() * 176, 9 + R() * 12); }
+    else if (d === 6) {
+      for (let x = 20; x < 500; x += 46) for (const s of [-1, 1]) {
+        c.beginPath(); c.moveTo(x, 128 + s * 128); c.lineTo(x + 24, 128 + s * 128); c.lineTo(x + 34, 128 + s * 40); c.closePath(); c.fill();
+      }
+    } else if (d === 7) camo(c, 512, 256, ink, mixCss(ink, 0x000000, .45), 23);
+  }
+  function tuneLivery(t) {
+    if (!t.d && !t.n) return null;
+    const cv = document.createElement('canvas'); cv.width = cv.height = 512;
+    const c = cv.getContext('2d'), ink = hexCss(TUNE_INK[t.c][1]), hot = t.c === 2 ? '#ffffff' : '#ffc53d';
+    for (const row of [0, 1]) {
+      c.save(); c.translate(0, row * 128); c.beginPath(); c.rect(0, 0, 512, 128); c.clip();
+      if (row) { c.translate(512, 0); c.scale(-1, 1); }
+      liverySide(c, t.d, ink, hot); c.restore();
+      if (t.n) { // the number on the doors, in a white disc
+        const x = row ? 262 : 250, y = row * 128 + 70;
+        c.fillStyle = '#ffffff'; c.beginPath(); c.arc(x, y, 25, 0, Math.PI * 2); c.fill(); c.lineWidth = 4; c.strokeStyle = ink; c.stroke();
+        c.fillStyle = '#15161a'; c.font = '900 30px Rubik, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(TUNE_NUM[t.n], x, y + 1);
+      }
+    }
+    c.save(); c.translate(0, 256); c.beginPath(); c.rect(0, 0, 512, 256); c.clip(); liveryTop(c, t.d, ink, hot); c.restore();
+    const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+    return tex;
+  }
+
+  // the parts that bolt on, in metres on the car (the front at +z, the left at +x), into the body's group so they lean
+  // with it; the paint's own material on what is the car's colour
+  const PART = { dark: std({ color: 0x1d1f26, roughness: .5, metalness: .3 }), chrome: std({ color: 0xe8ecf2, roughness: .12, metalness: 1 }),
+    hole: std({ color: 0x08080a, roughness: .9 }), lamp: std({ color: 0xffffff, emissive: 0xfff4d6, emissiveIntensity: 1.4 }) };
+  const SIREN = [std({ color: 0xff2a2a, emissive: 0xff2a2a }), std({ color: 0x2a6bff, emissive: 0x2a6bff })];
+  const RIM_MATS = [];
+  const rimMat = (i) => RIM_MATS[i] || (RIM_MATS[i] = std({ color: TUNE_RIM[i][1], roughness: i <= 2 ? .14 : .38, metalness: i <= 2 ? 1 : .2 })); // (chrome and gold shine)
+  let taxiMatC = null;
+  function taxiMat() {
+    if (taxiMatC) return taxiMatC;
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64; const c = cv.getContext('2d');
+    c.fillStyle = '#ffd21f'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#15161a';
+    for (let x = 0; x < 256; x += 16) { c.fillRect(x, (x / 16) % 2 ? 0 : 7, 16, 7); c.fillRect(x, (x / 16) % 2 ? 50 : 57, 16, 7); }
+    c.font = '900 30px Rubik, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('ТАКСИ', 128, 33);
+    const tex = new T.CanvasTexture(cv); tex.colorSpace = T.SRGBColorSpace;
+    return (taxiMatC = std({ map: tex, roughness: .5, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: .3 }));
+  }
+  let neonTex = null, neonGeo = null;
+  const NEON_MATS = [];
+  function neonMat(i) {
+    if (NEON_MATS[i]) return NEON_MATS[i];
+    if (!neonTex) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128; const c = cv.getContext('2d'), gr = c.createRadialGradient(64, 64, 8, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.55, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, 128, 128); neonTex = new T.CanvasTexture(cv); neonGeo = shared(new T.PlaneGeometry(1, 1));
+    }
+    return (NEON_MATS[i] = new T.MeshBasicMaterial({ map: neonTex, color: TUNE_NEON[i][1], transparent: true, opacity: .7, blending: T.AdditiveBlending, depthWrite: false }));
+  }
+  function carParts(grp, lib, t, paint, u) {
+    const o = lib.out, b = o.box, L = o.L, W = o.W, cx = o.cx, z0 = b.min.z, z1 = b.max.z;
+    const box = (mat, x, y, z, sx, sy, sz, rx = 0) => {
+      const m = new T.Mesh(BOX, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.x = rx; m.castShadow = true; grp.add(m); return m;
+    };
+    const tilt = (z) => Math.atan(-(o.top(z + .12) - o.top(z - .12)) / .24); // how the hood or the boot lid slopes there
+    const wx = Math.abs(lib.wheels[0].position.x) + lib.ww[0] * .2, zf = lib.wheels[0].position.z, zr = lib.wheels[2].position.z, wr = lib.r[0];
+    if (t.s === 1) { const z = z0 + L * .03; box(paint, cx, o.top(z) + .02, z + .03, W * .8, .05, .2, .35); } // a lip on the boot lid's edge
+    else if (t.s) { // a wing on two struts; the big one higher, wider, with end plates
+      const z = z0 + L * .09, base = o.side(z), h = t.s === 2 ? .2 : .36, y = Math.max(o.top(z), base) + h, w = W * (t.s === 2 ? .82 : .94), ch = t.s === 2 ? .3 : .4;
+      for (const s of [-1, 1]) box(PART.dark, cx + s * W * .27, (base + y) / 2, z, .04, y - base, .1);
+      box(paint, cx, y, z - .03, w, .04, ch, .12);
+      if (t.s === 3) for (const s of [-1, 1]) box(paint, cx + s * w / 2, y + .03, z - .03, .03, .16, ch + .04);
+    }
+    if (t.h) { // on the hood: a scoop in the car's colour, or a chrome blower with its intake sticking up
+      const z = z1 - L * .2, y = o.top(z), a = tilt(z);
+      if (t.h === 1) { box(paint, cx, y + .03, z, W * .3, .09, L * .15, a); box(PART.hole, cx, y + .04, z + L * .075, W * .24, .055, .02, a); }
+      else { box(PART.chrome, cx, y + .06, z, W * .26, .16, L * .16, a); box(PART.dark, cx, y + .19, z + .02, W * .2, .1, L * .1, a); }
+    }
+    u.pipes = [];
+    if (t.e) { // chrome pipes out of the back, under the bumper
+      const z = z0 - .04, y = o.low(z0 + L * .06) + .13, r = t.e === 3 ? .065 : .045, xs = t.e === 2 ? [-.34, -.24, .24, .34] : [-.27, .27];
+      for (const s of xs) {
+        const x = cx + s * W, p = new T.Mesh(CYL, PART.chrome); p.rotation.x = Math.PI / 2; p.scale.set(r, .32, r); p.position.set(x, y, z + .12); p.castShadow = true; grp.add(p);
+        const hole = new T.Mesh(CYL, PART.hole); hole.rotation.x = Math.PI / 2; hole.scale.set(r * .7, .33, r * .7); hole.position.copy(p.position); grp.add(hole);
+        u.pipes.push(new T.Vector3(x, y + grp.position.y, z - .05));
+      }
+    }
+    if (t.k) { // the sports kit: skirts between the wheels, a splitter under the nose, a diffuser at the back
+      const zm = (zf + zr) / 2, len = Math.max(.2, zf - zr - wr * 2.3), sill = o.low(zm);
+      for (const s of [-1, 1]) box(PART.dark, cx + s * wx, sill + .05, zm, .07, .1, len);
+      box(PART.dark, cx, o.low(z1 - L * .04) + .015, z1 - .06, W * .9, .035, .22);
+      box(PART.dark, cx, o.low(z0 + L * .04) + .05, z0 + .06, W * .72, .1, .16);
+    }
+    if (t.t) { // on the roof (its highest point): a police light bar, a rack with a box, a taxi sign, a bar of spotlights
+      let zt = z0, yt = -9;
+      for (let i = 0; i <= 40; i++) { const z = z0 + L * (.2 + .55 * i / 40), y = o.top(z); if (y > yt) { yt = y; zt = z; } }
+      if (t.t === 1) { box(PART.dark, cx, yt + .03, zt, W * .52, .06, .2); box(SIREN[0], cx + W * .13, yt + .09, zt, W * .23, .08, .16); box(SIREN[1], cx - W * .13, yt + .09, zt, W * .23, .08, .16); }
+      else if (t.t === 2) {
+        for (const s of [-1, 1]) box(PART.dark, cx + s * W * .3, yt + .05, zt, .04, .05, L * .34);
+        for (const k of [-1, 0, 1]) box(PART.dark, cx, yt + .08, zt + k * L * .14, W * .64, .03, .04);
+        box(PART.dark, cx, yt + .19, zt - L * .02, W * .46, .17, L * .22);
+      } else if (t.t === 3) box(taxiMat(), cx, yt + .09, zt, .5, .16, .16);
+      else { box(PART.dark, cx, yt + .06, zt + L * .07, W * .72, .08, .09); for (let k = -1.5; k <= 1.5; k++) box(PART.lamp, cx + k * W * .16, yt + .06, zt + L * .07 + .05, .11, .065, .02); }
+    }
+  }
+
+  // a car dressed as its code says: the body (in a group that leans on the springs, with the parts), the wheels (its own
+  // or another car's, sized to its arches) and the neon under it. Run again whenever the code changes.
+  function carDress(g, id, code) {
+    const u = g.userData, lib = carLib(RIDES[id].car.f), t = tuneOf(code);
+    if (u.body) g.remove(u.body);
+    if (u.neon) g.remove(u.neon);
+    for (const f of u.front) g.remove(f);
+    for (const [m] of u.kw) g.remove(m); // (the rear wheels; the front ones went with their pivots)
+    if (u.paint) { u.paint.dispose(); if (u.paint.userData.lv) u.paint.userData.lv.dispose(); }
+    u.front = []; u.kw = []; u.pipes = []; u.paint = null; u.neon = null;
+    const body = new T.Group(), shell = lib.body.clone(); body.add(shell); body.position.y = [0, -.045, .1][t.y];
+    if (t.p || t.f || t.d || t.n) {
+      u.paint = carPaint(lib, t, tuneLivery(t));
+      const m = shell.isMesh ? shell : shell.getObjectByProperty('isMesh', true); m.material = [lib.mat, u.paint];
+    }
+    carParts(body, lib, t, u.paint || lib.mat, u);
+    g.add(body); u.body = body;
+    if (t.g) {
+      const o = lib.out, nm = neonMat(t.g); u.neon = new T.Mesh(neonGeo, nm);
+      u.neon.rotation.x = -Math.PI / 2; u.neon.position.set(o.cx, .05, (o.box.min.z + o.box.max.z) / 2); u.neon.scale.set(o.W * 1.35, o.L * 1.15, 1); u.neon.renderOrder = 2;
+      g.add(u.neon);
+    }
+    const src = t.w ? carLib(RIDES[CAR_IDS[t.w - 1]].car.f) : lib;
+    if (!src.ready && !src.failed) src.wait.then(() => { if (u.want === code) carDress(g, id, code); });
+    const from = src.ready ? src : lib;
+    lib.wheels.forEach((w, i) => {
+      const sw = from.wheels[i], m = sw.clone(), at = w.position.clone();
+      if (from !== lib) m.scale.set(sw.scale.x * lib.ww[i] / from.ww[i], sw.scale.y * lib.r[i] / from.r[i], sw.scale.z * lib.r[i] / from.r[i]);
+      if (t.r) { const wm = m.isMesh ? m : m.getObjectByProperty('isMesh', true); wm.material = [wm.material, rimMat(t.r)]; }
+      m.position.set(0, 0, 0);
+      if (i < 2) { const pv = new T.Group(); pv.position.copy(at); pv.add(m); g.add(pv); u.front.push(pv); } else { m.position.copy(at); g.add(m); }
+      u.kw.push([m, lib.r[i]]);
+    });
+    u.tune = code;
+  }
+  // what a car should wear (the hero's, a friend's, one on a stand): dressed now if its model is in, or when it comes
+  function carTune(g, code) {
+    const u = g.userData;
+    if (!u.car || u.want === code) return;
+    u.want = code;
+    if (u.dressed) carDress(g, u.car, code);
+  }
+  // a car leaving the scene for good gives back its own material and stickers
+  function carDrop(g) { const u = g.userData; if (u.paint) { u.paint.dispose(); if (u.paint.userData.lv) u.paint.userData.lv.dispose(); u.paint = null; } }
+  // the police lights flash and the neon breathes (one material each, for every car)
+  function tuneAnimate() {
+    const s = performance.now() / 1000, on = Math.floor(s * 6) % 4 < 2;
+    SIREN[0].emissiveIntensity = on ? 2.6 : .12; SIREN[1].emissiveIntensity = on ? .12 : 2.6;
+    for (const m of NEON_MATS) if (m) m.opacity = .6 + Math.sin(s * 3) * .18;
+  }
+  // flames out of the fiery exhaust at each change up and when the throttle comes off high
+  function carPops() {
+    if (!P.veh || !P.veh.car || tuneOf(myTune(P.vehId)).e !== 3) return;
+    const g = rideGroup(P.vehId);
+    for (const p of g.userData.pipes || []) {
+      _tc.copy(p); g.localToWorld(_tc);
+      glow(_tc.x, _tc.y, _tc.z, 0xff7a1a, 3, 1.4, .3, 0, .22, .34); glow(_tc.x, _tc.y, _tc.z, 0xffe07a, 2, .8, .2, 0, .14, .22);
+    }
+    Snd.sfx.pop();
+  }
+
+  // ---------- the tuning shop's card: the car on a turntable in a garage of its own, the choices beside it ----------
+  // It is drawn on the game's canvas in place of the world while the card is open (G.state 'menu'): the car fills the
+  // part of the screen the card leaves (beside it held sideways, above it held upright), turns by itself, and a drag
+  // turns it by hand. Every choice is saved at once and goes to the friends.
+  const tune = { open: false, id: '', g: null, scene: null, cam: null, disc: null, yaw: 2.3, pitch: .24, drag: null, idle: 0, tab: 'paint', fromPause: false };
+  const tunePanel = document.querySelector('#scrTune .tune-panel'), tuneList = $('tuneList'), tuneView = $('tuneView');
+  function tuneStage() {
+    if (tune.scene) return;
+    const s = tune.scene = new T.Scene(); s.background = new T.Color(0x2b3048);
+    tune.cam = new T.PerspectiveCamera(34, 1, .1, 120);
+    s.add(new T.HemisphereLight(0xf2f6ff, 0x3a4058, 1.1));
+    const key = new T.DirectionalLight(0xfff3e0, 2.2); key.position.set(5, 9, 6); key.castShadow = true;
+    Object.assign(key.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 30 }); key.shadow.mapSize.set(1024, 1024); key.shadow.bias = -.0005;
+    s.add(key);
+    const fill = new T.DirectionalLight(0xbcd4ff, .7); fill.position.set(-6, 4, -5); s.add(fill);
+    const floor = new T.Mesh(new T.CircleGeometry(40, 48), std({ color: 0x23273a, roughness: .9 })); floor.rotation.x = -Math.PI / 2; floor.position.y = -.12; floor.receiveShadow = true; s.add(floor);
+    const disc = tune.disc = new T.Group(); s.add(disc);
+    const top = new T.Mesh(new T.CylinderGeometry(4.2, 4.2, .12, 64), std({ color: 0x8a90a6, roughness: .45, metalness: .3 })); top.position.y = -.06; top.receiveShadow = true; disc.add(top);
+    const ring = new T.Mesh(new T.TorusGeometry(4.2, .07, 8, 64), std({ color: 0xe8352a, emissive: 0xe8352a, emissiveIntensity: .4 })); ring.rotation.x = Math.PI / 2; disc.add(ring);
+    for (let i = 0; i < 12; i++) { // stripes on the turntable, so it shows turning
+      const m = new T.Mesh(BOX, std({ color: 0x777d92, roughness: .5 })); m.scale.set(.06, .01, 3.9); m.rotation.y = i * Math.PI / 12; m.position.y = .002; disc.add(m);
+    }
+    s.environment = scene.environment; s.environmentIntensity = .6; // (until the garage's own light is made)
+    import('three/addons/environments/RoomEnvironment.js').then(({ RoomEnvironment }) => { s.environment = pmrem.fromScene(new RoomEnvironment(), .04).texture; s.environmentIntensity = .9; }).catch(() => {});
+  }
+  // which car to start with: the one the hero is in, the Speedway's pick there, the ride button's if it is a car
+  const tuneFirst = () => (P.veh && P.veh.car ? P.vehId : L && L.def.cars ? gpCar() : RIDES[SAVE.ride] && RIDES[SAVE.ride].car ? SAVE.ride : SAVE.car || 'sport');
+  function tuneOpen(id) {
+    tuneStage();
+    tune.fromPause = G.state === 'paused';
+    tune.open = true; tune.idle = 0; document.body.classList.add('tuning');
+    openMenu('tune'); tuneShow(id || tuneFirst()); Snd.sfx.ui();
+  }
+  function tuneShow(id) {
+    if (tune.g) { tune.disc.remove(tune.g); carDrop(tune.g); }
+    tune.id = id; tune.g = carModel(id); carTune(tune.g, myTune(id)); tune.disc.add(tune.g);
+    $('tuneName').textContent = RIDES[id].name;
+    renderTune();
+  }
+  // the card closing (closeMenu): the stands of the Speedway's garage take on what was done
+  function tuneHide() {
+    if (!tune.open) return;
+    tune.open = false; tune.drag = null; document.body.classList.remove('tuning');
+    if (tune.g) { tune.disc.remove(tune.g); carDrop(tune.g); tune.g = null; }
+    if (L) for (const st of L.carStands) carTune(st.g, myTune(st.id));
+    if (tune.fromPause) Snd.resumeMusic();
+  }
+  function tuneSet(k, v) {
+    const t = tuneOf(myTune(tune.id)); t[k] = v;
+    const code = tuneCode(t);
+    if (code) SAVE.tune[tune.id] = code; else delete SAVE.tune[tune.id];
+    saveGame(); carTune(tune.g, code); netLookChanged(); renderTune();
+  }
+  function renderTune() {
+    const t = tuneOf(myTune(tune.id)), box = tuneList, keep = box.dataset.tab === tune.tab ? box.scrollTop : 0;
+    box.textContent = ''; box.dataset.tab = tune.tab;
+    for (const b of document.querySelectorAll('.tune-tab')) b.setAttribute('aria-selected', String(b.dataset.tt === tune.tab));
+    const sec = (text) => { const p = document.createElement('p'); p.className = 'shop-sec'; p.textContent = text; box.append(p); const r = document.createElement('div'); r.className = 'tune-row'; box.append(r); return r; };
+    // a choice: a round colour or a word; it changes one field of this car's code
+    const pick = (r, k, v, label, col, sfx = 'ui') => {
+      const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', String(t[k] === v));
+      if (col) { b.className = 'tune-sw' + (v || (k !== 'p' && k !== 'r') ? '' : ' own'); b.style.background = col; b.setAttribute('aria-label', label); b.title = label; }
+      else { b.className = 'tune-chip'; b.textContent = label; }
+      b.addEventListener('click', () => { Snd.sfx[sfx](); tuneSet(k, v); });
+      r.append(b);
+    };
+    const C = RIDES[tune.id].car, own = '#' + new T.Color().setRGB(C.paint[0], C.paint[1], C.paint[2], T.LinearSRGBColorSpace).getHexString();
+    if (tune.tab === 'paint') {
+      let r = sec('Цвет · ' + TUNE_PAINT[t.p][0].toLowerCase());
+      TUNE_PAINT.forEach(([name, col], i) => pick(r, 'p', i, name, col === null ? own : hexCss(col), 'pop'));
+      r = sec('Покрытие'); TUNE_FINISH.forEach(([name], i) => pick(r, 'f', i, name));
+    } else if (tune.tab === 'wheels') {
+      let r = sec('Колёса: свои или от другой машины'); pick(r, 'w', 0, 'Свои');
+      CAR_IDS.forEach((cid, i) => { if (cid !== tune.id) pick(r, 'w', i + 1, RIDES[cid].name); });
+      r = sec('Цвет дисков · ' + TUNE_RIM[t.r][0].toLowerCase());
+      TUNE_RIM.forEach(([name, col], i) => pick(r, 'r', i, name, col === null ? 'linear-gradient(135deg, #8d93a3 50%, #2a2c33 50%)' : hexCss(col), 'clang'));
+    } else if (tune.tab === 'decal') {
+      let r = sec('Рисунок'); TUNE_DECAL.forEach((name, i) => pick(r, 'd', i, name));
+      r = sec('Цвет рисунка · ' + TUNE_INK[t.c][0].toLowerCase()); TUNE_INK.forEach(([name, col], i) => pick(r, 'c', i, name, hexCss(col), 'pop'));
+      r = sec('Номер на дверях'); TUNE_NUM.forEach((name, i) => pick(r, 'n', i, name));
+    } else {
+      const part = (title, k, list) => { const r = sec(title); list.forEach((name, i) => pick(r, k, i, name, null, 'clang')); };
+      part('Спойлер', 's', TUNE_SPOILER); part('Капот', 'h', TUNE_HOOD); part('Выхлоп', 'e', TUNE_PIPES); part('Обвес', 'k', TUNE_KIT);
+      part('На крыше', 't', TUNE_ROOF); part('Посадка', 'y', TUNE_RIDE);
+      const r = sec('Неон под машиной'); pick(r, 'g', 0, 'Нет'); TUNE_NEON.forEach(([name, col], i) => { if (i) pick(r, 'g', i, name, hexCss(col), 'pop'); });
+    }
+    box.scrollTop = keep;
+  }
+  for (const b of document.querySelectorAll('.tune-tab')) b.addEventListener('click', () => { tune.tab = b.dataset.tt; Snd.sfx.ui(); renderTune(); tuneList.scrollTop = 0; });
+  const tuneStep = (k) => { const i = CAR_IDS.indexOf(tune.id); Snd.sfx.ui(); tuneShow(CAR_IDS[(i + k + CAR_IDS.length) % CAR_IDS.length]); };
+  $('tunePrev').addEventListener('click', () => tuneStep(-1));
+  $('tuneNext').addEventListener('click', () => tuneStep(1));
+  $('tuneDone').addEventListener('click', () => { Snd.sfx.ui(); closeMenu(); });
+  $('tuneReset').addEventListener('click', () => { delete SAVE.tune[tune.id]; saveGame(); carTune(tune.g, ''); netLookChanged(); renderTune(); Snd.sfx.shrink(); });
+  // a drag over the car turns it (and tips the view a little)
+  tuneView.addEventListener('pointerdown', (e) => { e.preventDefault(); tune.drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; try { tuneView.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ } });
+  tuneView.addEventListener('pointermove', (e) => {
+    const d = tune.drag; if (!d || d.id !== e.pointerId) return;
+    tune.yaw += (e.clientX - d.x) * .01; tune.pitch = clamp(tune.pitch + (e.clientY - d.y) * .004, .04, .7); d.x = e.clientX; d.y = e.clientY; tune.idle = 0;
+  });
+  const tuneDragEnd = (e) => { if (tune.drag && tune.drag.id === e.pointerId) tune.drag = null; };
+  tuneView.addEventListener('pointerup', tuneDragEnd); tuneView.addEventListener('pointercancel', tuneDragEnd); tuneView.addEventListener('lostpointercapture', tuneDragEnd);
+  function tuneRender(dt) {
+    const g = tune.g; if (!g) return;
+    if (!tune.drag && (tune.idle += dt) > 1.5) tune.yaw += dt * .35;
+    tune.disc.rotation.y = tune.yaw;
+    // the free part of the screen: left of the card when it stands at the right, above it when it lies along the bottom
+    const W = innerWidth, H = innerHeight, r = tunePanel.getBoundingClientRect(), side = r.left > W * .25;
+    const fw = side ? r.left : W, fh = side ? H : Math.max(H * .3, r.top), cam = tune.cam;
+    const lib = carLib(RIDES[tune.id].car.f), o = lib.ready ? lib.out : null, R = o ? Math.hypot(o.L, o.W, o.box.max.y) / 2 : 2.6, ty = o ? o.box.max.y * .42 : .6;
+    const vh = Math.tan(cam.fov * Math.PI / 360), a = Math.min(vh * fh / H, vh * fw / H), d = R * Math.sqrt(1 + a * a) / a * 1.06;
+    cam.aspect = W / H; cam.setViewOffset(W, H, side ? (W - fw) / 2 : 0, side ? 0 : (H - fh) / 2, W, H);
+    cam.position.set(0, ty + Math.sin(tune.pitch) * d, Math.cos(tune.pitch) * d); cam.lookAt(0, ty, 0); cam.updateProjectionMatrix();
+    renderer.render(tune.scene, cam);
   }
 
   // A real car, simulated (the "arcade simulator" the player asked for). A bicycle model: the front and rear axle each
@@ -17527,9 +18097,11 @@ import * as THREE from 'three';
     // the gearbox: up near the top of a gear, down low in one; the engine note rides on the revs
     const gtop = (i) => top * (gears === 1 ? 1 : .3 + .7 * i / (gears - 1));
     let rpm = Math.abs(u) / gtop(gi);
-    if (gears > 1 && rpm > .96 && gi < gears - 1 && thr > .05 && P.onGround) { P.gear = gi + 1; P.shiftT = .16; rpm = Math.abs(u) / gtop(gi + 1); }
+    if (gears > 1 && rpm > .96 && gi < gears - 1 && thr > .05 && P.onGround) { P.gear = gi + 1; P.shiftT = .16; rpm = Math.abs(u) / gtop(gi + 1); carPops(); }
     else if (gi > 0 && rpm < .42) P.gear = gi - 1;
     P.shiftT -= dt;
+    if (P.thrW > .5 && thr < .05 && P.rpm > .6 && P.onGround && !C.electric) carPops(); // (and a bang when the throttle comes off high)
+    P.thrW = thr;
     P.rpm = damp(P.rpm || .15, clamp(Math.max(rpm, thr > .05 ? .25 : .12) + (P.onGround ? 0 : .25 * Math.max(0, thr)), 0, 1.08), 12, dt);
     // tyre smoke and a squeal when they slide; wheelspin off the line throws it up too
     P.slipT -= dt;
@@ -17797,7 +18369,7 @@ import * as THREE from 'three';
     g.rotation.y = P.facing + spinAngle();
     const lean = clamp(spd / 12, 0, 1);
     g.rotation.x = id === 'pogo' ? lean * .25 : P.veh.car || id === 'jetski' || id === 'rover' ? (P.onGround ? 0 : -.12) : id === 'heli' && !P.onGround ? lean * .1 : 0;
-    if (P.veh.car) g.userData.delta = P.carDelta || 0;
+    if (P.veh.car) { g.userData.delta = P.carDelta || 0; carTune(g, myTune(id)); }
     g.rotation.z = id === 'scooter' || id === 'board' || id === 'ski' ? Math.sin(time * 2) * .02 * lean : 0;
     if (id === 'pogo') { const sq = P.onGround ? .8 : clamp(1 + P.vel.y * .01, .9, 1.08); g.scale.set(1, sq, 1); }
     g.position.y += rideBob();
@@ -18748,7 +19320,7 @@ import * as THREE from 'three';
 
   // ================= flow =================
   const screens = { title: $('scrTitle'), pause: $('scrPause'), clear: $('scrClear'), over: $('scrOver'), win: $('scrWin'), world: $('scrWorld'), shop: $('scrShop'), net: $('scrNet'),
-    craft: $('scrCraft'), sack: $('scrSack') };
+    craft: $('scrCraft'), sack: $('scrSack'), tune: $('scrTune') };
   const hudEl = $('hud'), touchEl = $('touch');
   function showScreen(name) { for (const k in screens) screens[k].hidden = k !== name; }
   function placePlayer(pt, facing = Math.PI) {
@@ -18913,6 +19485,7 @@ import * as THREE from 'three';
   function renderPause() {
     const hub = !!L.def.hub, key = L.def.key;
     $('questBox').hidden = !hub; $('btnRestart').hidden = hub && !L.def.nights; $('btnToFlag').hidden = !hub;
+    $('btnTune').hidden = !(L.def.cars || (P.veh && P.veh.car) || SAVE.rides.some((id) => RIDES[id] && RIDES[id].car)); // (with a car to drive)
     const rs = $('btnRestart'); rs.textContent = L.def.nights ? 'Новый поход' : 'Начать уровень заново'; rs.dataset.armed = '';
     $('skillBox').hidden = !L.def.nights;
     if (L.def.nights) {
@@ -19311,6 +19884,7 @@ import * as THREE from 'three';
   $('btnWorldClose').addEventListener('click', closeMenu);
   $('btnShopClose').addEventListener('click', closeMenu);
   $('btnGarage').addEventListener('click', () => { Snd.init(); openGarage(); });
+  $('btnTune').addEventListener('click', () => { Snd.init(); tuneOpen(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); keys.clear(); } });
 
   // ================= HUD =================
@@ -19501,6 +20075,8 @@ import * as THREE from 'three';
     g.st = g.old ? 0 : clamp(Math.floor(+d.st) || 0, 0, TOTAL_STARS);
     g.lv = g.old ? 0 : (Math.floor(+d.lv) || 0) & ((1 << LEVELS.length) - 1);
     g.tk = /^[0-3]{4}$/.test(String(d.tk)) ? String(d.tk) : '0000'; // the upgrades their tank shows
+    g.ct = {}; // and how they tuned their cars
+    if (d.ct && typeof d.ct === 'object') for (const id of CAR_IDS) { const c = tuneClean(d.ct[id]); if (c) g.ct[id] = c; }
     if (first) { netNote(g.name + ' в игре'); Snd.sfx.pop(); }
     // the gates this friend opens for us
     const now = openStars(), opened = WORLDS.filter((W) => W.need > was && W.need <= now);
@@ -19534,11 +20110,11 @@ import * as THREE from 'three';
     netSend(net.act.emo, { e: 'wave' });
   }
   // who we are and how we look, and what we have opened (our stars and cleared levels) for the friends to share
-  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat, st: starCount(), lv: levelMask(), tk: SAVE.tkMods.join('') });
+  const netHello = () => ({ v: NET_V, n: netName(), s: SAVE.skin, c: SAVE.cap, h: SAVE.hat, st: starCount(), lv: levelMask(), tk: SAVE.tkMods.join(''), ct: tuneSend() });
   // the name, the costume or the progress changed: tell everyone
   function netLookChanged() {
     if (!net.room) return;
-    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h + '|' + h.st + '|' + h.lv + '|' + h.tk;
+    const h = netHello(), key = h.n + '|' + h.s + '|' + h.c + '|' + h.h + '|' + h.st + '|' + h.lv + '|' + h.tk + '|' + JSON.stringify(h.ct);
     if (key === net.helloKey) return;
     net.helloKey = key; netSend(net.act.hello, h);
   }
@@ -19632,7 +20208,7 @@ import * as THREE from 'three';
   }
   function netRide(g, id) {
     if (g.rideId === id) return;
-    if (g.ride) { scene.remove(g.ride.g); g.ride = null; }
+    if (g.ride) { scene.remove(g.ride.g); carDrop(g.ride.g); g.ride = null; }
     g.rideId = id;
     if (id === 255) g.ride = dinoModel();
     else if (RIDE_IDS[id - 1]) g.ride = { g: rideModel(RIDE_IDS[id - 1]) };
@@ -19684,6 +20260,7 @@ import * as THREE from 'three';
       if (u.turret) u.turret.rotation.y = wrapPi(v[0] - v[5]); // a tank's gun looks where its driver looks (a KV-44's small ones too)
       if (u.minis) for (const m of u.minis) m.t.rotation.y = u.turret.rotation.y;
       if (u.skirts && u.look !== g.tk) applyTankLook(rg, g.tk.split('').map(Number));
+      if (u.car) carTune(rg, (g.ct && g.ct[u.car]) || ''); // a real car, tuned as they tuned it
       if (u.wings) { // a dragon: the rider is on its saddle, tipped with it; in the air its wings are spread
         _tc.set(0, RIDES[RIDE_IDS[g.rideNow - 1]].y, .3).applyEuler(rg.rotation); rg.position.set(g.px - _tc.x, g.py - _tc.y, g.pz - _tc.z);
         u.air = rg.position.y - groundAt(g.px, g.pz, rg.position.y + .05, .3) > .5; u.work = clamp(-v[4] * 1.6, 0, 1);
@@ -20848,6 +21425,8 @@ import * as THREE from 'three';
     updateTracers(dt);
     updateUnderwater();
     // through a scope the camera is at the hero's eyes: he is not drawn (friends still see him)
+    tuneAnimate();
+    if (tune.open) { tuneRender(dt); return; } // the tuning shop's garage in place of the world
     const heroVis = hero.root.visible;
     if (gunScoped() || (P.veh && P.veh.car && !P.veh.car.open)) hero.root.visible = false;
     renderScene();

@@ -348,6 +348,17 @@ the minigun's rattle), and under the water every sound is muffled.
     speedometer (under the picture on a computer, at the top on a phone, clear of the car) shows the car's real top speed at the top of the game's and the gear. The camera rides
     low behind a car, as in a racing game (dragging still turns it). The moon rover and the stone car keep the simpler
     driving: they turn only while they roll, round a circle the wheel's angle gives.
+    Every real car has its own tuning, free: the tuning shop (Master Gaika's bay by the Speedway's east road, a yellow pad,
+    or "Тюнинг машин" in the pause card wherever a car can be driven) shows the car on a turntable and offers sixteen
+    colours in four finishes (gloss, metallic, matte, chrome), stickers (racing stripes, flames, lightning, checkers,
+    stars, tiger, camouflage) in eight colours and a racing number on the doors, any other car's wheels and nine rim
+    colours, and parts: three spoilers, a hood scoop or a blower, twin, quad or fire-spitting exhausts (flames at each
+    change up), a sports kit, a police light bar, a roof rack, a taxi sign or a spotlight bar, a lowered or lifted stance
+    and neon underneath. Only the car's paint takes the colour and the stickers (the glass, lights and trim stay as they
+    are): each car's model has its body split into the paint and the rest by the car's own colour (`car.paint`), the
+    stickers are drawn on a canvas and laid on in the shader from the side and from above, and the parts are placed by
+    rays cast at the body. A car's tuning is a short code kept in the save and sent to the friends, who see our cars as we
+    made them; the Speedway's garage shows them too.
     "Транспорт и оружие" in the pause card, in any world or level, opens a garage with the rides the hero has (a tap puts
     him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon, and on the
     Speedway the car from its garage) and the
