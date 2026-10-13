@@ -17249,7 +17249,7 @@ import * as THREE from 'three';
     // (m/s²), dt the driven wheels (rwd slides its tail out under power, awd hooks up, fwd pushes wide), mu the tyres'
     // grip, assist how much the car helps keep it straight (low on the drift cars), gears, and for the kart, the only one
     // the hero shows in, where its steering wheel is (x, y, z, radius); paint is the car's own colour as its model has it (linear),
-    // which the tuning shop finds and repaints. The formula car is the quickest on the tarmac but
+    // which the tuning shop finds and repaints; back marks a model packed facing backwards (the Cybertruck's), turned round on load. The formula car is the quickest on the tarmac but
     // slowest on the grass beside it in a race (grass: its speed there); the monster truck jumps high and minds no grass.
     sport: { name: 'Ferrari F40', price: 240, sub: 'Легенда восьмидесятых: задний привод, 324 км/ч', spd: 25, acc: 30, jump: .8, air: 0, y: .28, seatZ: -.25, pose: 'sit', bump: true, motor: 1.2,
       drive: 2.78, hw: .85, car: { f: 'sport', paint: [.447, .165, 0], kmh: 324, a0: 8.5, dt: 'rwd', mu: 1.1, assist: 1.4 } },
@@ -17272,7 +17272,7 @@ import * as THREE from 'three';
     rx7: { name: 'Mazda RX-7', price: 340, sub: 'Роторный мотор поёт до самой отсечки', spd: 22.5, acc: 30, jump: .8, air: 0, y: .3, pose: 'sit', bump: true, motor: 1.5,
       drive: 2.44, hw: .8, car: { f: 'rx7', paint: [1, 1, 1], kmh: 250, a0: 7.2, dt: 'rwd', mu: 1.05, assist: .8, gears: 5, over: 1.45 } },
     cybertruck: { name: 'Cybertruck', price: 500, sub: 'Электрический и тяжёлый: тихий, но разгон бешеный', spd: 21.5, acc: 30, jump: .7, air: 0, y: .45, pose: 'sit', bump: true, motor: .55,
-      drive: 3.56, hw: 1, car: { f: 'cybertruck', paint: [.384, .4, .42], kmh: 210, a0: 9.5, dt: 'awd', mu: 1, assist: 2, gears: 1, electric: true } },
+      drive: 3.56, hw: 1, car: { f: 'cybertruck', back: true, paint: [.384, .4, .42], kmh: 210, a0: 9.5, dt: 'awd', mu: 1, assist: 2, gears: 1, electric: true } },
   };
   function dragonRide(short, price, sub, wings, prize) {
     return { name: 'Дракон ' + short, short, price, sub, spd: 8, acc: 22, jump: 1.25, air: 0, y: 1.33, pose: 'dragon', floats: true, wings, prize: prize || '' };
@@ -17514,8 +17514,14 @@ import * as THREE from 'three';
       g.scene.traverse((o) => { if (o.isMesh) { shared(o.geometry); o.material = game(o.material); o.castShadow = true; } });
       lib.body = g.scene.getObjectByName('body');
       lib.wheels = ['wheel_fl', 'wheel_fr', 'wheel_rl', 'wheel_rr'].map((n) => g.scene.getObjectByName(n));
+      const C = Object.values(RIDES).find((r) => r.car && r.car.f === f).car;
+      if (C.back) { // a model packed facing backwards: turned round, and its wheels named for where they stand now
+        const turn = new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), Math.PI);
+        for (const o of [lib.body, ...lib.wheels]) { o.position.applyQuaternion(turn); o.quaternion.premultiply(turn); }
+        lib.wheels = [3, 2, 1, 0].map((i) => lib.wheels[i]);
+      }
       lib.r = lib.wheels.map((w) => new T.Box3().setFromObject(w).getSize(_cv).y / 2);
-      carSplit(lib, Object.values(RIDES).find((r) => r.car && r.car.f === f).car.paint);
+      carSplit(lib, C.paint);
       lib.ready = true;
     }).catch(() => { lib.failed = true; });
     return lib;
