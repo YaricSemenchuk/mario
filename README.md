@@ -335,17 +335,30 @@ the minigun's rattle), and under the water every sound is muffled.
     GT-R, a Chevrolet Camaro, a Dodge Challenger, a Toyota AE86, a DeLorean, a Mazda RX-7 and a Cybertruck; the kart too)
     with wheels that roll and front wheels that steer, bodies that lean in the bends and squat and dive on their springs,
     and five dragons that fly (listed last). In a closed car the hero is out of sight; he shows only in the kart.
-    The real cars drive as a simulation of a car (a bicycle model with tyre slip): up and down on the stick (W and S)
-    are the throttle and the brake (held at a stop, reverse), left and right turn the wheel, and the action button
-    (Shift) is the handbrake that throws the car into a drift. Each has its own top speed, pull and grip from the real
+    The real cars drive as a simulation of a car (a bicycle model with tyre slip): W and S are the throttle and the
+    brake (held at a stop, reverse), A and D turn the wheel, and Shift is the handbrake that throws the car into a
+    drift. On a phone a car has buttons of its own: two arrows for the wheel under the left thumb (anywhere on the left
+    half steers to the side of the arrow it is nearer), and gas, brake and drift under the right one, which slides from
+    one to the next without lifting; the drift button is the handbrake with the throttle down, as W with Shift. Each has its own top speed, pull and grip from the real
     car: an all-wheel-drive Lamborghini or GT-R hooks up and corners flat, a rear-driven Challenger, Camaro, RX-7 or
     AE86 steps its tail out under power and drifts, the kart and the formula car grip hardest. The tyres hold about twice
     their real grip (the tracks and the folk of the grand prix want quick cornering), the wheel turns less at speed and
     never further than the tyres can follow, and the car steadies itself in a slide past 15 degrees, so it stays easy to
     drive. Gears change by themselves with the engine note, tyres smoke and squeal when they slide or spin, and a
-    speedometer under the picture shows the car's real top speed at the top of the game's and the gear. The camera rides
+    speedometer (under the picture on a computer, at the top on a phone, clear of the car) shows the car's real top speed at the top of the game's and the gear. The camera rides
     low behind a car, as in a racing game (dragging still turns it). The moon rover and the stone car keep the simpler
     driving: they turn only while they roll, round a circle the wheel's angle gives.
+    Every real car has its own tuning, free: the tuning shop (Master Gaika's bay by the Speedway's east road, a yellow pad,
+    or "Тюнинг машин" in the pause card wherever a car can be driven) shows the car on a turntable and offers sixteen
+    colours in four finishes (gloss, metallic, matte, chrome), stickers (racing stripes, flames, lightning, checkers,
+    stars, tiger, camouflage) in eight colours and a racing number on the doors, any other car's wheels and nine rim
+    colours, and parts: three spoilers, a hood scoop or a blower, twin, quad or fire-spitting exhausts (flames at each
+    change up), a sports kit, a police light bar, a roof rack, a taxi sign or a spotlight bar, a lowered or lifted stance
+    and neon underneath. Only the car's paint takes the colour and the stickers (the glass, lights and trim stay as they
+    are): each car's model has its body split into the paint and the rest by the car's own colour (`car.paint`), the
+    stickers are drawn on a canvas and laid on in the shader from the side and from above, and the parts are placed by
+    rays cast at the body. A car's tuning is a short code kept in the save and sent to the friends, who see our cars as we
+    made them; the Speedway's garage shows them too.
     "Транспорт и оружие" in the pause card, in any world or level, opens a garage with the rides the hero has (a tap puts
     him on one, and the ride button calls it from then on; in Dragon Peaks the button still calls the dragon, and on the
     Speedway the car from its garage) and the
@@ -423,7 +436,8 @@ the minigun's rattle), and under the water every sound is muffled.
 - Iskra: a helper star that pulls in nearby coins and catches one fall into a pit or lava per checkpoint
 - Lira: a fairy who flies out of every castle and thanks the hero in the last one
 - Collectibles are the Promobile mark
-- Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera);
+- Touch controls on phones (left thumb stick, jump and action buttons, swipe to turn the camera; in a car, arrows for
+  the wheel on the left and gas, brake and drift on the right);
   on desktop WASD or arrows, Space to jump, Shift or F for the action button (in a tank, the gun; on a KV-44,
   a salvo, with C for its grenade launcher and R for its rockets), mouse drag or Q/E for the
   camera, V for a ride, G to wave to friends, X for the guns in any world; with the guns a click to aim with the mouse, the
