@@ -2,7 +2,8 @@
 
 A 3D platformer that runs in any mobile or desktop browser. Plain HTML with
 WebGL via Three.js 0.186 (ES modules from jsDelivr), no build step: the whole game lives in `index.html`, and the
-main hero's model in `models/mario.glb`, the other characters' in `models/chars/` and the cars' in `models/cars/` (see Credits).
+main hero's model in `models/sentinel.glb`, Mario's in `models/mario.glb`, the other characters' in `models/chars/` and the cars' in
+`models/cars/` (see Credits).
 
 Rendering uses PBR materials with a soft rim light on characters, an image-based sky environment
 (horizon glow, a low sun on the evening levels, stars in the dark ones), neutral tone mapping, soft
@@ -197,7 +198,7 @@ the minigun's rattle), and under the water every sound is muffled.
   the air. Outside the arena the shots knock the worlds' foes over as a stomp does (a walker takes one revolver shot or
   three of the rifle; a wolf or a bear flinches at each hit, and a rocket or a grenade bowls over a whole group), bosses
   shrug them off (it still takes a stomp), and they hurt the friends who are there (below). Four slots:
-  - the main gun: the sniper rifle (a scope that brings things about five times closer and sways with the breath; a body shot
+  - the main gun: the Sentinel's blaster (purple bolts in a stream while the button is held), the sniper rifle (a scope that brings things about five times closer and sways with the breath; a body shot
     takes 90 of 100, a head shot knocks out at once; wild without the scope), the assault rifle (automatic), the shotgun
     (eight pellets, weaker further off), the minigun (spins up, then a hail of bullets; the hero walks slower), the bow (held
     to draw, stronger the longer; the arrow drops), the crossbow (a fast straight bolt), the grenade launcher (a rocket that
@@ -206,11 +207,14 @@ the minigun's rattle), and under the water every sound is muffled.
   - the spare gun: the revolver, the uzi, the slingshot (pebbles in an arc, never runs out)
   - close combat: the katana (a lunge at whoever is ahead), the scythe (a wide swing), the hammer (throws the opponent up)
   - the special thing, a few uses that come back with time: grenades that bounce and burst, a smoke can whose cloud nobody
-    can see through (the bots included), three shurikens in a fan, a first-aid kit (+50), a jetpack for a leap high up
+    can see through (the bots included), three shurikens in a fan, a first-aid kit (+50), a jetpack for a leap high up, and
+    the Sentinel's core (a ball of purple light that bursts on whoever is near, like a rocket)
   Guns have rounds and reload by themselves when empty (R, or the reload button); a streak shows each bullet's path, a hit
   shows a mark on the crosshair (red for a head) and the damage over the opponent. The sniper rifle, the assault rifle, the
   shotgun, the revolver, the bow and the crossbow have a scope (the right mouse button, C, or the scope button). The sniper
-  rifle, the assault rifle, the revolver, the katana and the grenade are there from the start; the rest are bought in the
+  rifle, the assault rifle, the revolver, the katana, the grenade, the blaster and the core are there from the start (the
+  blaster and the core in the set; on the Neon Sentinel they are part of him: the blaster on his right forearm fires from
+  its muzzle, the core from his chest, and his fist holds nothing for them); the rest are bought in the
   shops' "Оружие" tab, which also puts them in the set taken into a duel. On a phone the fire button also aims when the thumb
   slides over it, the crosshair slows down over an opponent, and a shot that only just misses the middle goes in; on a
   computer a click takes the mouse for aiming (Esc gives it back), the left button fires, 1–4 or the wheel pick a slot
@@ -315,11 +319,10 @@ the minigun's rattle), and under the water every sound is muffled.
   - perks to switch on and off: a coin magnet, spring boots with a jump in the air, faster sneakers, a star compass over
     the hero's head, Iskra always along, a spare heart and a mushroom in the pocket for the levels, an hourglass with
     a minute more; and goods for right now (a shield, a mushroom, the fire pepper, one star on the island)
-  - skins: seventeen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
-    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Four costumes are free from the
-    start: the Noob (yellow, blue and green, as on Roblox), the Grinch (green fur, yellow eyes, Santa's coat, belt and floppy hat) and the Chicken Gun chicken (white
-    feathers, a red comb, a beak and a tail), whose hat and comb take the cap's place, and Mario, the main hero a new
-    game starts with (a save still in the classic costume puts him on once; the classic hero stays in the shop). Mario is
+  - skins: eighteen costumes, caps in eight colours, and hats and glasses (a crown, a cowboy hat, a tricorn, a Viking
+    helmet, a top hat, a bobble hat, cat ears, sunglasses, headphones, a halo, a flower). Five costumes are free from the
+    start: the Neon Sentinel (below), the Noob (yellow, blue and green, as on Roblox), the Grinch (green fur, yellow eyes, Santa's coat, belt and floppy hat) and the Chicken Gun chicken (white
+    feathers, a red comb, a beak and a tail), whose hat and comb take the cap's place, and Mario. Mario is
     a textured model of his own (`models/mario.glb`, about 0.9 MB, loaded when first worn), skinned at load onto the
     built hero's joints, so he runs, jumps, swims, rides, holds the guns and shows to friends like the built one. His
     fingers have joints of their own too: they close into a fist round a gun, handlebars, a wheel or a delivery and hang
@@ -327,6 +330,13 @@ the minigun's rattle), and under the water every sound is muffled.
     any hero's hands, whatever the arms' length, hold them. A shop hat that takes the cap's place hides his cap and sits on his hair; ears and a flower go
     on the cap, glasses on his eyes. Until the model has loaded, or if it cannot, the built hero stands in for him in his
     colours
+  - the Neon Sentinel is the main hero a new game starts with (a save in Mario or the classic costume puts him on once,
+    with his blaster and core in its set of guns): a black robot with a TV for a head, a purple core in the chest, TVs on
+    the shoulders, spikes on the back, a cape and a blaster on the right forearm (`models/sentinel.glb`, about 0.35 MB).
+    He stands as tall as the built hero but longer in the leg and the arm, so the model carries a rig of its own (where
+    every joint is and how its arms and legs lie, with the weights baked in); the hero's joints move there while he is on,
+    so every pose, ride, gun and friend's view works as for the others. His screen shows a face that changes with the
+    hero's (eyes and a little mouth, a smile, an "oh", a blink); shop hats sit on the TV
   - rides, called with the ride button (V on a keyboard) in every open world and every level, and in the Duel Arena
     between the duels (a duel is fought on foot; in a level the hero gets off at the flag, and on a ride that flies or
     floats down only the bottom of the level is a fall): a scooter, a go-kart that bowls enemies
@@ -470,6 +480,11 @@ python3 -m http.server 8000
 Then open http://localhost:8000.
 
 ## Credits
+
+The Neon Sentinel (`models/sentinel.glb`) was generated in [Meshy](https://www.meshy.ai) from a photo of a toy and given to
+the game by its author. Changes: simplified from two million triangles to forty thousand, painted in vertex colours from
+that photo (laid over the faces it can see; black armour where it cannot), the screens and the core split off to glow,
+weights for the game's rig baked in, meshopt compression. His look follows the TV Men of Skibidi Toilet (DaFuq!?Boom!).
 
 The Mario model is ["Mario obj"](https://sketchfab.com/3d-models/mario-obj-c549d24b60f74d8f85c7a5cbd2f55d0f) by
 [MatiasH290](https://sketchfab.com/matias029), licensed under

@@ -3551,8 +3551,12 @@ import * as THREE from 'three';
     shield.position.y = .85; shield.scale.setScalar(1.02); shield.visible = false; root.add(shield);
     // the arms' joints as built, for when a model (which moves them) comes off; the model worn and its skins, by id
     const armRest = arms.map((a) => [a.sh.position.clone(), a.el.position.clone(), a.wr.position.clone()]);
+    // every joint's place as built (in heroBones' order), for when a model that moved them comes off
+    const rest = [hips, torso, neck, head, ...legs.flatMap((l) => [l.hip, l.knee, l.ankle]), ...arms.flatMap((a) => [a.sh, a.el, a.wr]), ...arms.flatMap((a) => [a.fk, a.ft])]
+      .map((j) => j.position.clone());
     return { root, body, hips, torso, neck, head, legs, arms, scarf, tuft, shield, eyes, looks, lids, brows, happy, smile, frown, open, grin, m, capG, hats, wear, helmet, pack, mask,
-      armRest, model: '', armOut: 0, skins: {}, gripAt: .08, reachK: 0 }; // gripAt: how far past the wrist the hand holds (the mitten's middle)
+      armRest, rest, model: '', armOut: 0, skins: {}, gripAt: .08, reachK: 0, // gripAt: how far past the wrist the hand holds (the mitten's middle)
+      hipY: .52, legL: [.2, .19], holdAt: [0, -.085, .01] }; // the hips' height at rest, the thigh's and shin's lengths, where a gun sits in the hand
   }
   // Heroes made by artists (GLB files) that a costume can put on in place of the built one (SKINS' `model`). The file is
   // baked to the hero's space: y up, facing +z, feet at 0, in metres, the arms straight out to the sides. It is skinned
@@ -3569,6 +3573,12 @@ import * as THREE from 'three';
     mario: { url: 'models/mario.glb', head: ['cap', 'hair', 'eye', 'skin'], feet: ['shoe'], hands: ['glove'], cap: 'cap',
       arm: { sh: [.25, .348, -.011], el: .137, wr: .137 }, fingers: { at: .251, up: .047, mid: .075, thumb: .13 }, out: .4,
       hat: { at: -.14, bare: -.1, shades: -.05, phones: -.08 } },
+    // The Neon Void Sentinel, the main hero: a robot with a TV for a head, made in Meshy from a photo of a toy and painted
+    // from that photo. It stands as in the photo, arms down and legs apart, and it is longer in the leg and the arm than
+    // the built hero, so its file brings a rig of its own (`fit`: where every joint is, how the arms and legs lie at bind,
+    // the weights baked into the vertices), which the rig takes while it is on. `own`: the guns that are part of it, its
+    // blaster on the right forearm and its core in the chest; they fire from there and nothing else goes into its hand
+    sentinel: { url: 'models/sentinel.glb', fit: true, out: .3, own: ['blaster', 'core'], hat: { at: -.15, bare: -.15, shades: 0, phones: 0 } },
   };
   const heroModels = {}; // by id: { ready, failed, parts: [[geometry, material, mesh name]] }
   const heroModelWait = new Map(); // rigs dressed in a model still on its way, with how: dressed again when it comes
@@ -3578,9 +3588,12 @@ import * as THREE from 'three';
     if (st) return st;
     st = heroModels[id] = { ready: false, failed: false, parts: [] };
     const cfg = HERO_MODELS[id];
-    import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(cfg.url)).then((gltf) => {
+    const get = cfg.fit ? charKit().then((kit) => kit.loader.loadAsync(cfg.url)) // (packed with meshopt)
+      : import('three/addons/loaders/GLTFLoader.js').then(({ GLTFLoader }) => new GLTFLoader().loadAsync(cfg.url));
+    get.then((gltf) => {
       gltf.scene.updateMatrixWorld(true);
-      gltf.scene.traverse((o) => { if (o.isMesh) st.parts.push([heroModelGeo(o, cfg), addRim(o.material), o.name]); });
+      if (cfg.fit) st.fit = gltf.scene.userData; // its rig, the blaster's muzzle, the core, the screen (the scene's extras)
+      gltf.scene.traverse((o) => { if (o.isMesh) st.parts.push(cfg.fit ? [fitGeo(o), fitMat(o.name), o.name] : [heroModelGeo(o, cfg), addRim(o.material), o.name]); });
       st.ready = true;
     }).catch((e) => { st.failed = true; st.parts = []; console.warn('hero model ' + id + ' did not load', e); }).then(() => {
       const wait = [...heroModelWait]; heroModelWait.clear();
@@ -3699,46 +3712,125 @@ import * as THREE from 'three';
     geo.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
     return shared(geo);
   }
-  // put a model on a rig (its id) or take it off (''): the built hero's materials hide, the arms take the model's
-  // joints, the hats move onto its cap
+  // A mesh of a model that brings its own rig, as it is in the file: its vertices (through the node's matrix, which
+  // quantized positions come with), its colours, and the joints (heroBones' order) and weights baked into it
+  function fitGeo(o) {
+    const src = o.geometry, geo = new T.BufferGeometry();
+    for (const [k, to] of [['position', 'position'], ['normal', 'normal'], ['color', 'color'], ['_weights', 'skinWeight'], ['_joints', 'skinIndex']]) {
+      const a = src.getAttribute(k);
+      if (!a) continue;
+      const f = new (k === '_joints' ? Uint16Array : Float32Array)(a.count * a.itemSize), get = [a.getX, a.getY, a.getZ, a.getW];
+      for (let i = 0; i < a.count; i++) for (let j = 0; j < a.itemSize; j++) f[i * a.itemSize + j] = get[j].call(a, i);
+      geo.setAttribute(to, new T.BufferAttribute(f, a.itemSize));
+    }
+    geo.setIndex(src.index);
+    geo.applyMatrix4(o.matrixWorld);
+    return shared(geo);
+  }
+  // its lit body (black armour with a sheen), and its glow (the screens, the core, the purple light) that no light dims
+  const fitMat = (name) => (name === 'glow' ? new T.MeshBasicMaterial({ vertexColors: true, toneMapped: false }) : addRim(std({ vertexColors: true, roughness: .4, metalness: .3 })));
+  // The faces on a TV head's screen, in a row: eyes and a little "w" of a mouth, a smile, an "oh", a blink. Each is the
+  // whole screen, lit from inside (a soft glow at the edges), laid over the model's own; it goes as the built face does
+  // (hidden, it still moves), as the blocky heroes' faces do
+  const TV_FACE_TEX = (() => {
+    const W = 256, H = 160, c = document.createElement('canvas'); c.width = W * 4; c.height = H;
+    const g = c.getContext('2d'); g.lineCap = g.lineJoin = 'round';
+    for (let i = 0; i < 4; i++) {
+      const x0 = i * W, x = x0 + W / 2, y = 62, bg = g.createRadialGradient(x, H / 2, 20, x, H / 2, W * .62);
+      bg.addColorStop(0, '#f4f8ff'); bg.addColorStop(1, '#c9d3ea');
+      g.fillStyle = bg; g.fillRect(x0, 0, W, H);
+      g.fillStyle = g.strokeStyle = '#1b2140'; g.lineWidth = 11;
+      for (const s of [-1, 1]) {
+        const ex = x + s * 48;
+        g.beginPath();
+        if (i === 1) { g.arc(ex, y + 16, 22, Math.PI * 1.15, Math.PI * 1.85); g.stroke(); }
+        else if (i === 3) { g.moveTo(ex - 20, y + 4); g.lineTo(ex + 20, y + 4); g.stroke(); }
+        else { if (g.roundRect) g.roundRect(ex - 12, y - 26, 24, 54, 12); else g.rect(ex - 12, y - 26, 24, 54); g.fill(); }
+      }
+      g.lineWidth = 8;
+      if (i === 2) { g.beginPath(); g.ellipse(x, y + 58, 12, 15, 0, 0, Math.PI * 2); g.fill(); }
+      else if (i === 1) { g.beginPath(); g.moveTo(x - 26, y + 42); g.quadraticCurveTo(x, y + 84, x + 26, y + 42); g.closePath(); g.fill(); }
+      else for (const s of [-1, 1]) { g.beginPath(); g.arc(x + s * 12, y + 46, 12, .1 * Math.PI, .9 * Math.PI); g.stroke(); }
+    }
+    const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.anisotropy = maxAniso; return t;
+  })();
+  const TV_FACE_MATS = [0, 1, 2, 3].map((i) => {
+    const t = TV_FACE_TEX.clone(); t.repeat.set(.25, 1); t.offset.set(i * .25, 0); t.needsUpdate = true;
+    return new T.MeshBasicMaterial({ map: t, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  });
+  function tvFace(h) {
+    const sk = h.skins[h.model], f = sk && sk.visible && sk.userData.face;
+    if (!f) return;
+    const i = h.open.visible || h.frown.visible ? 2 : h.grin.visible || h.happy[0].visible ? 1 : h.eyes[0].scale.y < .5 ? 3 : 0;
+    if (f.userData.i !== i) { f.userData.i = i; f.material = TV_FACE_MATS[i]; }
+  }
+  // put a model on a rig (its id) or take it off (''): the built hero's materials hide, the joints go where the model
+  // has them (all of them for a model with its own rig, the arms for Mario), the hats move onto its head
   function wearModel(h, id) {
     if (h.model === id) return;
     h.model = id;
-    const cfg = HERO_MODELS[id] || null;
+    const cfg = HERO_MODELS[id] || null, fit = cfg && cfg.fit ? heroModels[id].fit : null;
     for (const k in h.m) h.m[k].visible = !cfg;
-    h.arms.forEach((a, i) => {
-      const r = h.armRest[i], A = cfg && cfg.arm;
-      if (!A) { a.sh.position.copy(r[0]); a.el.position.copy(r[1]); a.wr.position.copy(r[2]); return; }
+    rigFit(h, fit && fit.rig);
+    if (cfg && !fit) h.arms.forEach((a, i) => {
+      const A = cfg.arm;
       a.sh.position.set((i ? 1 : -1) * A.sh[0], A.sh[1], A.sh[2]); a.el.position.set(0, -A.el, 0); a.wr.position.set(0, -A.wr, 0);
       a.fk.position.set((i ? 1 : -1) * cfg.fingers.up, -cfg.fingers.at, 0); a.ft.position.set(0, -cfg.fingers.mid, 0);
     });
     h.armOut = cfg ? cfg.out : 0;
-    h.gripAt = cfg ? cfg.fingers.at * .8 : .08;
+    h.gripAt = fit ? fit.rig.gripAt : cfg ? cfg.fingers.at * .8 : .08;
     if (cfg && !h.skins[id]) h.skins[id] = skinModel(h, id);
     for (const k in h.skins) h.skins[k].visible = k === id;
     for (const k in h.hats) {
       const bare = HATS.some((x) => x.id === k && x.hide);
       h.hats[k].position.y = !cfg ? 0 : cfg.hat[k] !== undefined ? cfg.hat[k] : bare ? cfg.hat.bare : cfg.hat.at;
     }
+    rigGunAgain(h); // the hand may have moved, and the model may be its own gun
   }
-  // the model's meshes on this rig's joints. The bind pose is the rig at rest with its arms turned straight out to the
-  // sides, in the body's space; the meshes go under the body, so they blink with it
+  // the joints where a model with a rig of its own has them, or back where the built hero has them; with them the hips'
+  // height at rest, the legs' lengths (the hips drop by them when the knees bend) and where a gun sits in the hand
+  function rigFit(h, rig) {
+    heroBones(h).forEach((b, i) => { if (rig) b.position.fromArray(rig.j[i]); else b.position.copy(h.rest[i]); });
+    h.hipY = rig ? rig.hipY : .52; h.hips.position.y = h.hipY;
+    h.legL = rig ? rig.legL : [.2, .19]; h.holdAt = rig ? rig.hold : [0, -.085, .01];
+  }
+  // The model's meshes on this rig's joints, under the body (so they blink with it). The bind pose is the rig at rest with
+  // the arms turned straight out to the sides (Mario), or as the model's own rig says (its joints, and the turns that lay
+  // the straight arms and legs along the model's)
   function skinModel(h, id) {
-    const bones = heroBones(h), inv = bones.map((b) => {
+    const st = heroModels[id], fit = st.fit || null, rig = fit && fit.rig, bones = heroBones(h), q = new T.Quaternion();
+    const inv = bones.map((b) => {
       const m = new T.Matrix4();
       for (let o = b; o !== h.body; o = o.parent) {
-        const at = o === h.hips ? new T.Vector3(0, .52, 0) : o.position, l = new T.Matrix4().makeTranslation(at.x, at.y, at.z);
-        const i = h.arms.findIndex((a) => a.sh === o);
-        if (i >= 0) l.multiply(new T.Matrix4().makeRotationZ((i ? 1 : -1) * Math.PI / 2));
+        const k = bones.indexOf(o), at = rig ? new T.Vector3().fromArray(rig.j[k]) : o === h.hips ? new T.Vector3(0, .52, 0) : o.position;
+        const l = new T.Matrix4().makeTranslation(at.x, at.y, at.z);
+        if (rig) { if (rig.q[k]) l.multiply(new T.Matrix4().makeRotationFromQuaternion(q.fromArray(rig.q[k]))); }
+        else { const i = h.arms.findIndex((a) => a.sh === o); if (i >= 0) l.multiply(new T.Matrix4().makeRotationZ((i ? 1 : -1) * Math.PI / 2)); }
         m.premultiply(l);
       }
       return m.invert();
     });
     const skel = new T.Skeleton(bones, inv), g = new T.Group();
-    for (const [geo, mat, name] of heroModels[id].parts) {
+    for (const [geo, mat, name] of st.parts) {
       const m = new T.SkinnedMesh(geo, mat);
-      m.bind(skel, new T.Matrix4()); m.castShadow = true; m.frustumCulled = false; g.add(m);
+      m.bind(skel, new T.Matrix4()); m.castShadow = name !== 'glow'; m.frustumCulled = false; g.add(m);
       if (name === HERO_MODELS[id].cap) g.userData.cap = m;
+    }
+    if (fit) {
+      // its own guns fire from where they are on it: the blaster's muzzle in the -x forearm's space (arms[0], bone 11),
+      // the core in the torso's (bone 1)
+      g.userData.own = HERO_MODELS[id].own || [];
+      if (fit.blaster) g.userData.mz = new T.Vector3().fromArray(fit.blaster).applyMatrix4(inv[11]);
+      if (fit.core) g.userData.core = new T.Vector3().fromArray(fit.core).applyMatrix4(inv[1]);
+      // the face on the screen: a plane just in front of it, on the head (bone 3)
+      if (fit.screen) {
+        const [x0, y0, x1, y1, z] = fit.screen, geo = new T.PlaneGeometry(x1 - x0, y1 - y0), n = geo.getAttribute('position').count;
+        geo.translate((x0 + x1) / 2, (y0 + y1) / 2, z + .012); // (over the frame's lip: the screen under it is not quite flat)
+        geo.setAttribute('skinIndex', new T.Uint16BufferAttribute(new Uint16Array(n * 4).map((v, i) => (i % 4 ? 0 : 3)), 4));
+        geo.setAttribute('skinWeight', new T.Float32BufferAttribute(new Float32Array(n * 4).map((v, i) => (i % 4 ? 0 : 1)), 4));
+        const f = new T.SkinnedMesh(shared(geo), TV_FACE_MATS[0]); f.bind(skel, new T.Matrix4()); f.frustumCulled = false; f.renderOrder = 2; f.userData.i = 0;
+        g.add(f); g.userData.face = f;
+      }
     }
     h.body.add(g);
     return g;
@@ -3812,12 +3904,15 @@ import * as THREE from 'three';
     for (const id in h.hats) h.hats[id].visible = false;
     for (const id in h.wear) for (const at in h.wear[id]) h.wear[id][at].visible = false;
     h.helmet.visible = h.pack.visible = false;
+    rigFit(h, null); // the blocks sit on the built hero's joints, whatever model is underneath
     h.arms.forEach((a, i) => { const r = h.armRest[i]; a.sh.position.set((i ? 1 : -1) * .4125, r[0].y, r[0].z); a.el.position.copy(r[1]); a.wr.position.copy(r[2]); });
     h.armOut = 0; h.gripAt = .1;
+    rigGunAgain(h);
     blockyFace(h);
   }
   // the face drawn on the head follows the built face's mouth and eyes (they are hidden, but still move)
   function blockyFace(h) {
+    tvFace(h);
     const B = h.blocky;
     if (!B || !B.on) return;
     const i = h.open.visible || h.frown.visible ? 2 : h.grin.visible || h.happy[0].visible ? 1 : h.eyes[0].scale.y < .5 ? 3 : 0;
@@ -4519,11 +4614,14 @@ import * as THREE from 'three';
       glint: () => { tone('sine', 2600, 3400, .18, .05); tone('sine', 3900, 0, .25, .03, .1); },
       heal: () => seq('triangle', [72, 76, 79, 84], .1, .08, .06),
       bell: () => { tone('triangle', 1318, 0, .8, .15); tone('sine', 2637, 0, .6, .05); tone('triangle', 1318, 0, .6, .1, .3); },
+      // the Neon Sentinel: the blaster's zap, the core's ball of light going out
+      laser: () => { tone('sawtooth', 1700, 240, .13, .055); tone('square', 880, 160, .09, .04); noise(.05, .12, 0, 6500, 'highpass'); },
+      core: () => { tone('sine', 140, 520, .35, .3); tone('sawtooth', 260, 1100, .28, .04); swoosh(.5, .32, 300, 2600); },
     };
     // pitch-varied sounds, so frequent ones do not sound mechanical
     const VARY = new Set(['jump', 'stomp', 'kick', 'bump', 'brick', 'spin', 'step', 'land', 'fire', 'fizz', 'clink', 'boom', 'poof', 'buzz', 'skid', 'wallKick', 'crush', 'splash', 'stroke', 'ribbit',
       'boing', 'peep', 'beep', 'giggle', 'grunt', 'blub', 'zoop', 'screech', 'snort', 'chomp', 'flap', 'breath', 'cannon', 'clang', 'nade', 'rocket',
-      'chop', 'crackle', 'munch', 'howl', 'growl', 'snipe', 'rifle', 'pistol', 'shotgun', 'minigun', 'bow', 'twang', 'slash', 'thud', 'toss', 'paint', 'splat', 'hitmark']);
+      'chop', 'crackle', 'munch', 'howl', 'growl', 'snipe', 'rifle', 'pistol', 'shotgun', 'minigun', 'bow', 'twang', 'slash', 'thud', 'toss', 'paint', 'splat', 'hitmark', 'laser']);
     function spotNode(p) {
       _sv.set(p[0], p[1], p[2]);
       const vol = clamp(1.25 - _sv.distanceTo(camera.position) / 30, 0, 1);
@@ -11891,7 +11989,7 @@ import * as THREE from 'three';
   // Progress is saved: stars (world ones by name, level ones as 'l:<level id>'), the wallet of badges, what each collection
   // quest has found so far (red badges, lost ones, ingredients, switches), finished quests, and what came from the shop:
   // perks (each can be switched off), costumes, caps, hats and rides.
-  const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'mario',
+  const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'sentinel', sentOn: 1,
     caps: ['auto', 'classic'], cap: 'auto', hats: [], hat: '', rides: [], ride: '',
     // the best survival game (waves lasted through, seconds), the dragon last picked at the roost, the best tank battle (waves,
     // tanks knocked out), how many times Leviathan has been beaten
@@ -11904,7 +12002,7 @@ import * as THREE from 'three';
     ntSkill: { wood: 0, hunt: 0, pack: 0, brave: 0 },
     // the Duel Arena: the guns bought and the set taken into a duel (main, spare, close combat, special), the next arena
     // opponent, the arena duels won, the sniper duels won, the opponents beaten at least once
-    guns: ['sniper', 'rifle', 'revolver', 'katana', 'grenade'], load: ['sniper', 'revolver', 'katana', 'grenade'], duLad: 0, duWins: 0, duSn: 0, duBeat: [],
+    guns: ['sniper', 'rifle', 'revolver', 'katana', 'grenade', 'blaster', 'core'], load: ['blaster', 'revolver', 'katana', 'core'], duLad: 0, duWins: 0, duSn: 0, duBeat: [],
     // the Roblox world: the furthest obby stage reached, the most Color Block rounds lasted
     rbStage: 0, rbCb: 0,
     // the Speedway: the car picked in its garage, the best grand prix time on each track (ms)
@@ -11920,6 +12018,14 @@ import * as THREE from 'three';
   if (!SAVE.tune || typeof SAVE.tune !== 'object' || Array.isArray(SAVE.tune)) SAVE.tune = {};
   // Mario became the main hero (2026-09-28): a save still in the classic costume puts him on, once (the classic stays in the shop)
   if (!SAVE.marioOn) { if (SAVE.skin === 'classic') SAVE.skin = 'mario'; SAVE.marioOn = 1; }
+  // the Neon Sentinel became the main hero (2026-10-31): a save in Mario or the classic costume puts him on, once (both stay
+  // in the shop), everyone gets his blaster and core, and his set of guns starts with them
+  if (!SAVE.sentOn) {
+    if (SAVE.skin === 'mario' || SAVE.skin === 'classic') SAVE.skin = 'sentinel';
+    for (const id of ['blaster', 'core']) if (!SAVE.guns.includes(id)) SAVE.guns.push(id);
+    if (SAVE.skin === 'sentinel') { SAVE.load[0] = 'blaster'; SAVE.load[3] = 'core'; }
+    SAVE.sentOn = 1;
+  }
   // players from before the island keep the levels they had opened
   for (let i = 0; i < store.get('unlocked', 1) - 1 && i < LEVELS.length; i++) if (!SAVE.stars.includes('l:' + LEVELS[i].id)) SAVE.stars.push('l:' + LEVELS[i].id);
   const saveGame = () => store.set('save', SAVE);
@@ -15517,6 +15623,13 @@ import * as THREE from 'three';
       proj: 'grenade', snd: 'toss' },
     smoke: { name: 'Дымовуха', slot: 3, price: 100, icon: '💨', sub: 'Облако дыма: сквозь него не видно', kind: 'throw', smoke: 4.6, fuse: 1.1, v: 16, up: 6, g: 22, charges: 2, regen: 12, proj: 'smoke', snd: 'toss' },
     shuriken: { name: 'Сюрикены', slot: 3, price: 110, icon: '✴', sub: 'Три звёздочки веером', kind: 'proj', fan: 3, dmg: 24, head: 1.5, v: 52, g: 3, charges: 3, regen: 3.5, proj: 'star', snd: 'toss' },
+    // the Neon Sentinel's own: the blaster on his forearm (purple bolts, held down it keeps firing) and the core in his chest
+    // (a ball of light that bursts like a rocket). Anyone may carry them; on him they are part of his body (HERO_MODELS' own)
+    // and fire from there. tc and tw: the streak's colour and width, fc: the flash's; boom: a burst in the core's colours
+    blaster: { name: 'Бластер стража', slot: 0, price: 0, icon: '🟣', sub: 'Лучи очередью, пока жмёшь. У Неонового стража он прямо на руке', kind: 'ray', auto: true, dmg: 15, head: 1.7,
+      cd: .14, mag: 24, reload: 1.7, spread: .006, hip: .022, scope: 34, range: 150, snd: 'laser', mz: [0, .05, .62], kick: .01, tc: 0xc27dff, tw: .03, fc: 0xb06aff, br: 18, bm: 80 },
+    core: { name: 'Ядро', slot: 3, price: 0, icon: '🔮', sub: 'Шар света из груди: взрывается и раскидывает всех рядом', kind: 'proj', dmg: 90, splash: 4.5, sdmg: 70, v: 30, g: 0,
+      charges: 2, regen: 7, proj: 'orb', snd: 'core', self: .3, mz: [0, .04, .1], boom: 'void' },
     medkit: { name: 'Аптечка', slot: 3, price: 130, icon: '➕', sub: 'Лечит 50 сердечек', kind: 'heal', heal: 50, charges: 1, regen: 15, snd: 'heal' },
     jetpack: { name: 'Джетпак', slot: 3, price: 150, icon: '🎒', sub: 'Реактивный прыжок высоко вверх', kind: 'jet', charges: 2, regen: 6, snd: 'jet' },
   };
@@ -15558,6 +15671,9 @@ import * as THREE from 'three';
     grenade: mergedGeo([[SPH, 0x5f8a3a, M4(0, .02, .04, .09, .11, .09)], [CYL, 0x8a92a4, M4(0, .14, .04, .035, .04, .035)], [DONUT, 0xffd23f, M4(.04, .17, .04, .025, .025, .025)]]),
     smoke: mergedGeo([[CYL, 0xb8bfcc, M4(0, .03, .04, .06, .2, .06)], [CYL, 0x5a6275, M4(0, .03, .04, .062, .04, .062)], [CYL, 0x8a92a4, M4(0, .15, .04, .03, .04, .03)]]),
     shuriken: mergedGeo([[STAR5, 0xb8bfcc, M4(0, .03, .06, .12, .12, .1)], [CYL, 0x2b2f4a, M4(0, .03, .06, .03, .04, .03, GZ, 0, 0)]]),
+    blaster: mergedGeo([[BOX, 0x1c1d24, M4(0, .05, .17, .1, .14, .46)], [BOX, 0xa055ff, M4(0, .05, .17, .104, .03, .4)], grip(0x1c1d24), gz(.2, .036, 0x2b2f4a, 0, .05, .49),
+      [SPH, 0xe0c2ff, M4(0, .05, .6, .042, .042, .02)], [BOX, 0x8a3dff, M4(0, .135, .1, .03, .04, .18)]]),
+    core: mergedGeo([[SPH, 0xd6b0ff, M4(0, .04, .08, .085, .085, .085)], [DONUT, 0x8d919c, M4(0, .04, .08, .12, .12, .07, GZ, 0, 0)], grip(0x1c1d24)]),
     medkit: mergedGeo([[BOX, 0xffffff, M4(0, .02, .06, .2, .15, .08)], [BOX, 0xf0503a, M4(0, .02, .105, .12, .035, .01)], [BOX, 0xf0503a, M4(0, .02, .105, .035, .12, .01)], [BOX, 0x8a92a4, M4(0, .11, .06, .08, .02, .02)]]),
     // worn on the back, not held
     jetpack: mergedGeo([[CYL, 0xb8bfcc, M4(-.12, 0, 0, .09, .42, .09)], [CYL, 0xb8bfcc, M4(.12, 0, 0, .09, .42, .09)], [BOX, 0xf0503a, M4(0, .02, .05, .3, .3, .06)],
@@ -15572,28 +15688,40 @@ import * as THREE from 'three';
     paint: [0xff5ab0, 0x9dff7a, 0x5ad0ff].map((c) => mergedGeo([[SPH, c, M4(0, 0, 0, .09, .09, .09)]])),
     pebble: mergedGeo([[ICO, 0x8a8698, M4(0, 0, 0, .08, .07, .08)]]),
     grenade: GEO.gun.grenade, smoke: GEO.gun.smoke, star: mergedGeo([[STAR5, 0xb8bfcc, M4(0, 0, 0, .14, .14, .08, GZ, 0, 0)]]),
+    orb: mergedGeo([[SPH, 0xffffff, M4(0, 0, 0, .2, .2, .2)]]),
   };
+  const ORB_MAT = new T.MeshBasicMaterial({ color: 0xe2c4ff, toneMapped: false }); // the core's ball of light
   const PAINT_COLS = [0xff5ab0, 0x9dff7a, 0x5ad0ff];
 
   // a gun in a rig's hand (the right one, arms[0]), made on demand; the jetpack goes on the back
   function rigGun(h, id) {
     const u = h.guns || (h.guns = { hold: null, back: null, id: '', meshes: {} });
     if (!u.hold) {
-      u.hold = new T.Group(); u.hold.position.set(0, -.085, .01); u.hold.rotation.x = Math.PI / 2; h.arms[0].wr.add(u.hold);
+      u.hold = new T.Group(); u.hold.rotation.x = Math.PI / 2; h.arms[0].wr.add(u.hold);
       u.back = new T.Mesh(GEO.gun.jetpack, MAT.char); u.back.position.set(0, .26, -.36); u.back.castShadow = true; u.back.visible = false; h.torso.add(u.back);
     }
+    u.hold.position.fromArray(h.holdAt); // (a model's bigger fist holds it further down)
     if (u.id === id) return;
     u.id = id;
     for (const k in u.meshes) u.meshes[k].visible = false;
-    if (!id || id === 'jetpack' || !GEO.gun[id]) return;
+    if (!id || id === 'jetpack' || !GEO.gun[id] || modelGun(h, id)) return;
     let m = u.meshes[id];
     if (!m) { m = u.meshes[id] = new T.Mesh(GEO.gun[id], MAT.char); m.castShadow = true; u.hold.add(m); }
     m.visible = true;
   }
-  // where a rig's gun fires from, in the world
+  // a model's own gun (the Sentinel's blaster and core) is part of it: the hand holds nothing for it
+  function modelGun(h, id) { const sk = h.skins[h.model]; return !!(sk && sk.visible && sk.userData.own && sk.userData.own.includes(id)); }
+  // the hand's gun again, after the hand has moved or the model has changed
+  function rigGunAgain(h) { if (h.guns && h.guns.hold) { const id = h.guns.id; h.guns.id = null; rigGun(h, id); } }
+  // where a rig's gun fires from, in the world (a model's own gun: from where it is on the model)
   const _gm = new T.Vector3();
   function rigMuzzle(h, id, out = _gm) {
     const w = GUNS[id], u = h.guns;
+    if (modelGun(h, id) && h.root.visible) {
+      const d = h.skins[h.model].userData;
+      if (id === 'core' && d.core) return h.torso.localToWorld(out.copy(d.core));
+      if (d.mz) return h.arms[0].el.localToWorld(out.copy(d.mz));
+    }
     if (!w || !w.mz || !u || !u.hold || !h.root.visible) return h.arms[0].wr.getWorldPosition(out);
     return u.hold.localToWorld(out.set(w.mz[0], w.mz[1], w.mz[2]));
   }
@@ -15896,11 +16024,11 @@ import * as THREE from 'three';
     for (let i = 0; i < (w.pellets || 1); i++) {
       const dd = spreadDir(d, s, _ge), r = gunRay(o.x, o.y, o.z, dd.x, dd.y, dd.z, w.range, marks, true);
       ends.push([r.x, r.y, r.z]);
-      tracer(mz.x, mz.y, mz.z, r.x, r.y, r.z, sc && w.trail ? w.trail : .07, sc && w.trail ? 0xbfefff : 0xfff0a0, id === 'sniper' ? .035 : .018);
+      tracer(mz.x, mz.y, mz.z, r.x, r.y, r.z, sc && w.trail ? w.trail : w.tc ? .1 : .07, sc && w.trail ? 0xbfefff : w.tc || 0xfff0a0, id === 'sniper' ? .035 : w.tw || .018);
       if (gunImpact(r, w, dd, 'me', w.dmg * (r.head ? w.head : 1) * (w.pellets ? clamp(1.3 - r.t / w.range, .35, 1) : 1))) hitAny = true;
     }
     if (hitAny && FT) FT.hits++;
-    flashAt(mz.x, mz.y, mz.z, 0xffe07a, id === 'sniper' ? 1.6 : 1, .06);
+    flashAt(mz.x, mz.y, mz.z, w.fc || 0xffe07a, id === 'sniper' ? 1.6 : 1, .06);
     gunNet('s', false, { p: [mz.x, mz.y, mz.z], e: ends });
     // the barrel jumps up after the shot (the shot itself goes where the crosshair was), and settles back
     if (w.kick) GN.kick = Math.min(.3, GN.kick + w.kick * (GN.scopeK > .5 ? .5 : 1));
@@ -15909,7 +16037,7 @@ import * as THREE from 'three';
   function gunImpact(r, w, d, by, dmg) {
     if (r.tgt && ISL.beacons) { lightBeacon(ISL.beacons, r.tgt); return false; }
     if (r.who) { gunHit(r.who, Math.round(dmg), r.head, d, by, w); return true; }
-    if (r.solid) { puff(r.x, r.y, r.z, 0xe8dcc4, 2, .8, .3, .4, .5); emit(r.x, r.y, r.z, 0xfff3a0, 3, 3, 1, 8, .25, .12); }
+    if (r.solid) { puff(r.x, r.y, r.z, 0xe8dcc4, 2, .8, .3, .4, .5); emit(r.x, r.y, r.z, w.tc || 0xfff3a0, 3, 3, 1, 8, .25, .12); }
     return false;
   }
   // a hit on someone: the bot or the hero takes it here, a friend's screen is told; the shooter sees a mark and the number
@@ -15990,7 +16118,7 @@ import * as THREE from 'three';
   const gunShots = [];
   function gunShot(w, id, x, y, z, vx, vy, vz, by, ghost, k) {
     const geo = w.proj === 'paint' ? GEO.flies.paint[(Math.random() * 3) | 0] : GEO.flies[w.proj];
-    const m = new T.Mesh(geo, MAT.char); m.rotation.order = 'YXZ'; m.position.set(x, y, z); m.castShadow = true; L.group.add(m);
+    const m = new T.Mesh(geo, w.proj === 'orb' ? ORB_MAT : MAT.char); m.rotation.order = 'YXZ'; m.position.set(x, y, z); m.castShadow = true; L.group.add(m);
     const dmg = Array.isArray(w.dmg) ? lerp(w.dmg[0], w.dmg[1], k) : w.dmg;
     gunShots.push({ m, w, id, x, y, z, vx, vy, vz, by, ghost, dmg, life: w.fuse || 3, bounce: w.kind === 'throw', spin: 0 });
     if (by === 'me' && !ghost) gunNet('p', false, { i: id, p: [x, y, z], v: [vx, vy, vz], k });
@@ -16020,6 +16148,7 @@ import * as THREE from 'three';
       else f.m.rotation.set(-Math.atan2(f.vy, Math.hypot(f.vx, f.vz)), Math.atan2(f.vx, f.vz), 0);
       if (w.proj === 'rocket') { glow(f.x - f.vx * .012, f.y - f.vy * .012, f.z - f.vz * .012, Math.random() < .5 ? 0xff7a1a : 0xffd35a, 2, .5, 0, 0, .25, .3); if (Math.random() < .5) puff(f.x, f.y, f.z, 0xe8e6ee, 1, .2, .2, .4, .5); }
       else if (w.proj === 'grenade' && Math.random() < dt * 10) glow(f.x, f.y + .1, f.z, 0xff5a4a, 1, .2, 0, 0, .2, .15);
+      else if (w.proj === 'orb') { f.m.scale.setScalar(1 + Math.sin(time * 40) * .12); glow(f.x, f.y, f.z, Math.random() < .5 ? 0xa055ff : 0xe9c2ff, 2, .5, 0, 0, .3, .45); }
     }
   }
   // it lands: a hit, a splash of paint, a burst (rockets and grenades hurt everyone round), a cloud of smoke
@@ -16037,8 +16166,9 @@ import * as THREE from 'three';
   // throw him up into the air, as in the Roblox games)
   function gunBoom(x, y, z, w, f) {
     Snd.at(x, y, z).boom();
-    flashAt(x, y, z, 0xfff3b0, 3, .16); wave(x, y, z, 0xffc04a, w.splash, .35);
-    glow(x, y, z, 0xffa12e, 16, 5, 1, 4, .45, .4); emit(x, y, z, 0xffe07a, 10, 6, 2, 8, .5, .2); puff(x, y, z, 0x8a8490, 6, 2.2, .8, .7, 1.2);
+    const v = w.boom === 'void'; // the core's burst is purple light, not fire
+    flashAt(x, y, z, v ? 0xf0dcff : 0xfff3b0, 3, .16); wave(x, y, z, v ? 0xa055ff : 0xffc04a, w.splash, .35);
+    glow(x, y, z, v ? 0xb06aff : 0xffa12e, 16, 5, 1, 4, .45, .4); emit(x, y, z, v ? 0xe9c2ff : 0xffe07a, 10, 6, 2, 8, .5, .2); puff(x, y, z, v ? 0x5a4680 : 0x8a8490, 6, 2.2, .8, .7, 1.2);
     const dd = Math.hypot(P.pos.x - x, P.pos.z - z); if (dd < 14) G.shake = Math.max(G.shake, .25 * (1 - dd / 14));
     if (f.ghost) return;
     const R = w.splash, full = w.sdmg || w.dmg;
@@ -16309,7 +16439,7 @@ import * as THREE from 'three';
     const w = GUNS[id];
     if (d.t === 's' && w && ok(d.p) && Array.isArray(d.e)) {
       Snd.at(d.p[0], d.p[1], d.p[2])[w.snd]();
-      for (const e of d.e.slice(0, 10)) if (ok(e)) { tracer(d.p[0], d.p[1], d.p[2], e[0], e[1], e[2], .09, 0xffb08a, .02); puff(e[0], e[1], e[2], 0xe8dcc4, 1, .6, .2, .3, .4); }
+      for (const e of d.e.slice(0, 10)) if (ok(e)) { tracer(d.p[0], d.p[1], d.p[2], e[0], e[1], e[2], .09, w.tc || 0xffb08a, w.tw || .02); puff(e[0], e[1], e[2], 0xe8dcc4, 1, .6, .2, .3, .4); }
     } else if (d.t === 'p' && ok(d.p) && ok(d.v) && Math.hypot(...d.v) < 140) {
       const pw = GUNS[d.i] || w; if (!pw || !pw.proj) return;
       Snd.at(d.p[0], d.p[1], d.p[2])[pw.snd]();
@@ -16648,9 +16778,9 @@ import * as THREE from 'three';
     h.arms[0].sh.rotation.set(J.shLx, J.shLy, -J.shLz - armOut(h, J.shLx)); h.arms[1].sh.rotation.set(J.shRx, -J.shRy, J.shRz + armOut(h, J.shRx));
     h.arms[0].el.rotation.x = J.elL; h.arms[1].el.rotation.x = J.elR; h.arms[0].wr.rotation.x = J.wrL; h.arms[1].wr.rotation.x = J.wrR;
     rigFingers(h, J.gripL, J.gripR);
-    const legH = (a, kn, sp) => (.2 * Math.cos(a) + .19 * Math.cos(a + kn)) * Math.cos(sp);
-    const drop = .39 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR));
-    h.hips.position.set(0, .52 - drop + J.bob, 0); h.hips.rotation.y = J.hipsY;
+    const legH = (a, kn, sp) => (h.legL[0] * Math.cos(a) + h.legL[1] * Math.cos(a + kn)) * Math.cos(sp);
+    const drop = h.legL[0] + h.legL[1] - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR));
+    h.hips.position.set(0, h.hipY - drop + J.bob, 0); h.hips.rotation.y = J.hipsY;
     h.torso.rotation.set(J.torsoX, J.twist, J.torsoZ);
     h.head.rotation.set(J.headX, J.headY, J.headZ);
     blockyFace(h);
@@ -17207,7 +17337,10 @@ import * as THREE from 'three';
   const SKINS = [
     { id: 'classic', name: 'Классика', price: 0, shirt: 0xff8a2a, over: 0x2c3f93, scarf: 0x4262ff, scarf2: 0xffffff, glove: 0xffffff, shoe: 0x7a4524, cap: 0x16a39c, dark: 0x0f7f79 },
     // the main hero: a model of his own (HERO_MODELS), the colours are for the built hero until it has loaded
-    { id: 'mario', name: 'Марио', price: 0, sub: 'Главный герой: кепка с буквой M, усы и синий комбинезон', sw: [0xe0302a, 0x2f4fb0], model: 'mario',
+    { id: 'sentinel', name: 'Неоновый страж', price: 0, sub: 'Главный герой: голова-телевизор, ядро в груди и бластер на руке', sw: [0x16171d, 0xa055ff], model: 'sentinel',
+      shirt: 0x22232b, over: 0x15161c, scarf: 0x8a3dff, scarf2: 0xe4ebf6, glove: 0x22232b, shoe: 0x15161c, cap: 0x15161c, dark: 0x8a3dff,
+      face: { white: 0xe4ebf6, iris: 0xa055ff, hair: 0x15161c, brow: 0x15161c } },
+    { id: 'mario', name: 'Марио', price: 0, sub: 'Кепка с буквой M, усы и синий комбинезон', sw: [0xe0302a, 0x2f4fb0], model: 'mario',
       shirt: 0xe0302a, over: 0x2f4fb0, scarf: 0xe0302a, scarf2: 0xffffff, glove: 0xffffff, shoe: 0x6a3a1c, cap: 0xe0302a, dark: 0xb02018,
       face: { hair: 0x3a2414, brow: 0x3a2414 } },
     { id: 'grinch', name: 'Гринч', price: 0, sub: 'Бесплатно! Зелёный мех, жёлтые глаза и колпак Санты', sw: [0x8cbf3f, 0xd8302a],
@@ -19217,6 +19350,7 @@ import * as THREE from 'three';
     }
     return [face, rate];
   }
+  const STAND_POSES = new Set(['stand', 'board', 'ski', 'pogo', 'flint']);
   function animateHero(dt) {
     const r = hero.root, t = TGT;
     for (const key in POSE0) t[key] = POSE0[key];
@@ -19280,9 +19414,12 @@ import * as THREE from 'three';
     arms[0].wr.rotation.x = J.wrL; arms[1].wr.rotation.x = J.wrR;
     rigFingers(hero, J.gripL, J.gripR);
     // the hips drop so the lower foot stays on the ground when knees bend
-    const legH = (h, kn, sp) => (.2 * Math.cos(h) + .19 * Math.cos(h + kn)) * Math.cos(sp);
-    const drop = (P.onGround || G.state === 'title') && !P.riding && !P.veh ? .39 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR)) : 0;
-    hero.hips.position.set(J.sway, .52 - drop + J.bob, 0); hero.hips.rotation.y = J.hipsY;
+    const [l1, l2] = hero.legL, legH = (h, kn, sp) => (l1 * Math.cos(h) + l2 * Math.cos(h + kn)) * Math.cos(sp);
+    const drop = (P.onGround || G.state === 'title') && !P.riding && !P.veh ? l1 + l2 - Math.max(legH(J.hipL, J.kneeL, J.sprL), legH(J.hipR, J.kneeR, J.sprR)) : 0;
+    // a hero longer in the leg sits as low as the built one in a seat or a saddle (on the rides he stands on, and in the
+    // stone car whose floor his feet run through, his feet stay where they are)
+    const seat = P.riding || (P.veh && !STAND_POSES.has(P.veh.pose)) ? hero.hipY - .52 : 0;
+    hero.hips.position.set(J.sway, hero.hipY - seat - drop + J.bob, 0); hero.hips.rotation.y = J.hipsY;
     hero.torso.rotation.set(J.torsoX, J.twist, J.torsoZ);
     // squash & stretch: timed squash from take-offs and landings, stretch with vertical speed
     P.squash += (1 - P.squash) * Math.min(1, dt * 10);
