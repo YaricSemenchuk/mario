@@ -1118,7 +1118,12 @@ import * as THREE from 'three';
   renderer.toneMappingExposure = 1.0;
   const pmrem = new T.PMREMGenerator(renderer);
   // PBR material with sensible defaults for everything that used Lambert/Phong before
-  const std = (o) => new T.MeshStandardMaterial(Object.assign({ roughness: .86, metalness: 0 }, o));
+  // (a block texture brings its relief along: see reliefOf)
+  const std = (o) => {
+    const m = new T.MeshStandardMaterial(Object.assign({ roughness: .86, metalness: 0 }, o));
+    if (m.map && !m.normalMap && m.map.userData.relief) { m.normalMap = reliefOf(m.map); m.normalScale.set(RELIEF_K, RELIEF_K); }
+    return m;
+  };
   const glossToRough = (shininess) => clamp(1 - shininess / 150, .12, .9);
   // soft fresnel rim on characters and pickups, tinted by each level's sky light so they stand out from the scenery
   const RIM = { value: new T.Color(0xeaf7ff) };
@@ -1147,6 +1152,21 @@ import * as THREE from 'three';
   sun.shadow.radius = 3;
   scene.add(sun, sun.target);
   const SUN_OFF = new T.Vector3(-9, 28, 11);
+  // How the light is shared out: most of it comes from the sun, so the sides of things that face away from it are clearly
+  // darker than the lit ones (with more sky light everything was evenly bright and looked flat).
+  const LIGHT_K = { hemi: .7, sun: 5, env: .45 };
+  // The sun follows the hero. It moves in whole texels of its shadow map (along the map's own axes), so the edges of
+  // shadows stay still while he walks instead of crawling.
+  const SUN_R = new T.Vector3().crossVectors(new T.Vector3(0, 1, 0), SUN_OFF).normalize(), SUN_U = new T.Vector3().crossVectors(SUN_OFF, SUN_R).normalize();
+  const SUN_D = SUN_OFF.clone().normalize();
+  function sunAt(x, y, z) {
+    const tex = (sun.shadow.camera.right - sun.shadow.camera.left) / sun.shadow.mapSize.x;
+    const r = Math.round((x * SUN_R.x + y * SUN_R.y + z * SUN_R.z) / tex) * tex, u = Math.round((x * SUN_U.x + y * SUN_U.y + z * SUN_U.z) / tex) * tex;
+    const d = x * SUN_D.x + y * SUN_D.y + z * SUN_D.z;
+    const tx = SUN_R.x * r + SUN_U.x * u + SUN_D.x * d, ty = SUN_R.y * r + SUN_U.y * u + SUN_D.y * d, tz = SUN_R.z * r + SUN_U.z * u + SUN_D.z * d;
+    sun.target.position.set(tx, ty, tz);
+    sun.position.set(tx + SUN_OFF.x, ty + SUN_OFF.y, tz + SUN_OFF.z);
+  }
 
   // ================= textures =================
   const maxAniso = Math.min(4, renderer.capabilities.getMaxAnisotropy());
@@ -1159,7 +1179,37 @@ import * as THREE from 'three';
     t.minFilter = T.LinearMipmapLinearFilter;
     t.anisotropy = maxAniso;
     t.colorSpace = T.SRGBColorSpace;
+    t.userData.relief = true;
     return t;
+  }
+  // Relief for a block texture: its brightness read as height (light pixels stand proud, dark seams and specks sink), made
+  // into a normal map four times finer than the picture, with each pixel flat in the middle and sloping at its edges. The sun
+  // then picks out every brick, plank and tuft, and the ground stops being a flat sheet of colour. The map shares the
+  // picture's repeat and offset, so scrolling water and belts carry their relief with them.
+  const RELIEF_K = 1.6;
+  function reliefOf(tex) {
+    if (tex.userData.reliefMap) return tex.userData.reliefMap;
+    const src = tex.image, n = src.width, k = n <= 64 ? 4 : 2, N = n * k;
+    const px = src.getContext('2d').getImageData(0, 0, n, n).data, h = new Float32Array(n * n);
+    for (let i = 0; i < n * n; i++) h[i] = (px[i * 4] * .3 + px[i * 4 + 1] * .59 + px[i * 4 + 2] * .11) / 255;
+    const H = new Float32Array(N * N), ease = (t) => t * t * (3 - 2 * t);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const fx = (x + .5) / k - .5, fy = (y + .5) / k - .5, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = ease(fx - x0), ty = ease(fy - y0);
+      const a = (x0 + n) % n, b = (x0 + 1 + n) % n, c = ((y0 + n) % n) * n, d = ((y0 + 1 + n) % n) * n;
+      H[y * N + x] = lerp(lerp(h[c + a], h[c + b], tx), lerp(h[d + a], h[d + b], tx), ty);
+    }
+    const c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), im = g.createImageData(N, N), o = im.data, str = 1.5 * k;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const l = H[y * N + (x + N - 1) % N], r = H[y * N + (x + 1) % N], u = H[((y + N - 1) % N) * N + x], dn = H[((y + 1) % N) * N + x];
+      const nx = (l - r) * str, ny = (dn - u) * str, q = 1 / Math.hypot(nx, ny, 1), i = (y * N + x) * 4;
+      o[i] = (nx * q * .5 + .5) * 255; o[i + 1] = (ny * q * .5 + .5) * 255; o[i + 2] = (q * .5 + .5) * 255; o[i + 3] = 255;
+    }
+    g.putImageData(im, 0, 0);
+    const t = new T.CanvasTexture(c);
+    t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = maxAniso;
+    t.repeat = tex.repeat; t.offset = tex.offset; t.center = tex.center;
+    return (tex.userData.reliefMap = t);
   }
   function speckle(g, size, base, cols, count, r, y0 = 0, y1 = size) {
     if (base) { g.fillStyle = base; g.fillRect(0, y0, size, y1 - y0); }
@@ -1302,7 +1352,7 @@ import * as THREE from 'three';
     g.strokeStyle = 'rgba(150, 105, 50, .5)'; g.lineWidth = 1.5;
     for (let k = 0; k < 5; k++) { g.beginPath(); g.arc(32, 32, 5 + k * 6, k, k + 4.2); g.stroke(); }
   });
-  TX.quick.center.set(.5, .5);
+  TX.quick.center.set(.5, .5); TX.quick.userData.relief = false; // it turns, and a relief would not turn with it
   TX.lavaPool = TX.lava.clone();
   // text on a wooden board: signposts and the plates over the world gates
   function signTex(lines, w = 256, h = 96) {
@@ -10030,13 +10080,13 @@ import * as THREE from 'three';
       L.group.add(cm); L.coinMesh = cm;
     }
     const sky = skyTex(def);
-    scene.background = sky.tex; scene.environment = sky.env; scene.environmentIntensity = def.lava !== undefined ? .35 : .55; scene.backgroundIntensity = 1;
+    scene.background = sky.tex; scene.environment = sky.env; scene.environmentIntensity = def.lava !== undefined ? .35 : LIGHT_K.env; scene.backgroundIntensity = 1;
     scene.fog = new T.Fog(def.fog[0], def.fog[1], def.fog[2]);
     if (camera.far !== (def.far || 240)) { camera.far = def.far || 240; camera.updateProjectionMatrix(); } // the sky world is seen from far off
     underCam = false; Snd.setUnder(false);
-    hemi.color.setHex(def.hemi[0]); hemi.groundColor.setHex(def.hemi[1]); hemi.intensity = def.hemi[2] * 1.15;
+    hemi.color.setHex(def.hemi[0]); hemi.groundColor.setHex(def.hemi[1]); hemi.intensity = def.hemi[2] * LIGHT_K.hemi;
     RIM.value.setHex(def.hemi[0]);
-    sun.color.setHex(def.sun); sun.intensity = (def.sunI || .8) * 3.6;
+    sun.color.setHex(def.sun); sun.intensity = (def.sunI || .8) * LIGHT_K.sun;
     applyBloom();
     clearParticles(); clearPops();
     setWeather(def.weather || THEME_FX[def.theme].weather);
@@ -14649,11 +14699,11 @@ import * as THREE from 'three';
   // the light of day and night: the sky, the fog, the sun (the moon at night), the rim light on the folk, the dark edges
   function ntLight(R) {
     const def = L.def, k = R.nightK = ntNightK(R), warm = R.phase === 'dusk' || R.phase === 'dawn' ? Math.sin(Math.PI * k) : 0;
-    hemi.intensity = lerp(def.hemi[2] * 1.15, .15, k);
+    hemi.intensity = lerp(def.hemi[2] * LIGHT_K.hemi, .15, k);
     hemi.color.setHex(def.hemi[0]).lerp(_ntC.setHex(0x8494c8), k); hemi.groundColor.setHex(def.hemi[1]).lerp(_ntC.setHex(0x161a12), k);
-    sun.intensity = lerp((def.sunI || .8) * 3.6, .45, k) * (1 - warm * .3);
+    sun.intensity = lerp((def.sunI || .8) * LIGHT_K.sun, .45, k) * (1 - warm * .3);
     sun.color.setHex(def.sun).lerp(_ntC.setHex(0xa4b8ff), k).lerp(_ntC.setHex(0xff8a4a), warm * .75);
-    scene.environmentIntensity = lerp(.55, .07, k);
+    scene.environmentIntensity = lerp(LIGHT_K.env, .07, k);
     const fog = scene.fog;
     fog.color.setHex(def.fog[0]).lerp(_ntC.setHex(0x070a14), k).lerp(_ntC.setHex(0x9a6a5a), warm * .5);
     fog.near = lerp(def.fog[1], 4, k); fog.far = lerp(def.fog[2], 46, k);
@@ -16277,8 +16327,7 @@ import * as THREE from 'three';
     const w = gunCur(), fov = lerp(baseFov + G.kick * 5, w && w.scope ? w.scope : baseFov, k);
     if (Math.abs(camera.fov - fov) > .01) { camera.fov = snap ? fov : damp(camera.fov, fov, 16, dt); camera.updateProjectionMatrix(); }
     cam.tx = hx; cam.tz = hz;
-    sun.target.position.set(hx, P.pos.y, hz);
-    sun.position.set(hx + SUN_OFF.x, P.pos.y + SUN_OFF.y, hz + SUN_OFF.z);
+    sunAt(hx, P.pos.y, hz);
   }
   // turning the view: slower through a scope, and slower over a foe on a phone
   function gunLook(dx, dy, kind) {
@@ -19554,8 +19603,7 @@ import * as THREE from 'three';
       camera.position.x += (Math.random() - .5) * a; camera.position.y += (Math.random() - .5) * a;
     }
     camera.lookAt(lx, ly, lz);
-    sun.target.position.set(cam.tx, cam.ty, cam.tz);
-    sun.position.set(cam.tx + SUN_OFF.x, cam.ty + SUN_OFF.y, cam.tz + SUN_OFF.z);
+    sunAt(cam.tx, cam.ty, cam.tz);
   }
   let titleYaw = .6, baseFov = 55;
   function titleCam(dt) {
@@ -19563,8 +19611,7 @@ import * as THREE from 'three';
     const s = L.start, c = L.titleCam || { x: s.x, y: 2.6, z: s.z, r: 11, h: 4.4 };
     camera.position.set(c.x + Math.sin(titleYaw) * c.r, c.h, c.z + Math.cos(titleYaw) * c.r);
     camera.lookAt(c.x, c.y, c.z);
-    sun.target.position.set(s.x, s.y, s.z);
-    sun.position.set(s.x + SUN_OFF.x, s.y + SUN_OFF.y, s.z + SUN_OFF.z);
+    sunAt(s.x, s.y, s.z);
   }
 
   // ---------- death / goal sequences ----------
@@ -21552,67 +21599,201 @@ import * as THREE from 'three';
     PSCALE.value = h * pixelRatio / 2;
     cam.distGoal = portrait ? 12 : 9.5;
     camera.updateProjectionMatrix();
-    if (composer) { composer.setPixelRatio(pixelRatio); composer.setSize(w, h); }
+    fxResize();
     restStick();
   }
   addEventListener('resize', resize);
   addEventListener('orientationchange', () => setTimeout(resize, 200));
 
   // ---------- graphics quality ----------
-  // Four levels: how many pixels are drawn (a retina screen at 2 draws four times as many as at 1) and how sharp the
-  // shadows are. Ultra adds a post-processing chain on top that makes the bright bits glow (lamps, fire, lava, the star):
-  // the scene goes into a half-float target, then bloom and FXAA. That chain costs a few times what drawing straight to
-  // the screen does, so only a player picks it, and its code is fetched when it is first needed. (The chain used to be
-  // on by default with ambient occlusion and 4x MSAA on that target: 24 fps on an M4 at a retina window, against 160+
-  // without it.) Auto starts computers at Fine and touch screens at Normal, steps down while the frame rate stays low and
-  // remembers where it settled, so the next visit starts there instead of stuttering first.
+  // Four levels: how many pixels are drawn (a retina screen at 2 draws four times as many as at 1), how sharp the shadows
+  // are and how far from the hero they reach. Fine and Ultra also draw the world into a picture of its own first and
+  // finish it before it goes to the screen (see "the finishing chain" below). Auto starts computers at Fine and touch
+  // screens at Normal, steps down while the frame rate stays low and remembers where it settled, so the next visit starts
+  // there instead of stuttering first.
   const GFX = [
-    { name: 'быстрая', pr: 1, shadow: 1024 },
-    { name: 'обычная', pr: 1.5, shadow: 1024 },
-    { name: 'красивая', pr: 2, shadow: 2048 },
-    { name: 'ультра', pr: 2, shadow: 2048, bloom: true },
+    { name: 'быстрая', pr: 1, shadow: 1024, reach: 22 },
+    { name: 'обычная', pr: 1.5, shadow: 2048, reach: 30 },
+    { name: 'красивая', pr: 2, shadow: 4096, reach: 46, fx: true, ao: 10 },
+    { name: 'ультра', pr: 2, shadow: 4096, reach: 46, fx: true, ao: 16, bloom: true },
   ];
-  let gfxMode = 'auto', quality = 2, composer = null, bloomPass = null, fxLib = null, fxLoading = false;
+  let gfxMode = 'auto', quality = 2, bloomPass = null, fxLib = null, fxLoading = false;
   function setQuality(q) {
     quality = q;
-    const g = GFX[q];
+    const g = GFX[q], sc = sun.shadow.camera;
     if (sun.shadow.mapSize.x !== g.shadow) { sun.shadow.mapSize.set(g.shadow, g.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+    if (sc.right !== g.reach) { sc.left = sc.bottom = -g.reach; sc.right = sc.top = g.reach; sc.updateProjectionMatrix(); }
     sun.castShadow = true;
     pixelRatio = Math.min(window.devicePixelRatio || 1, g.pr);
     renderer.setPixelRatio(pixelRatio);
-    buildComposer();
+    fxBuild();
     resize();
     perfAcc = perfN = 0;
     gfxLabel();
   }
-  function buildComposer() {
-    if (composer) { composer.dispose(); composer = null; bloomPass = null; }
-    if (!GFX[quality].bloom) return;
-    if (!fxLib) { loadFx(); return; }
-    const { EffectComposer, RenderPass, UnrealBloomPass, OutputPass, FXAAPass } = fxLib;
-    const w = window.innerWidth, h = window.innerHeight;
-    // no MSAA on the target: resolving four samples of a half-float buffer cost more than the rest of the frame
-    const rt = new T.WebGLRenderTarget(w * pixelRatio, h * pixelRatio, { type: T.HalfFloatType });
-    composer = new EffectComposer(renderer, rt);
-    composer.setPixelRatio(pixelRatio); composer.setSize(w, h);
-    composer.addPass(new RenderPass(scene, camera));
-    // only emissive things (fire, lava, the star) are bright enough to glow
-    bloomPass = new UnrealBloomPass(new T.Vector2(w, h), .5, .45, 2);
-    applyBloom();
-    composer.addPass(bloomPass);
-    composer.addPass(new OutputPass());
-    composer.addPass(new FXAAPass());
+
+  // ---------- the finishing chain (Fine and Ultra) ----------
+  // The world is drawn into a half-float picture with its depth kept, and then:
+  //  1. shade: from the depth alone, how hidden each point is from the open sky (corners, the foot of a wall, under a
+  //     car, between bricks) at half size, smoothed without bleeding over edges. This is what makes things sit on the
+  //     ground and look solid; plain lighting cannot do it;
+  //  2. glow (Ultra only): the brightest bits (lamps, fire, lava, the star) spill light around them;
+  //  3. finish: the shade is laid over the picture, bright colours are folded into what a screen can show (the same
+  //     Neutral curve the renderer uses when it draws straight to the screen), a touch of contrast and colour, darker
+  //     corners of the frame;
+  //  4. smooth edges (FXAA) on the way to the screen.
+  // No MSAA on the picture: resolving four samples of a half-float buffer cost more than the rest of the frame (24 fps
+  // on an M4 at a retina window in 2026-10, with ambient occlusion from a library pass that drew the world twice).
+  const FX_VERT = 'varying vec2 vUv;\nvoid main() { vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }';
+  const FX_DEPTH = `
+    uniform sampler2D tDepth; uniform vec2 uProj; uniform float uNear, uFar;
+    float viewZ(vec2 uv) { float d = texture2D(tDepth, uv).x; return uNear * uFar / ((uFar - uNear) * d - uFar); }
+    vec3 viewPos(vec2 uv, float z) { return vec3((uv * 2. - 1.) * -z / uProj, z); }`;
+  const FX_AO = `
+    varying vec2 vUv; uniform vec2 uTexel; uniform float uRadius; uniform vec2 uFade, uFog;
+    ${FX_DEPTH}
+    // a point of the world from the depth picture, read at the middle of a texel: the place and the depth then belong together
+    vec3 at(vec2 uv) { uv = (floor(uv / uTexel) + .5) * uTexel; return viewPos(uv, viewZ(uv)); }
+    void main() {
+      if (texture2D(tDepth, vUv).x >= 1.) { gl_FragColor = vec4(1.); return; }
+      // (a pixel of this half-size picture is centred on the border between two texels: step off it, or rounding picks either)
+      vec2 uv0 = vUv - uTexel * .25;
+      vec3 p = at(uv0); float z = p.z;
+      // none far off, and none where the fog has already washed the colours out
+      float fade = smoothstep(uFade.y, uFade.x, -z) * (1. - smoothstep(uFog.x, uFog.y, length(p)));
+      if (fade <= 0.) { gl_FragColor = vec4(1.); return; }
+      // the surface's direction from its neighbours, taking on each axis the side that is on the same surface
+      vec2 dx = vec2(uTexel.x * 2., 0.), dy = vec2(0., uTexel.y * 2.);
+      vec3 pl = at(uv0 - dx), pr = at(uv0 + dx), pb = at(uv0 - dy), pt = at(uv0 + dy);
+      vec3 ex = abs(pl.z - z) < abs(pr.z - z) ? p - pl : pr - p, ey = abs(pb.z - z) < abs(pt.z - z) ? p - pb : pt - p;
+      vec3 n = normalize(cross(ex, ey));
+      float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
+      // points on a disc around this one on the screen, as wide as the radius looks from here: each that rises above
+      // the surface hides a piece of the sky, the more the steeper it rises and the nearer it is
+      vec2 rad = min(uRadius * uProj * .5 / -z, vec2(.09, .16));
+      float occ = 0.;
+      for (int i = 0; i < AO_N; i++) {
+        float fi = (float(i) + .5) / float(AO_N), a = float(i) * 2.399963 + ign * 6.2831853;
+        vec3 v = at(uv0 + vec2(cos(a), sin(a)) * sqrt(fi) * rad) - p;
+        float d2 = dot(v, v);
+        occ += max(0., dot(v, n) * inversesqrt(d2 + 1e-6) - .06) * clamp(1. - d2 / (uRadius * uRadius), 0., 1.);
+      }
+      float ao = clamp(1. - 6.5 * occ / float(AO_N), .3, 1.); // never to black: small things would turn into blots
+      gl_FragColor = vec4(vec3(mix(1., ao, fade)), 1.);
+    }`;
+  const FX_BLUR = `
+    varying vec2 vUv; uniform sampler2D tAO; uniform vec2 uDir;
+    ${FX_DEPTH}
+    void main() {
+      float z = viewZ(vUv), sum = 0., wsum = 0.;
+      for (int i = -3; i <= 3; i++) {
+        vec2 uv = vUv + uDir * float(i);
+        float w = (4. - abs(float(i))) * max(0., 1. - abs(viewZ(uv) - z) / (.25 + -z * .03));
+        sum += texture2D(tAO, uv).r * w; wsum += w;
+      }
+      gl_FragColor = vec4(vec3(sum / max(wsum, 1e-4)), 1.);
+    }`;
+  const FX_FINISH = `
+    varying vec2 vUv; uniform sampler2D tScene, tAO; uniform float uAO, uExposure;
+    vec3 neutral(vec3 c) { // Khronos PBR Neutral, as in the renderer
+      float x = min(c.r, min(c.g, c.b)), off = x < .08 ? x - 6.25 * x * x : .04;
+      c -= off;
+      float peak = max(c.r, max(c.g, c.b));
+      if (peak < .76) return c;
+      float d = .24, np = 1. - d * d / (peak + d - .76);
+      c *= np / peak;
+      return mix(c, vec3(np), 1. - 1. / (.15 * (peak - np) + 1.));
+    }
+    void main() {
+      vec3 c = texture2D(tScene, vUv).rgb;
+      float ao = mix(1., texture2D(tAO, vUv).r, uAO);
+      c *= vec3(ao, mix(ao, ao * ao, .12), mix(ao, ao * ao, .3)); // shade leans a little towards blue, as open shade does
+      c = neutral(c * uExposure);
+      c = clamp(c, 0., 1.);
+      c = mix(c * 12.92, 1.055 * pow(c, vec3(1. / 2.4)) - .055, step(.0031308, c));
+      c = mix(c, c * c * (3. - 2. * c), .18);                         // contrast
+      c = mix(vec3(dot(c, vec3(.2126, .7152, .0722))), c, 1.06);      // colour
+      vec2 q = vUv - .5; c *= 1. - .15 * smoothstep(.35, 1.05, dot(q, q) * 2.6); // the frame's corners
+      gl_FragColor = vec4(clamp(c, 0., 1.), 1.);
+    }`;
+  const FX_FXAA = `
+    varying vec2 vUv; uniform sampler2D tMap; uniform vec2 uTexel;
+    float luma(vec3 c) { return dot(c, vec3(.299, .587, .114)); }
+    void main() {
+      vec3 m = texture2D(tMap, vUv).rgb;
+      float nw = luma(texture2D(tMap, vUv + vec2(-1., 1.) * uTexel).rgb), ne = luma(texture2D(tMap, vUv + vec2(1., 1.) * uTexel).rgb);
+      float sw = luma(texture2D(tMap, vUv + vec2(-1., -1.) * uTexel).rgb), se = luma(texture2D(tMap, vUv + vec2(1., -1.) * uTexel).rgb), lm = luma(m);
+      float lo = min(lm, min(min(nw, ne), min(sw, se))), hi = max(lm, max(max(nw, ne), max(sw, se)));
+      if (hi - lo < max(.0312, hi * .125)) { gl_FragColor = vec4(m, 1.); return; }
+      vec2 dir = vec2(-((nw + ne) - (sw + se)), (nw + sw) - (ne + se));
+      float red = max((nw + ne + sw + se) * .03125, .0078125);
+      dir = clamp(dir / (min(abs(dir.x), abs(dir.y)) + red), -8., 8.) * uTexel;
+      vec3 a = .5 * (texture2D(tMap, vUv + dir * (1. / 3. - .5)).rgb + texture2D(tMap, vUv + dir * (2. / 3. - .5)).rgb);
+      vec3 b = a * .5 + .25 * (texture2D(tMap, vUv - dir * .5).rgb + texture2D(tMap, vUv + dir * .5).rgb);
+      float lb = luma(b);
+      gl_FragColor = vec4(lb < lo || lb > hi ? a : b, 1.);
+    }`;
+  let fx = null;
+  const fxMat = (frag, uniforms, defines = {}) => new T.ShaderMaterial({ vertexShader: FX_VERT, fragmentShader: frag, uniforms, defines, depthTest: false, depthWrite: false, toneMapped: false });
+  function fxBuild() {
+    if (fx) { for (const k of ['scene', 'aoA', 'aoB', 'ldr']) fx[k].dispose(); for (const m of fx.mats) m.dispose(); fx.tri.geometry.dispose(); fx = null; }
+    if (bloomPass) { bloomPass.dispose(); bloomPass = null; }
+    const g = GFX[quality];
+    if (!g.fx) return;
+    // a phone without half-float targets keeps an ordinary one: the brightest glints clip, nothing worse
+    const hdr = renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float');
+    const scn = new T.WebGLRenderTarget(1, 1, { type: hdr ? T.HalfFloatType : T.UnsignedByteType, depthTexture: new T.DepthTexture(1, 1) });
+    const small = () => new T.WebGLRenderTarget(1, 1, { depthBuffer: false });
+    const aoA = small(), aoB = small(), ldr = small();
+    const dU = () => ({ tDepth: { value: scn.depthTexture }, uProj: { value: new T.Vector2() }, uNear: { value: .1 }, uFar: { value: 240 } });
+    const ao = fxMat(FX_AO, Object.assign(dU(), { uTexel: { value: new T.Vector2() }, uRadius: { value: 1.8 }, uFade: { value: new T.Vector2(45, 80) }, uFog: { value: new T.Vector2(1e4, 2e4) } }), { AO_N: g.ao });
+    const blur = fxMat(FX_BLUR, Object.assign(dU(), { tAO: { value: null }, uDir: { value: new T.Vector2() } }));
+    const finish = fxMat(FX_FINISH, { tScene: { value: scn.texture }, tAO: { value: aoA.texture }, uAO: { value: 1 }, uExposure: { value: 1 } });
+    const fxaa = fxMat(FX_FXAA, { tMap: { value: ldr.texture }, uTexel: { value: new T.Vector2() } });
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3));
+    geo.setAttribute('uv', new T.BufferAttribute(new Float32Array([0, 0, 2, 0, 0, 2]), 2));
+    const tri = new T.Mesh(geo, ao); tri.frustumCulled = false;
+    fx = { scene: scn, aoA, aoB, ldr, ao, blur, finish, fxaa, mats: [ao, blur, finish, fxaa], tri, cam: new T.OrthographicCamera(-1, 1, 1, -1, 0, 1), w: 0, h: 0 };
+    fxResize();
+    if (g.bloom) { if (fxLib) { bloomPass = new fxLib.UnrealBloomPass(new T.Vector2(fx.w, fx.h), .5, .45, 2); applyBloom(); } else loadFx(); }
   }
+  function fxResize() {
+    if (!fx) return;
+    const w = Math.max(1, Math.round(window.innerWidth * pixelRatio)), h = Math.max(1, Math.round(window.innerHeight * pixelRatio));
+    const w2 = Math.max(1, w >> 1), h2 = Math.max(1, h >> 1);
+    fx.w = w; fx.h = h;
+    fx.scene.setSize(w, h); fx.ldr.setSize(w, h); fx.aoA.setSize(w2, h2); fx.aoB.setSize(w2, h2);
+    fx.ao.uniforms.uTexel.value.set(1 / w, 1 / h); fx.fxaa.uniforms.uTexel.value.set(1 / w, 1 / h);
+    fx.blurStep = [1 / w2, 1 / h2];
+    if (bloomPass) bloomPass.setSize(w, h);
+  }
+  function fxPass(mat, target) { fx.tri.material = mat; renderer.setRenderTarget(target); renderer.render(fx.tri, fx.cam); }
+  function fxRender() {
+    renderer.setRenderTarget(fx.scene); renderer.render(scene, camera);
+    const pe = camera.projectionMatrix.elements;
+    for (const m of [fx.ao, fx.blur]) { const u = m.uniforms; u.uProj.value.set(pe[0], pe[5]); u.uNear.value = camera.near; u.uFar.value = camera.far; }
+    if (scene.fog) fx.ao.uniforms.uFog.value.set(scene.fog.near, scene.fog.far * .8); else fx.ao.uniforms.uFog.value.set(1e4, 2e4);
+    fxPass(fx.ao, fx.aoA);
+    const bu = fx.blur.uniforms;
+    bu.tAO.value = fx.aoA.texture; bu.uDir.value.set(fx.blurStep[0], 0); fxPass(fx.blur, fx.aoB);
+    bu.tAO.value = fx.aoB.texture; bu.uDir.value.set(0, fx.blurStep[1]); fxPass(fx.blur, fx.aoA);
+    if (bloomPass) bloomPass.render(renderer, null, fx.scene, 0, false);
+    fx.finish.uniforms.uExposure.value = renderer.toneMappingExposure;
+    fxPass(fx.finish, fx.ldr);
+    fxPass(fx.fxaa, null);
+  }
+  // the glow's code is fetched when Ultra is first picked
   function loadFx() {
     if (fxLoading) return;
     fxLoading = true;
-    Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'FXAAPass'].map((n) => import('three/addons/postprocessing/' + n + '.js')))
-      .then((mods) => { fxLib = Object.assign({}, ...mods); buildComposer(); })
-      .catch(() => { fxLoading = false; }); // offline: the plain picture goes on, and the next pick of Ultra tries again
+    import('three/addons/postprocessing/UnrealBloomPass.js')
+      .then((mod) => { fxLib = mod; if (GFX[quality].bloom) fxBuild(); })
+      .catch(() => { fxLoading = false; }); // offline: the picture goes on without the glow, and the next pick of Ultra tries again
   }
   // the lava world glows from its floor; elsewhere only emissive bits (the star, fire) are bright enough
   function applyBloom() { if (!bloomPass || !L) return; const lava = L.lavaY !== null; bloomPass.threshold = lava ? .9 : 1.6; bloomPass.strength = lava ? .55 : .35; }
-  function renderScene() { if (composer) composer.render(); else renderer.render(scene, camera); }
+  function renderScene() { if (fx) fxRender(); else renderer.render(scene, camera); }
 
   let perfAcc = 0, perfN = 0;
   function watchPerf(dt) {
