@@ -144,6 +144,9 @@
   .kv-btn.on { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   #btnRocket { --kv-col: rgba(255, 138, 42, .95); right: calc(env(safe-area-inset-right, 0px) + 218px); bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); }
   #btnNade { --kv-col: rgba(143, 196, 92, .95); right: calc(env(safe-area-inset-right, 0px) + 214px); bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
+  /* a titan's shield and dash, one more column to the left */
+  #btnTtShield { --kv-col: rgba(127, 232, 255, .95); right: calc(env(safe-area-inset-right, 0px) + 292px); bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); }
+  #btnTtDash { --kv-col: rgba(255, 224, 122, .95); right: calc(env(safe-area-inset-right, 0px) + 288px); bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
   #btnCam {
     position: absolute; right: calc(env(safe-area-inset-right, 0px) + 44px); bottom: calc(env(safe-area-inset-bottom, 0px) + 140px);
     width: 52px; height: 52px; border-radius: 50%; padding: 0; cursor: pointer;
@@ -448,6 +451,26 @@
   #bossHp i.off { background: rgba(255, 255, 255, .25); }
   #bossHp.many { gap: 4px; } /* Leviathan's armour in tenths */
   #bossHp.many i { width: 18px; }
+  /* a fight of titans: the hero's armour, health, shield energy and super meter on the left, the Colossus's on the right */
+  #ttHud {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 58px); transform: translateX(-50%); z-index: 6;
+    width: min(680px, calc(100vw - 24px)); display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: start; pointer-events: none;
+  }
+  #ttHud[hidden] { display: none; }
+  .tt-side { display: grid; gap: 3px; }
+  .tt-side b { font: 900 12px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--white); text-shadow: var(--outline); }
+  .tt-foe { text-align: right; }
+  .tt-bar { height: 12px; border: 2px solid var(--ink); border-radius: 7px; background: rgba(28, 30, 59, .55); overflow: hidden; }
+  .tt-bar i { display: block; height: 100%; width: 100%; }
+  .tt-foe .tt-bar i { margin-left: auto; }
+  .tt-armor i { background: #7fd0ff; }
+  .tt-hp i { background: #5fdc6a; }
+  .tt-foe .tt-hp i { background: var(--red); }
+  .tt-thin { height: 7px; }
+  .tt-en i { background: #ffe07a; }
+  .tt-sup i { background: #b48cff; }
+  #ttHud.super .tt-sup { box-shadow: 0 0 8px 1px #d8b8ff; }
+  #ttMid { font: 900 13px/1 var(--ui); color: var(--white); text-shadow: var(--outline); white-space: nowrap; padding-top: 15px; }
 
   /* ---------- NPC speech bubbles ---------- */
   #bubbles { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 4; pointer-events: none; overflow: hidden; }
@@ -769,6 +792,14 @@
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="11" cy="14.5" r="6.6" fill="currentColor"/><rect x="8.8" y="4.6" width="4.4" height="4.2" rx="1" fill="currentColor"/><path d="M13.4 6.4h3.4l2.4 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <span>ГРАНАТЫ</span>
   </button>
+  <button id="btnTtShield" class="kv-btn" type="button" aria-label="Щит" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.5 4.5 5.5v6c0 4.6 3.1 8.3 7.5 10 4.4-1.700 7.5-5.400 7.500-10v-6z" fill="currentColor"/></svg>
+    <span>ЩИТ</span>
+  </button>
+  <button id="btnTtDash" class="kv-btn" type="button" aria-label="Рывок" hidden>
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 12h11M10 6l6 6-6 6M17 6l4 6-4 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>РЫВОК</span>
+  </button>
   <button id="btnWave" type="button" aria-label="Помахать друзьям" hidden>👋</button>
   <button id="btnScope" class="kv-btn" type="button" aria-label="Прицел" hidden>
     <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 1.8v5M12 17.2v5M1.8 12h5M17.2 12h5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
@@ -808,6 +839,11 @@
 <div id="toast" aria-live="polite"></div>
 <div id="netFeed" aria-live="polite"></div>
 <div id="bossBar" hidden><span id="bossName"></span><div id="bossHp"></div></div>
+<div id="ttHud" role="status" hidden>
+  <div class="tt-side"><b>Титан</b><div class="tt-bar tt-armor"><i id="ttMyArmor"></i></div><div class="tt-bar tt-hp"><i id="ttMyHp"></i></div><div class="tt-bar tt-thin tt-en"><i id="ttMyEn"></i></div><div class="tt-bar tt-thin tt-sup"><i id="ttMySup"></i></div></div>
+  <span id="ttMid"></span>
+  <div class="tt-side tt-foe"><b>Каменный колосс</b><div class="tt-bar tt-armor"><i id="ttFoeArmor"></i></div><div class="tt-bar tt-hp"><i id="ttFoeHp"></i></div></div>
+</div>
 <div id="duel" role="status" hidden>
   <p class="eyebrow" id="duelHead"></p>
   <b id="duelBig" hidden></b>
@@ -839,6 +875,7 @@
       <button class="btn btn-ghost btn-mode" id="btnModeDuels" type="button">🎯 Дуэли</button>
       <button class="btn btn-ghost btn-mode" id="btnModeRoblox" type="button">🧱 Роблокс</button>
       <button class="btn btn-ghost btn-mode" id="btnModeRacing" type="button">🏁 Гонки</button>
+      <button class="btn btn-ghost btn-mode" id="btnModeTitans" type="button">🤖 Титаны</button>
     </div>
     <p class="title-note" id="saveInfo" hidden></p>
     <div class="title-modes">
@@ -6112,7 +6149,7 @@ import * as THREE from 'three';
       // a glowing ring on the ground: the shop's golden one, a blue one that lends a ride (`data` names it), a red one that
       // starts a challenge, the purple one that wakes Leviathan
       pad(kind, x, top, d, data) {
-        const col = kind === 'gpf' ? 0x5fdc5a : kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' || kind === 'car' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'duel' || kind === 'snipe' || kind === 'cb' || kind === 'gp' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
+        const col = kind === 'gpf' ? 0x5fdc5a : kind === 'rent' || kind === 'dragon' || kind === 'rbwarp' || kind === 'rbhome' || kind === 'car' ? 0x2fc3ff : kind === 'survive' || kind === 'cup' || kind === 'battle' || kind === 'titan' || kind === 'duel' || kind === 'snipe' || kind === 'cb' || kind === 'gp' ? 0xff4a2a : kind === 'levi' ? 0xb04aff : 0xffd23f;
         const m = new T.Mesh(RING_GEO, std({ color: 0xffffff, emissive: col, emissiveIntensity: .8, roughness: .6 }));
         m.rotation.x = Math.PI / 2; m.scale.set(1.1, 1.1, 1.4); m.position.set(x, top + .06, -d); add(m);
         L.pads.push({ kind, x, y: top, z: -d, r: 1.2, m, data, armed: true });
@@ -7378,6 +7415,10 @@ import * as THREE from 'three';
     B.ground(46, 64, -52, -38, 0, 12);
     B.gate(59, -45, 0, 'world', 13, -Math.PI / 2, 8);
     B.sign(51, 0, -49.5, ['Автодром'], -Math.PI / 2);
+    // and the last one, the Titan Gate to the city where the hero is a giant
+    B.ground(46, 64, -66, -52, 0, 12);
+    B.gate(59, -59, 0, 'world', 14, -Math.PI / 2, 8);
+    B.sign(51, 0, -63.5, ['Город', 'титанов'], -Math.PI / 2);
     { const car = rideModel('sport'); car.position.set(62, 0, 50.2); car.rotation.y = -Math.PI * .6; L.group.add(car); addSolid(60.6, 0, 48.8, 63.4, 1, 51.6, 'hard'); }
     { const t = new T.Mesh(GEO.beacon.target, MAT.char); t.position.set(62, 0, 22); t.rotation.y = -Math.PI / 2; t.castShadow = true; L.group.add(t); addSolid(61.7, .75, 21.1, 62.3, 2.4, 22.9, 'hard'); }
     for (const [x, d, s] of [[62.5, -8.5, .9], [62.5, 2.5, .8], [49, -9, .75]]) B.tree(x, 0, d, s);
@@ -9800,6 +9841,7 @@ import * as THREE from 'three';
     { n: 12, name: 'Дуэльная арена', need: 0, levels: [], col: 0xe0503a, hub: 'duels', where: 'Дуэльные врата на самом краю мыса, за Лесными.' },
     { n: 13, name: 'Мир Роблокс', need: 0, levels: [], col: 0xf5cd30, hub: 'roblox', where: 'Роблокс-врата в самом конце мыса, за Дуэльными.' },
     { n: 14, name: 'Автодром', need: 0, levels: [], col: 0xe8352a, hub: 'racing', where: 'Гоночные врата в самом конце мыса, за Роблокс-вратами.' },
+    { n: 15, name: 'Город титанов', need: 0, levels: [], col: 0x9a5cff, hub: 'titans', where: 'Врата титанов самые последние на мысу, за Гоночными.' },
   ];
   const worldOf = (li) => WORLDS.findIndex((w) => w.levels.includes(li));
   const hubOfLevel = (li) => WORLDS[worldOf(li)].hub || 'island';
@@ -10008,6 +10050,16 @@ import * as THREE from 'three';
         { id: 'rc.jump', name: 'Звезда над трамплином', hint: 'Над трамплином Лесной трассы висит звезда. Разгонись по горке и прыгни с самого края!' },
         { id: 'rc.red', name: 'Красные значки', hint: 'Восемь красных значков: на мосту, на трибунах, на горке, на островке в озере…', prog: ['rc.red', 8] },
       ] },
+    // the Titan City: a city eight times smaller than the hero, and a fight with the Stone Colossus in the middle of it
+    // (titan: the hero walks heavier there, and what he steps on falls)
+    titans: { id: 'hub-titans', key: 'titans', name: 'Город титанов', to: 'В Город титанов', shop: 'Лавка кота Грома', col: 0x9a5cff, hub: true, seed: 1501, killY: -30,
+      music: 'arena', theme: 'grass', build: buildTitans, scatter: 14, amb: 'birds', far: 320, titan: true,
+      sky: [[0, '#2f86e0'], [.55, '#8fcfff'], [1, '#ffeed6']], fog: [0xe6eef6, 110, 300], hemi: [0xf2f8ff, 0x6b8f4a, .86], sun: 0xfff2d8, glow: [0xffe0a0, .5, true],
+      stars: [
+        { id: 'tt.win', name: 'Колосс повержен', hint: 'Диспетчер Гром у красного коврика перед городом. Встань на коврик и победи Каменного колосса.' },
+        { id: 'tt.fast', name: 'Быстрая победа', hint: 'Победи Каменного колосса быстрее чем за минуту.' },
+        { id: 'tt.city', name: 'Город цел', hint: 'Победи Колосса так, чтобы уцелело не меньше 70% города: не ходи сквозь дома и уводи его на площадь.' },
+      ] },
   };
   // the Dark Forest's sky at night: stars and a pale moon
   const NIGHT_SKY = { id: 'hub-forest-night', seed: 1102, sky: [[0, '#04060e'], [.55, '#0b1224'], [1, '#1a2238']], stars: true, starN: 700,
@@ -10051,7 +10103,7 @@ import * as THREE from 'three';
     if (L && L.def.duels) duLeave();
     if (L) { gunLeave(); for (const st of L.carStands) carDrop(st.g); scene.remove(L.group); disposeGroup(L.group); }
     bubblesEl.textContent = '';
-    fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true; $('result').hidden = true;
+    fairy.active = false; fairy.g.visible = false; $('bossBar').hidden = true; $('ttHud').hidden = true; $('result').hidden = true;
     L = { def, theme: THEMES[def.theme || 'grass'], group: new T.Group(), solids: [], grounds: [], platforms: [], blocks: [], springs: [], coins: [], enemies: [],
       orbs: [], items: [], fx: [], checkpoints: [], npcs: [], firebars: [], torches: [], dinos: [], jellies: [], rings: [], shots: [], boss: null, arena: null, gate: null,
       cannons: [], balls: [], fireballs: [], crushers: [], blinkers: [], blinkPh: -1, fans: [], gears: [], smokers: [], stormT: 4,
@@ -10527,6 +10579,7 @@ import * as THREE from 'three';
   // ---------- action button: spin on the ground, ground pound in the air, fireballs with the pepper ----------
   function action() {
     if (P.pound || G.state !== 'playing') return;
+    if (ttFight()) { ttPunch(); return; } // in a fight of titans the button is the fist
     if (gunOn()) { gunPress(); return; } // with the guns out the button fires the gun in hand
     if (P.swim) { swimDash(); return; }
     if (P.veh && P.veh.wings) { breathe(); return; }
@@ -11141,7 +11194,7 @@ import * as THREE from 'three';
   const airBase = () => (P.riding ? 1 : P.veh ? P.veh.air : perkOn('boots') ? 1 : 0) + (L.def.suit && !P.veh ? 1 : 0);
   // the moon pulls less: gravity and jumps are scaled so a jump goes up about twice as high and hangs in the air
   const gravK = () => (L.def.grav || 1) * (coilOn('grav') ? .42 : 1); // (and the Roblox world's gravity coil)
-  const jumpK = () => (L.def.grav ? .86 : 1);
+  const jumpK = () => (L.def.grav ? .86 : L.def.titan ? TT.JUMP : 1); // (a titan is heavy)
   // a ride's top speed right now: the jet ski is fast on water, the snowboard on snow, ice and sand, the skis on snow and ice
   // (kept through a jump)
   function rideSpeed(V) {
@@ -11263,8 +11316,9 @@ import * as THREE from 'three';
     if (g && g.belt) { moveH('x', g.bvx * dt, false); moveH('z', g.bvz * dt, false); }
     if (holdStill()) input.jumpQueued = input.actQueued = input.nadeQueued = input.rocketQueued = false;
     if (input.actQueued) { input.actQueued = false; action(); }
-    if (input.nadeQueued) { input.nadeQueued = false; nadeFire(); }
-    if (input.rocketQueued) { input.rocketQueued = false; rocketFire(); }
+    // (in a fight of titans the same two buttons are the beam and the Core)
+    if (input.nadeQueued) { input.nadeQueued = false; if (ttOn()) ttBeam(); else nadeFire(); }
+    if (input.rocketQueued) { input.rocketQueued = false; if (ttOn()) ttCore(); else rocketFire(); }
     const inp = readInput();
     const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
     const wx = cy * inp.x - sy * inp.y, wz = -sy * inp.x - cy * inp.y;
@@ -11303,7 +11357,7 @@ import * as THREE from 'three';
       if (P.swim) acc = mag > .01 ? 14 : 5;
       if (P.sand) acc = 12;
       if (slide && !grip) acc = mag > .01 ? 10 : 2.5;
-      let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * (perkOn('sneakers') ? 1.13 : 1) * (coilOn('speed') ? 1.55 : 1);
+      let spdMax = P.swim ? SWIM_SPD : P.sand ? 2.4 : V ? rideSpeed(V) : P.riding ? RIDE_SPD : MAX_SPD * ttSpeedK() * (perkOn('sneakers') ? 1.13 : 1) * (coilOn('speed') ? 1.55 : 1);
       if (slide) spdMax = Math.max(spdMax, 14); // steering down a slide must not brake it
       if (gunOn()) spdMax *= gunSpeedK(); // slower through a scope and with a spinning minigun
       if (V && P.onGround && L.trackGrid && (gpOn() || duelRacing()) && !V.rough && !V.wings && !V.fly && !V.hover && !V.glide && !V.cannon
@@ -12043,7 +12097,7 @@ import * as THREE from 'three';
     caps: ['auto', 'classic'], cap: 'auto', hats: [], hat: '', rides: [], ride: '',
     // the best survival game (waves lasted through, seconds), the dragon last picked at the roost, the best tank battle (waves,
     // tanks knocked out), how many times Leviathan has been beaten
-    surv: 0, survT: 0, dragon: '', tb: 0, tbK: 0, levi: 0,
+    surv: 0, survT: 0, dragon: '', tb: 0, tbK: 0, levi: 0, ttW: 0,
     // medals for victories in tank battles, and the tank's upgrades: levels of the gun, the shells, the armour, the engine
     medals: 0, tkMods: [0, 0, 0, 0],
     // the 99 nights in the Dark Forest: the run kept at its last dawn (or null), the most nights lived through, the runs won
@@ -12098,7 +12152,7 @@ import * as THREE from 'three';
   const ISL = {};
   function resetIsland() {
     Object.assign(ISL, { trail: [], lost: null, sets: {}, race: null, clears: [], switches: null, magicT: 0, cp: null, deliveries: [], chases: [], beacons: null, carry: null,
-      surv: null, cup: null, tb: null, nt: null, ft: null, rb: null, cb: null, gp: null });
+      surv: null, cup: null, tb: null, nt: null, ft: null, rb: null, cb: null, gp: null, tt: null });
   }
   resetIsland();
   function awardStar(id) {
@@ -14168,6 +14222,7 @@ import * as THREE from 'three';
   // what the hero is up to right now, for the line under the buttons: a delivery, a race, beacons, a runaway, followers
   function questTrack() {
     const du = duelTrack(); if (du) return du;
+    if (ttOn()) return ['Бой титанов', isTouch ? (ISL.tt.sup >= 100 ? 'Суперудар готов: жми «Ядро»!' : 'Сбей Колоссу броню и бей в спину') : 'F удар · C луч · R ядро · T щит · H рывок' + (ISL.tt.sup >= 100 ? ' · суперудар готов!' : '')];
     if (FT) return null; // a duel shows its own panel at the top
     if (gpOn()) {
       const C = ISL.gp, trk = L.tracks[C.ti], lap = Math.min(C.laps, Math.floor(C.next / C.n) + 1);
@@ -15785,7 +15840,7 @@ import * as THREE from 'three';
     ch: {}, chT: {}, swingT: 0, throwT: 0, recoil: 0, kick: 0, healT: 0, prev: 0, near: false, sent: '', sendT: 0, out: !!store.get('gunsOut', 0), shown: false, kos: 0 };
   // The guns are in hand in the Duel Arena, and in every other world and level once drawn; they go away on a ride or the
   // dino, in the water, with a delivery held over the head, in hide and seek and while the flag is reached
-  const gunOn = () => !!L && (!!L.def.duels || GN.out) && !P.veh && !P.riding && !P.swim && !ISL.carry && !duelHiding()
+  const gunOn = () => !!L && (!!L.def.duels || GN.out) && !ttOn() && !P.veh && !P.riding && !P.swim && !ISL.carry && !duelHiding()
     && G.state !== 'title' && G.state !== 'win' && G.state !== 'over' && G.state !== 'goal';
   const gunCur = () => GUNS[GN.ids[GN.slot]] || null;
   const gunScoped = () => gunOn() && GN.scopeK > .6 && (G.state === 'playing' || G.state === 'dying');
@@ -17231,7 +17286,7 @@ import * as THREE from 'three';
       pd.m.rotation.z += dt * .8; pd.m.material.emissiveIntensity = .6 + Math.sin(time * 4) * .3;
       const inside = Math.hypot(P.pos.x - pd.x, P.pos.z - pd.z) < pd.r && Math.abs(P.pos.y - pd.y) < 1.2;
       if (!inside) pd.armed = true;
-      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT && !cbOn() && !gpOn()) {
+      else if (pd.armed && G.state === 'playing' && P.onGround && !duelOn() && !survOn() && !cupOn() && !tbOn() && !FT && !cbOn() && !gpOn() && !ttOn()) {
         pd.armed = false;
         if (pd.kind === 'shop') { if (pd.data) shopTab = pd.data; openShop(); } else if (pd.kind === 'rent') rentRide(pd.data); else if (pd.kind === 'dragon') pickDragon(pd.data);
         else if (pd.kind === 'survive') survStart(); else if (pd.kind === 'cup') cupStart(); else if (pd.kind === 'battle') tbStart(); else if (pd.kind === 'levi') tbStart('levi');
@@ -17239,6 +17294,7 @@ import * as THREE from 'three';
         else if (pd.kind === 'car') pickCar(pd.data); else if (pd.kind === 'gp') gpStart(pd.data); else if (pd.kind === 'gpf') gpFriends(pd.data);
         else if (pd.kind === 'cb') cbStart(); else if (pd.kind === 'rbwarp') rbContinue(); else if (pd.kind === 'rbhome') rbHome();
         else if (pd.kind === 'duel' || pd.kind === 'snipe') ftStart(pd.kind === 'duel' ? 'arena' : 'snipe');
+        else if (pd.kind === 'titan') ttStart();
       }
     }
     for (const pt of L.portals) {
@@ -18729,6 +18785,7 @@ import * as THREE from 'three';
   }
   function rideToggle() {
     if (holdStill()) return;
+    if (ttOn()) { popup('В бою титанов только пешком', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (!P.veh && (FT || duelGunning())) { popup('В дуэли только пешком', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
     if (!P.veh) { rideOn(); return; }
     if (tankLocked()) { popup('Из танка не вылезти, пока идёт бой', P.pos.x, P.pos.y + PH + .6, P.pos.z, 'gold'); Snd.sfx.locked(); return; }
@@ -18843,12 +18900,552 @@ import * as THREE from 'three';
     cupUpdate(dt);
     gpUpdate(dt);
     tbUpdate(dt);
+    ttUpdate(dt);
     ntUpdate(dt);
     ftUpdate(dt);
     updatePerches(dt);
     updateCarStands(dt);
     updateGates(dt);
   }
+  // ================= the Titan City =================
+  // A whole city built eight times smaller than everything else in the game: a house comes up to the hero's knee, a block
+  // of flats to his waist, a tower just over his head. Nothing about the hero changes (his size, his physics, the camera):
+  // it is the world that is small, so he is a titan in it. He walks heavier here (slower, a lower jump), and whatever he
+  // steps on, lands on or hits comes down. Nothing in the city is solid: a titan goes through a house, not round it.
+  //
+  // The fight (the red pad): the hero against the Stone Colossus, in the middle of the city. Both have armour over health:
+  // armour takes the hits first; the Colossus kneels stunned when his breaks, and that is the time to hit hard. His back
+  // (the glowing crystal) takes more. Every strong attack of his shows itself first: a raised fist, a crouch, a boulder
+  // lifted. The hero has a punch (three in a row, the third throws back), a beam, the Core (the super strike once its
+  // meter is full), a shield that eats energy while held, and a dash that rams and breaks an attack being wound up.
+  const TT = { ARMOR: 50, HP: 100, BOT_ARMOR: 90, BOT_HP: 520, BEAM_CD: .4, CORE_CD: 9, DASH_CD: 3, SPEED: .62, JUMP: .72 };
+  const TT_H = [.85, 1.26, 2.7], TT_HIDE = new T.Matrix4().makeScale(0, 0, 0);
+  const TT_PYR = (() => { const g = new T.ConeGeometry(1, 1, 4); g.rotateY(Math.PI / 4); return shared(g); })();
+  const TT_WALLS = [0xfff1dc, 0xffd9c2, 0xd6ecff, 0xfff0b0], TT_ROOFS = [0xd8452b, 0x4262ff, 0x3fae5a, 0x8a5a33];
+  const TT_FLATS = [0xe6dccb, 0xc9d4e4, 0xe8c9a8, 0xd0d6c4], TT_GLASS = [0x7fb6e6, 0x8fd0c8, 0x9aa8e8, 0x86c4f0];
+  let TT_GEO = null;
+  const TT_BOT_GEO = [];
+  function ttGeos() {
+    if (TT_GEO) return TT_GEO;
+    const out = [[], [], []];
+    for (let v = 0; v < 4; v++) {
+      out[0].push(mergedGeo([[BOX, TT_WALLS[v], M4(0, .25, 0, .9, .5, .8)], [TT_PYR, TT_ROOFS[v], M4(0, .68, 0, .7, .36, .64)],
+        [BOX, 0x6a4326, M4(0, .13, .405, .14, .26, .02)], [BOX, 0x8fd0ff, M4(.27, .3, .405, .16, .14, .02)], [BOX, 0x8fd0ff, M4(-.27, .3, .405, .16, .14, .02)]]));
+      const fl = [[BOX, TT_FLATS[v], M4(0, .6, 0, .9, 1.2, .9)], [BOX, 0x8a8f9c, M4(0, 1.23, 0, .96, .06, .96)]];
+      for (const y of [.28, .58, .88]) fl.push([BOX, 0x4a6a9a, M4(0, y, 0, .72, .12, .92)], [BOX, 0x4a6a9a, M4(0, y, 0, .92, .12, .72)]);
+      out[1].push(mergedGeo(fl));
+      const tw = [[BOX, TT_GLASS[v], M4(0, 1.3, 0, .8, 2.6, .8)], [BOX, 0x5a6278, M4(0, 2.63, 0, .86, .06, .86)], [CYL, 0xcfd5e6, M4(0, 2.95, 0, .025, .6, .025)]];
+      for (let y = .3; y < 2.5; y += .4) tw.push([BOX, 0xeaf6ff, M4(0, y, 0, .82, .05, .82)]);
+      out[2].push(mergedGeo(tw));
+    }
+    out.rubble = mergedGeo([[BOX, 0x9a948a, M4(.1, .05, .05, .5, .1, .4, 0, .4, 0)], [BOX, 0x7d776e, M4(-.2, .08, -.15, .3, .16, .3, 0, 1, .2)], [BOX, 0xb0a89a, M4(.05, .06, -.25, .26, .12, .2, .2, .2, 0)]]);
+    return (TT_GEO = out);
+  }
+  const TT_MAT = {
+    beam: new T.MeshBasicMaterial({ color: 0xcaa8ff }), core: new T.MeshBasicMaterial({ color: 0x9a5cff }), sup: new T.MeshBasicMaterial({ color: 0xfff0ff }),
+    rock: std({ color: 0x8a8478, roughness: 1, flatShading: true }), heal: std({ color: 0x7dffa0, emissive: 0x2fdc6a, emissiveIntensity: 1.6, roughness: .4 }),
+    eye: std({ color: 0xffb060, emissive: 0xff6a10, emissiveIntensity: 2.2, roughness: .6 }),
+    shield: new T.MeshBasicMaterial({ color: 0x7fe8ff, transparent: true, opacity: .28, depthWrite: false, blending: T.AdditiveBlending }),
+  };
+  const ttIn = { dash: false, shield: false };
+  const ttOn = () => !!ISL.tt && ISL.tt.phase !== 'off';
+  const ttFight = () => !!ISL.tt && ISL.tt.phase === 'fight';
+  const ttFrozen = () => !!ISL.tt && ISL.tt.phase === 'count';
+  // how the hero moves in the city: heavier, and slower still behind the shield or wading through a tower
+  const ttSpeedK = () => (!L || !L.def.titan ? 1 : !ISL.tt ? TT.SPEED : ISL.tt.shield ? TT.SPEED * .5 : ISL.tt.slowT > 0 ? TT.SPEED * .45 : TT.SPEED);
+
+  function buildTitans(B) {
+    const R = B.R;
+    B.start(0, 0, -6);
+    L.modeSpot = { x: 0, y: 0, z: -4, face: Math.PI }; // where "Titans" on the title puts the hero: before the city
+    L.modeHint = 'Город впереди: встань на красный коврик и сразись с Каменным колоссом';
+    rimWalls(B, -42, 42, -26, 84, 'cliff', 7, 13);
+    B.groundCut(-42, 42, -26, 84, 0, 12, 'grass', [[-30, 30, 12, 72]]);
+    B.ground(-30, 30, 12, 72, 0, 12, 'stone', true);
+    // --- the lobby ---
+    B.warp('island', 0, -16, 0, Math.PI);
+    B.sign(-3.5, 0, -9, ['Город', 'титанов']);
+    B.path(-1.5, 1.5, -12, 12);
+    B.flag(-5, 0, -13, 0x9a5cff); B.flag(4.2, 0, -13, 0xff8a3a);
+    const owner = B.npc('robot', 4, 0, 6, 'Диспетчер Гром', () => [
+      'Это Город титанов! Он настоящий, просто очень маленький. А ты в нём великан.',
+      'Ходи осторожно: на что наступишь, то и сломается. Перепрыгнуть дом можно, пройти сквозь него нельзя, он рухнет.',
+      'Встань на красный коврик, и из-под земли вылезет Каменный колосс. Бей кулаком, стреляй лучом, закрывайся щитом.',
+      'Когда Колосс поднимает кулак, отойди. Когда приседает, прыгай: по земле пойдёт волна. Сбей ему броню, и он упадёт на колено.',
+      SAVE.ttW ? 'Побед над Колоссом: ' + SAVE.ttW + '. Город тебе благодарен!' : 'Бей Колосса в спину, в светящийся кристалл: так урон больше!',
+    ]);
+    B.stall(22, 2); B.pad('shop', 19.6, 0, 2);
+    B.npc('cat', 23.4, 0, 2, 'Кот Гром', ['Мур! Я кузен Мурра. У меня костюмы и шапки для титанов.', 'Значки дают за победы над Колоссом. Чем целее город, тем больше!'], { yaw: -Math.PI / 2 });
+    B.pad('titan', 0, 0, 8.5);
+    for (const [x, d, s] of [[-12, -4, 1], [12, -6, 1.1], [-22, 4, .9], [30, -10, 1], [-34, -14, 1.1], [36, 6, .9]]) B.tree(x, 0, d, s);
+    for (let d = -2; d <= 4; d += 2) B.coin(0, 1.2, d);
+    B.star('tt.win', -3, 1.6, 6, true); B.star('tt.fast', -6, 1.6, 6, true); B.star('tt.city', -9, 1.6, 6, true);
+
+    // --- the city: eight by eight blocks with streets between, a square in the middle for the fight ---
+    const PITCH = 7.5, X0 = -30, D0 = 12, list = [];
+    for (let i = 0; i <= 8; i++) { // the streets: darker strips with a few cars on them
+      B.decor(BOX, 0x565862, X0 + i * PITCH, .005, 42, i % 8 ? 1.5 : .75, .03, 60); B.decor(BOX, 0x565862, 0, .005, D0 + i * PITCH, 60, .03, i % 8 ? 1.5 : .75);
+    }
+    B.decor(BOX, 0xcfc8b8, 0, .006, 42, 13.5, .034, 13.5); B.decor(CYL, 0xb8bfcc, 0, .03, 42, 2.2, .06, 2.2); B.decor(CYL, 0x7fd0f0, 0, .05, 42, 1.8, .06, 1.8);
+    const CARS = [0xe8352a, 0xffd23f, 0x4262ff, 0xffffff, 0x3fae5a, 0x2b2f3a];
+    for (let n = 0; n < 90; n++) {
+      const along = R() < .5, line = 1 + ((R() * 7) | 0), u = -28 + R() * 56, side = R() < .5 ? -.35 : .35, col = CARS[(R() * CARS.length) | 0];
+      const x = along ? X0 + line * PITCH + side : u, d = along ? 42 + u : D0 + line * PITCH + side;
+      if (Math.abs(x) < 7.5 && Math.abs(d - 42) < 7.5) continue;
+      B.decor(BOX, col, x, .09, d, along ? .2 : .42, .1, along ? .42 : .2); B.decor(BOX, 0x1c1e3b, x, .16, d, along ? .17 : .22, .07, along ? .22 : .17);
+    }
+    for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+      if ((i === 3 || i === 4) && (j === 3 || j === 4)) continue; // the square
+      const bx = X0 + i * PITCH + .75, bd = D0 + j * PITCH + .75;
+      if (R() < .12) { // a park: a lawn and trees no taller than a house
+        B.decor(BOX, 0x5cbf45, bx + 3, .012, bd + 3, 5.6, .03, 5.6);
+        for (let n = 0; n < 9; n++) { const x = bx + .6 + R() * 4.8, d = bd + .6 + R() * 4.8, s = .7 + R() * .6; B.decor(CYL, 0x8a5a33, x, .12 * s, d, .04 * s, .24 * s, .04 * s); B.decor(SPH, 0x3fae5a, x, .42 * s, d, .22 * s, .26 * s, .22 * s); }
+        continue;
+      }
+      const downtown = Math.abs(i - 3.5) < 2 && Math.abs(j - 3.5) < 2;
+      for (let a = 0; a < 5; a++) for (let b = 0; b < 5; b++) {
+        if (R() < .1) continue;
+        const k = R(), type = k < (downtown ? .13 : .04) ? 2 : k < (downtown ? .6 : .3) ? 1 : 0, s = .88 + R() * .26;
+        list.push({ type, v: (R() * 4) | 0, x: bx + .6 + a * 1.2, z: -(bd + .6 + b * 1.2), rot: ((R() * 4) | 0) * Math.PI / 2, s, h: TT_H[type] * s, r: .5 * s, alive: true });
+      }
+    }
+    const geos = ttGeos(), meshes = [], grid = new Map(), m4 = new T.Matrix4();
+    for (let t = 0; t < 3; t++) for (let v = 0; v < 4; v++) {
+      const mine = list.filter((b) => b.type === t && b.v === v);
+      if (!mine.length) continue;
+      const im = new T.InstancedMesh(geos[t][v], MAT.vc, mine.length);
+      im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.castShadow = im.receiveShadow = true;
+      mine.forEach((b, n) => { b.m = M4(b.x, 0, b.z, b.s, b.s, b.s, 0, b.rot, 0); b.im = im; b.n = n; im.setMatrixAt(n, b.m); });
+      im.computeBoundingSphere(); L.group.add(im); meshes.push(im);
+    }
+    const rubble = new T.InstancedMesh(geos.rubble, MAT.vc, list.length);
+    rubble.instanceMatrix.setUsage(T.DynamicDrawUsage); rubble.receiveShadow = true; rubble.frustumCulled = false;
+    list.forEach((b, n) => { b.ri = n; rubble.setMatrixAt(n, TT_HIDE); const k = ttCell(b.x, b.z); if (!grid.has(k)) grid.set(k, []); grid.get(k).push(b); });
+    L.group.add(rubble);
+    const shield = new T.Mesh(SPH_HI, TT_MAT.shield); shield.visible = false; shield.scale.set(1.15, 1.25, 1.15); L.group.add(shield);
+    ISL.tt = { phase: 'off', owner, list, grid, meshes, rubble, shield0: shield, left: list.length, x0: -30, x1: 30, z0: -72, z1: -12, cx: 0, cz: -42,
+      bot: null, shots: [], rings: [], orbs: [], dust: 0, crushSnd: 0, slowT: 0, pvy: 0, wasG: true,
+      hp: TT.HP, armor: TT.ARMOR, energy: 100, sup: 0, hitT: 9, punchCd: 0, combo: 0, comboT: 0, beamCd: 0, coreCd: 0, dashCd: 0, dashT: 0, dashHit: false,
+      shield: false, shieldLock: false, time: 0, t: 0, tick: 0, hud: {} };
+  }
+  const ttCell = (x, z) => Math.floor(x / 2) * 1000 + Math.floor(z / 2);
+  // everything within r of a place comes down (below y only: a jump clears what is lower than the feet)
+  function ttCrush(x, z, r, y = 0) {
+    const S = ISL.tt; let n = 0;
+    if (!S || x < S.x0 - 2 || x > S.x1 + 2 || z < S.z0 - 2 || z > S.z1 + 2) return 0;
+    for (let cx = Math.floor((x - r - .6) / 2); cx <= Math.floor((x + r + .6) / 2); cx++) for (let cz = Math.floor((z - r - .6) / 2); cz <= Math.floor((z + r + .6) / 2); cz++) {
+      const cell = S.grid.get(cx * 1000 + cz); if (!cell) continue;
+      for (const b of cell) {
+        if (!b.alive || y > b.h - .08) continue;
+        const dx = b.x - x, dz = b.z - z, rr = r + b.r;
+        if (dx * dx + dz * dz > rr * rr) continue;
+        ttFell(b); n++;
+      }
+    }
+    return n;
+  }
+  function ttFell(b) {
+    const S = ISL.tt;
+    b.alive = false; b.im.setMatrixAt(b.n, TT_HIDE); b.im.instanceMatrix.needsUpdate = true;
+    S.rubble.setMatrixAt(b.ri, M4(b.x, 0, b.z, b.s * 1.5, b.s * (1 + b.type * .5), b.s * 1.5, 0, b.rot, 0)); S.rubble.instanceMatrix.needsUpdate = true;
+    S.left--;
+    if (S.dust < 6) { S.dust++; puff(b.x, b.h * .4, b.z, 0xd6d0c0, 3 + b.type * 2, 1.4 + b.type * .5, .8, .6 + b.type * .2, .7 + b.type * .4); emit(b.x, b.h * .5, b.z, b.type === 2 ? 0xbfe6ff : 0xc9b8a0, 4 + b.type * 3, 3, 2, 12, .5, .1); }
+    if (S.crushSnd <= 0) { S.crushSnd = .09; Snd.at(b.x, b.h, b.z)[b.type === 2 ? 'boom' : b.type ? 'crush' : 'brick'](); }
+    if (b.type === 2) { G.shake = Math.max(G.shake, .18); S.slowT = Math.max(S.slowT, .3); }
+    // now and then a repair kit is left in the rubble (in a fight only)
+    if (ttFight() && S.orbs.length < 4 && Math.random() < .035 + b.type * .03) {
+      const m = new T.Mesh(SPH, TT_MAT.heal); m.scale.setScalar(.2); m.position.set(b.x, .45, b.z); L.group.add(m);
+      S.orbs.push({ x: b.x, z: b.z, t: 14, m });
+    }
+  }
+  // the city whole again, before a fight
+  function ttRebuild() {
+    const S = ISL.tt;
+    for (const b of S.list) if (!b.alive) { b.alive = true; b.im.setMatrixAt(b.n, b.m); S.rubble.setMatrixAt(b.ri, TT_HIDE); }
+    for (const im of S.meshes) im.instanceMatrix.needsUpdate = true;
+    S.rubble.instanceMatrix.needsUpdate = true; S.left = S.list.length;
+  }
+
+  // ---------- the Stone Colossus: boulders for a body, a crystal glowing in his back ----------
+  function ttColossus() {
+    const rock = 0x8a8478, dark = 0x6f6a61, light = 0xa09a8c, moss = 0x6f8a4a;
+    // (the merged shapes are made once and kept: a new Colossus for every fight reuses them)
+    let n = 0;
+    const part = (parts, x, y, z, parent) => { const g = new T.Group(); g.position.set(x, y, z); const k = n++, m = new T.Mesh(TT_BOT_GEO[k] || (TT_BOT_GEO[k] = mergedGeo(parts)), MAT.vc); m.castShadow = true; g.add(m); parent.add(g); return g; };
+    const root = new T.Group(), body = new T.Group(); body.position.y = .95; root.add(body); root.scale.setScalar(1.2);
+    part([[BOX, dark, M4(0, .15, 0, .8, .32, .52)], [BOX, rock, M4(0, .72, 0, 1.15, .78, .72, 0, 0, .03)], [BOX, light, M4(0, .9, .3, .7, .3, .2)],
+      [SPH, dark, M4(-.68, .98, 0, .36, .34, .36)], [SPH, dark, M4(.68, .98, 0, .36, .34, .36)], [BOX, moss, M4(-.3, 1.12, -.1, .5, .06, .5)], [BOX, moss, M4(.42, 1.12, .12, .3, .05, .3)]], 0, 0, 0, body);
+    const crystal = new T.Mesh(CONE, TT_MAT.eye); crystal.scale.set(.2, .5, .2); crystal.position.set(0, .8, -.5); crystal.rotation.x = -1.2; body.add(crystal);
+    const head = part([[BOX, rock, M4(0, 0, 0, .52, .44, .5)], [BOX, dark, M4(0, .14, .2, .56, .12, .16)], [BOX, dark, M4(0, -.2, .12, .36, .1, .3)], [BOX, moss, M4(.05, .24, -.05, .34, .05, .3)]], 0, 1.33, .05, body);
+    for (const sx of [-.13, .13]) { const e = new T.Mesh(BOX, TT_MAT.eye); e.scale.set(.1, .07, .04); e.position.set(sx, .02, .26); head.add(e); }
+    const arm = (sx) => part([[BOX, rock, M4(0, -.3, 0, .32, .58, .34)], [BOX, dark, M4(0, -.84, 0, .4, .54, .44)], [SPH, light, M4(0, -1.2, 0, .32, .3, .32)]], sx * .76, .98, 0, body);
+    const leg = (sx) => part([[BOX, dark, M4(0, -.25, 0, .36, .52, .38)], [BOX, rock, M4(0, -.68, 0, .42, .42, .44)], [BOX, light, M4(0, -.87, .08, .48, .16, .62)]], sx * .32, .95, 0, root);
+    return { root, body, head, crystal, armL: arm(-1), armR: arm(1), legL: leg(-1), legR: leg(1) };
+  }
+  function ttSpawnBot() {
+    const S = ISL.tt;
+    if (S.bot) { L.group.remove(S.bot.g.root); disposeGroup(S.bot.g.root); }
+    const g = ttColossus(); L.group.add(g.root);
+    S.bot = { g, x: S.cx, z: S.cz - 5.5, y: -2.8, face: 0, state: 'rise', t: 0, hp: TT.BOT_HP, armor: TT.BOT_ARMOR, armorMax: TT.BOT_ARMOR, walk: 0,
+      cdPunch: 1, cdSlam: 4, cdThrow: 2.5, stunCd: 0, kx: 0, kz: 0, fx: 0, fz: 0, tx: 0, tz: 0, rock: null };
+  }
+  // the pose for what he is doing: legs and arms swing in a walk, the fist goes back and glows before a punch, …
+  function ttBotPose(e, dt) {
+    const g = e.g, st = e.state, k = e.t;
+    let aL = 0, aR = 0, lL = 0, lR = 0, lean = 0, sink = 0, armZ = 0, glowK = 1;
+    if (st === 'walk') { const s = Math.sin(e.walk * 5); lL = s * .55; lR = -s * .55; aL = -s * .4; aR = s * .4; lean = .08; }
+    else if (st === 'punchUp') { aR = 2.4 * Math.min(1, k / .3); lean = -.15; glowK = 2 + Math.sin(time * 30); }
+    else if (st === 'punch') { aR = 1.2; lean = .35; }
+    else if (st === 'slamUp') { sink = .32 * Math.min(1, k / .4); aL = aR = 2.9 * Math.min(1, k / .5); glowK = 2 + Math.sin(time * 30); }
+    else if (st === 'leap') { aL = aR = 2.9; lL = lR = -.5; }
+    else if (st === 'land') { aL = aR = 1; sink = .3; lean = .3; }
+    else if (st === 'throwUp') { aR = 3 * Math.min(1, k / .4); lean = -.2; glowK = 2 + Math.sin(time * 30); }
+    else if (st === 'stun') { sink = .5; lean = .5; aL = aR = .3; glowK = .3 + .3 * Math.sin(time * 14); }
+    else if (st === 'dead') { sink = Math.min(.9, k * 1.2); lean = Math.min(1.4, k * 1.6); aL = aR = -.6; glowK = Math.max(0, 1 - k); }
+    else if (st === 'cheer') { aL = aR = 2.8 + Math.sin(time * 8) * .2; }
+    const d = (a, b) => damp(a, b, 18, dt);
+    g.armL.rotation.x = d(g.armL.rotation.x, -aL); g.armR.rotation.x = d(g.armR.rotation.x, -aR);
+    g.legL.rotation.x = d(g.legL.rotation.x, -lL); g.legR.rotation.x = d(g.legR.rotation.x, -lR);
+    g.body.rotation.x = d(g.body.rotation.x, lean); g.body.position.y = d(g.body.position.y, .95 - sink);
+    g.legL.position.y = g.legR.position.y = d(g.legL.position.y, .95 - sink * .5);
+    TT_MAT.eye.emissiveIntensity = 2.2 * glowK;
+    g.root.position.set(e.x, e.y, e.z); g.root.rotation.y = e.face;
+  }
+
+  // ---------- the fight ----------
+  function ttStart() {
+    const S = ISL.tt;
+    if (!S || ttOn() || duelOn() || duelPending()) return;
+    if (ISL.carry) dropCarry('fall');
+    if (P.veh) rideOff(false, true);
+    ttClear(); ttRebuild(); ttSpawnBot();
+    Object.assign(S, { phase: 'count', t: 3.6, tick: 4, time: 0, hp: TT.HP, armor: TT.ARMOR, energy: 100, sup: 0, hitT: 9, punchCd: 0, combo: 0, comboT: 0, beamCd: 0,
+      coreCd: 0, dashCd: 0, dashT: 0, shield: false, shieldLock: false, slowT: 0, won: false });
+    placePlayer({ x: S.cx, y: 0, z: S.cz + 5.5 }, Math.PI);
+    cam.yawGoal = wrapPi(P.facing + Math.PI);
+    Snd.startMusic('battle'); Snd.sfx.whistle(); G.shake = Math.max(G.shake, .3);
+    npcSay(S.owner, 'Колосс просыпается! Титан, в бой!');
+    $('ttHud').hidden = false; S.hud = {};
+  }
+  function ttClear() {
+    const S = ISL.tt;
+    for (const s of S.shots) L.group.remove(s.m);
+    for (const o of S.orbs) L.group.remove(o.m);
+    S.shots.length = S.orbs.length = S.rings.length = 0; S.shield = S.shieldLock = false;
+  }
+  function ttEnd(won, why) {
+    const S = ISL.tt, e = S.bot;
+    if (!ttOn()) return;
+    const city = Math.round(S.left / S.list.length * 100), secs = S.time;
+    ttClear(); S.phase = 'off'; $('ttHud').hidden = true;
+    P.inv = Math.max(P.inv, 1.5);
+    Snd.startMusic(L.def.music);
+    let pay = 0;
+    if (won) {
+      e.state = 'dead'; e.t = 0;
+      pay = 10 + Math.round(city / 10); SAVE.ttW = (SAVE.ttW || 0) + 1; SAVE.bank += pay; saveGame();
+      Snd.sfx.bossDown(); P.happyT = 2.4; P.cheerT = 1.8; G.shake = Math.max(G.shake, .6);
+      const o = S.owner;
+      revealStar('tt.win', o.x, 2, o.z);
+      if (secs < 60) revealStar('tt.fast', o.x, 2, o.z);
+      if (city >= 70) revealStar('tt.city', o.x, 2, o.z);
+      npcSay(o, 'Колосс рассыпался! Город спасён!');
+    } else {
+      if (e && e.state !== 'dead') { e.state = 'cheer'; e.t = 0; }
+      Snd.sfx.over(); npcSay(S.owner, 'Ничего, в следующий раз получится!');
+    }
+    showResult({ head: 'Бой титанов · итоги', big: why || (won ? 'Колосс повержен!' : 'Титан повержен!'),
+      rows: [['⏱', 'Время', fmtT(secs * 1000), true], ['🏙', 'Город цел', city + '%'], ['🎖', 'Значки', pay ? '+' + pay : 'пока нет'],
+        ['🏆', 'Побед над Колоссом', String(SAVE.ttW || 0)]],
+      yes: 'Ещё раз', onYes: () => { if (G.state === 'paused') resume(); ttStart(); } });
+  }
+  // the hero is hit: the shield takes most of it, then the armour, then health
+  function ttHurt(dmg, fx, fz, push = 7) {
+    const S = ISL.tt;
+    if (!ttFight() || P.inv > 0 || S.dashT > 0) return;
+    if (S.shield) { dmg *= .3; S.energy = Math.max(0, S.energy - dmg * 2); Snd.sfx.clang(); glow(P.pos.x, P.pos.y + 1, P.pos.z, 0x8ff3ff, 10, 4, 1, 3, .35); push *= .3; }
+    else { G.flash = .45; G.flashCol = '#ff3b2f'; P.hurtT = .5; Snd.sfx.oof(); }
+    const a = Math.min(S.armor, dmg); S.armor -= a; S.hp -= dmg - a; S.hitT = 0;
+    if (a > 0 && S.armor <= 0) { toast('Броня сбита!', 'Закройся щитом или отойди'); Snd.sfx.shieldPop(); }
+    G.hitStop = Math.max(G.hitStop, .06); G.shake = Math.max(G.shake, .4); P.inv = .45;
+    const dx = P.pos.x - fx, dz = P.pos.z - fz, l = Math.hypot(dx, dz) || 1;
+    P.vel.x = dx / l * push; P.vel.z = dz / l * push; if (!S.shield) P.vel.y = Math.max(P.vel.y, 5);
+    popup('-' + Math.round(dmg), P.pos.x, P.pos.y + PH + .5, P.pos.z, 'gold');
+    if (S.hp <= 0) { S.hp = 0; ttEnd(false); }
+  }
+  // the Colossus is hit from (fx, fz): more in the back and while he kneels; his armour breaking stuns him
+  function ttHit(dmg, fx, fz, o = {}) {
+    const S = ISL.tt, e = S.bot;
+    if (!ttFight() || !e || e.state === 'dead' || e.state === 'rise') return;
+    const dx = fx - e.x, dz = fz - e.z, l = Math.hypot(dx, dz) || 1, back = (dx * Math.sin(e.face) + dz * Math.cos(e.face)) / l < -.35;
+    if (back) { dmg *= 1.6; popup('В спину!', e.x, e.y + 3.1, e.z, 'gold'); }
+    if (e.state === 'stun') dmg *= 1.3;
+    const a = Math.min(e.armor, dmg); e.armor -= a; e.hp -= dmg - a;
+    S.sup = Math.min(100, S.sup + dmg * .7);
+    popup('-' + Math.round(dmg), e.x + (Math.random() - .5), e.y + 2.5 + Math.random() * .4, e.z);
+    glow(e.x, e.y + 1.4, e.z, back ? 0xffb060 : 0xd6d0c0, 8, 5, 1, 6, .35, .25); Snd.at(e.x, 1.5, e.z).bossHit();
+    G.hitStop = Math.max(G.hitStop, o.heavy ? .09 : .04);
+    if (o.push) { e.kx = -dx / l * o.push; e.kz = -dz / l * o.push; }
+    if (e.hp <= 0) { e.hp = 0; ttEnd(true); return; }
+    if (a > 0 && e.armor <= 0 && e.stunCd > 0) popup('Броня сбита!', e.x, e.y + 3.1, e.z, 'gold'); // (too soon to stun him again: it grows back later)
+    else if (a > 0 && e.armor <= 0) { // the armour is off: on one knee for a while, then some of it grows back
+      e.state = 'stun'; e.t = 2.4; e.y = 0; if (e.rock) { L.group.remove(e.rock); e.rock = null; }
+      e.armorMax = Math.max(20, e.armorMax * .6);
+      toast('Броня Колосса сбита!', 'Он оглушён: бей сильнее!'); Snd.sfx.bossRoar(); G.shake = Math.max(G.shake, .4);
+      wave(e.x, 0, e.z, 0xffb060, 4, .6);
+    } else if (o.breakUp && (e.state === 'punchUp' || e.state === 'slamUp' || e.state === 'throwUp')) {
+      e.state = 'rest'; e.t = .8; if (e.rock) { L.group.remove(e.rock); e.rock = null; }
+      popup('Атака сбита!', e.x, e.y + 3.1, e.z, 'gold');
+    }
+  }
+  const _ttV = new T.Vector3();
+  const ttFwd = () => [Math.sin(P.facing), Math.cos(P.facing)];
+  // is the Colossus before the hero, within a reach and an angle: [yes, dx, dz, dist]
+  function ttAhead(reach, cos) {
+    const e = ISL.tt.bot, [fx, fz] = ttFwd(), dx = e.x - P.pos.x, dz = e.z - P.pos.z, d = Math.hypot(dx, dz) || 1;
+    return [e.state !== 'dead' && e.state !== 'rise' && d < reach && (dx * fx + dz * fz) / d > cos, dx, dz, d];
+  }
+  function ttPunch() {
+    const S = ISL.tt;
+    if (S.punchCd > 0 || S.shield || S.dashT > 0) return;
+    const n = S.comboT > 0 ? S.combo % 3 + 1 : 1, third = n === 3;
+    S.combo = n; S.comboT = .9; S.punchCd = third ? .7 : .38; P.throwT = .22; P.spinT = 0;
+    const [near, dx, dz, d] = ttAhead(4, .2);
+    if (near) P.facing = Math.atan2(dx, dz); // a punch turns to him when he is close and roughly ahead
+    const [fx, fz] = ttFwd(), x = P.pos.x + fx * 1.1, z = P.pos.z + fz * 1.1;
+    P.vel.x += fx * (third ? 7 : 4); P.vel.z += fz * (third ? 7 : 4);
+    Snd.sfx[third ? 'pound' : 'kick'](); wave(x, P.pos.y, z, third ? 0xffe07a : 0xbff6ff, third ? 2 : 1.3, .25);
+    ttCrush(x, z, third ? 1.2 : .8);
+    if (near && d < 2.5) ttHit(third ? 12 : 6, P.pos.x, P.pos.z, { push: third ? 9 : 2, heavy: third });
+    if (third) G.shake = Math.max(G.shake, .25);
+  }
+  // a shot of the hero's: where it leaves from, and towards the Colossus when he is roughly ahead
+  function ttAim(spd) {
+    const S = ISL.tt, e = S.bot, [near, dx, dz, d] = ttAhead(40, .82), [fx, fz] = ttFwd();
+    const from = rigMuzzle(hero, 'blaster', _ttV), sx = from.x, sy = Math.max(P.pos.y + .7, from.y), sz = from.z;
+    let vx = fx, vy = 0, vz = fz;
+    if (near) { const ty = e.y + 1.4 - sy, l = Math.hypot(dx, ty, dz) || 1; vx = dx / l; vy = ty / l; vz = dz / l; P.facing = Math.atan2(dx, dz); }
+    return { x: sx, y: sy, z: sz, vx: vx * spd, vy: vy * spd, vz: vz * spd };
+  }
+  function ttShot(kind, o, mat, r, life, dmg) {
+    const m = new T.Mesh(SPH, mat); m.scale.setScalar(r); m.position.set(o.x, o.y, o.z); L.group.add(m);
+    ISL.tt.shots.push(Object.assign(o, { kind, m, r, t: life, dmg }));
+  }
+  function ttBeam() {
+    const S = ISL.tt;
+    if (!ttFight() || S.beamCd > 0 || S.shield) return;
+    S.beamCd = TT.BEAM_CD; P.throwT = .2;
+    ttShot('beam', ttAim(34), TT_MAT.beam, .16, .9, 4);
+    (Snd.sfx.laser || Snd.sfx.zoom)(); glow(_ttV.x, _ttV.y, _ttV.z, 0xcaa8ff, 4, 2, 0, 0, .2, .2);
+  }
+  function ttCore() {
+    const S = ISL.tt;
+    if (!ttFight() || S.shield) return;
+    const sup = S.sup >= 100;
+    if (!sup && S.coreCd > 0) { Snd.sfx.locked(); return; }
+    if (sup) S.sup = 0; else S.coreCd = TT.CORE_CD;
+    P.throwT = .3; P.vel.x -= Math.sin(P.facing) * 4; P.vel.z -= Math.cos(P.facing) * 4;
+    ttShot(sup ? 'super' : 'core', ttAim(sup ? 18 : 15), sup ? TT_MAT.sup : TT_MAT.core, sup ? .55 : .34, 1.5, sup ? 48 : 22);
+    (Snd.sfx.core || Snd.sfx.launch)(); G.shake = Math.max(G.shake, sup ? .4 : .2);
+    if (sup) toast('Суперудар!', '');
+  }
+  function ttDash() {
+    const S = ISL.tt;
+    if (!ttFight() || S.dashCd > 0 || S.shield) return;
+    S.dashCd = TT.DASH_CD; S.dashT = .26; S.dashHit = false; P.inv = Math.max(P.inv, .3);
+    Snd.sfx.zoom(); wave(P.pos.x, P.pos.y, P.pos.z, 0x8ff3ff, 1.6, .3);
+  }
+  function ttBoom(s) {
+    const S = ISL.tt, e = S.bot, sup = s.kind === 'super', R = sup ? 5 : 3.2;
+    Snd.at(s.x, s.y, s.z).boom(); flashAt(s.x, s.y, s.z, 0xc8a0ff, sup ? 9 : 6, .25); wave(s.x, 0, s.z, 0x9a5cff, R, .5);
+    glow(s.x, s.y, s.z, 0xb48cff, sup ? 40 : 22, 8, 2, 4, .6, .35); G.shake = Math.max(G.shake, sup ? .7 : .4);
+    ttCrush(s.x, s.z, R * .8);
+    if (e && Math.hypot(e.x - s.x, e.z - s.z) < R + .8) ttHit(s.dmg, s.x - s.vx, s.z - s.vz, { heavy: true, push: sup ? 10 : 4, breakUp: true });
+  }
+  function ttShots(dt) {
+    const S = ISL.tt, e = S.bot;
+    for (let i = S.shots.length - 1; i >= 0; i--) {
+      const s = S.shots[i]; let done = false;
+      s.t -= dt; if (s.kind === 'rock') s.vy -= 16 * dt;
+      s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; s.m.position.set(s.x, s.y, s.z);
+      if (s.kind === 'rock') {
+        s.m.rotation.x += dt * 5; s.m.rotation.z += dt * 3;
+        const hitP = Math.hypot(P.pos.x - s.x, P.pos.z - s.z) < s.r + .5 && s.y < P.pos.y + PH + .2 && s.y > P.pos.y - .3;
+        if (hitP || s.y < s.r * .6) { // the boulder lands: on the hero, or on the city
+          if (hitP) ttHurt(s.dmg, s.x - s.vx, s.z - s.vz, 8);
+          else if (Math.hypot(P.pos.x - s.x, P.pos.z - s.z) < 1.3 && P.pos.y < 1) ttHurt(s.dmg * .6, s.x, s.z, 6);
+          ttCrush(s.x, s.z, 1.1); puff(s.x, .4, s.z, 0xb9b4a8, 10, 3, 1, .8, 1.2); Snd.at(s.x, .5, s.z).crush(); wave(s.x, 0, s.z, 0xd6d0c0, 1.8, .3); G.shake = Math.max(G.shake, .25);
+          done = true;
+        }
+      } else {
+        if (s.kind !== 'beam') { s.m.scale.setScalar(s.r * (1 + Math.sin(time * 30) * .12)); if (Math.random() < dt * 40) glow(s.x, s.y, s.z, 0xb48cff, 1, .5, 0, 0, .3, .2); }
+        const hitE = e && e.state !== 'dead' && e.state !== 'rise' && Math.hypot(e.x - s.x, e.z - s.z) < .85 + s.r && s.y > e.y - .2 && s.y < e.y + 2.7;
+        if (s.kind === 'beam') {
+          if (hitE) { ttHit(s.dmg, s.x - s.vx, s.z - s.vz); done = true; }
+          else if (ttCrush(s.x, s.z, .1, s.y)) done = true; // a tower in the way stops the beam, and falls
+        } else if (hitE || s.t <= 0 || s.y < .25 || ttCrush(s.x, s.z, .15, s.y)) { ttBoom(s); done = true; }
+      }
+      if (done || s.t <= 0) { L.group.remove(s.m); S.shots.splice(i, 1); }
+    }
+  }
+  function ttBot(dt) {
+    const S = ISL.tt, e = S.bot, dx = P.pos.x - e.x, dz = P.pos.z - e.z, dist = Math.hypot(dx, dz) || 1, want = Math.atan2(dx, dz);
+    const turn = (rate) => { const d = wrapPi(want - e.face); e.face += clamp(d, -rate * dt, rate * dt); };
+    const mad = e.hp < TT.BOT_HP * .5 ? 1.25 : 1; // angrier at half health: faster in everything
+    e.cdPunch -= dt; e.cdSlam -= dt; e.cdThrow -= dt;
+    if (e.stunCd > 0) { e.stunCd -= dt; if (e.stunCd <= 0 && e.armor <= 0) e.armor = e.armorMax; }
+    e.x += e.kx * dt; e.z += e.kz * dt; e.kx = damp(e.kx, 0, 8, dt); e.kz = damp(e.kz, 0, 8, dt);
+    const dropRock = () => { if (e.rock) { L.group.remove(e.rock); e.rock = null; } };
+    if (e.state === 'walk') {
+      turn(3.2);
+      if (dist > 2.2) { e.x += Math.sin(e.face) * 2.7 * mad * dt; e.z += Math.cos(e.face) * 2.7 * mad * dt; e.walk += dt * mad; if (Math.sin(e.walk * 5) * Math.sin((e.walk - dt * mad) * 5) < 0) { Snd.at(e.x, 0, e.z).stomp(); G.shake = Math.max(G.shake, clamp(.3 - dist * .02, 0, .2)); } }
+      if (e.cdSlam <= 0 && dist < 12) { e.state = 'slamUp'; e.t = 0; Snd.at(e.x, 2, e.z).bossRoar(); }
+      else if (e.cdPunch <= 0 && dist < 2.8) { e.state = 'punchUp'; e.t = 0; Snd.at(e.x, 2, e.z).grunt(); }
+      else if (e.cdThrow <= 0 && dist > 6) {
+        e.state = 'throwUp'; e.t = 0;
+        e.rock = new T.Mesh(SPH, TT_MAT.rock); e.rock.scale.setScalar(.42); e.rock.castShadow = true; L.group.add(e.rock);
+      }
+    } else if (e.state === 'punchUp') {
+      e.t += dt; turn(1.4);
+      if (e.t >= .62 / mad) { // the fist comes down: a step forward, and whoever is before it is hit
+        e.state = 'punch'; e.t = 0; e.x += Math.sin(e.face) * .8; e.z += Math.cos(e.face) * .8;
+        const fx = e.x + Math.sin(e.face) * 1.3, fz = e.z + Math.cos(e.face) * 1.3;
+        ttCrush(fx, fz, 1); wave(fx, 0, fz, 0xffb060, 1.8, .3); Snd.at(fx, 1, fz).pound();
+        if (Math.hypot(P.pos.x - fx, P.pos.z - fz) < 1.7 && P.pos.y < 2.2) ttHurt(14, e.x, e.z, 10);
+      }
+    } else if (e.state === 'punch') { e.t += dt; if (e.t > .5) { e.state = 'walk'; e.cdPunch = .9 / mad; } }
+    else if (e.state === 'slamUp') {
+      e.t += dt; turn(2);
+      if (e.t >= .72 / mad) { // the leap: to where the hero stands now, no further than nine metres
+        const l = Math.min(dist, 9), k = l / dist;
+        e.state = 'leap'; e.t = 0; e.fx = e.x; e.fz = e.z; e.tx = clamp(e.x + dx * k, S.x0 + 2, S.x1 - 2); e.tz = clamp(e.z + dz * k, S.z0 + 2, S.z1 - 2);
+        Snd.at(e.x, 1, e.z).jump();
+      }
+    } else if (e.state === 'leap') {
+      e.t += dt; const k = Math.min(1, e.t / .75);
+      e.x = lerp(e.fx, e.tx, k); e.z = lerp(e.fz, e.tz, k); e.y = 4 * 2.6 * k * (1 - k);
+      if (k >= 1) { // he lands: a wave runs out over the ground (jump it), the city round him falls
+        e.y = 0; e.state = 'land'; e.t = 0; e.cdSlam = 6.5 / mad;
+        S.rings.push({ x: e.x, z: e.z, t: 0, hit: false });
+        wave(e.x, 0, e.z, 0xffb060, 9, 1); puff(e.x, .3, e.z, 0xd6d0c0, 16, 4, 1, .9, 1.4);
+        Snd.at(e.x, 0, e.z).boom(); G.shake = Math.max(G.shake, .6); ttCrush(e.x, e.z, 1.9);
+        if (dist < 1.7 && P.pos.y < 2) ttHurt(18, e.x, e.z, 10);
+      }
+    } else if (e.state === 'land') { e.t += dt; if (e.t > .9 / mad) e.state = 'walk'; }
+    else if (e.state === 'throwUp') {
+      e.t += dt; turn(2.6);
+      const hx = e.x + Math.cos(e.face) * .76, hz = e.z - Math.sin(e.face) * .76; // over his right hand
+      if (e.rock) e.rock.position.set(hx, 3.1, hz);
+      if (e.t >= .8 / mad) { // thrown to where the hero will be in the time it flies
+        const T0 = clamp(dist / 14, .5, 1.3), px = P.pos.x + P.vel.x * T0 * .6, pz = P.pos.z + P.vel.z * T0 * .6;
+        const o = { x: hx, y: 3.1, z: hz, vx: (px - hx) / T0, vy: (.6 - 3.1) / T0 + 8 * T0, vz: (pz - hz) / T0 };
+        dropRock(); ttShot('rock', o, TT_MAT.rock, .42, 4, 12); S.shots[S.shots.length - 1].m.castShadow = true;
+        Snd.at(e.x, 2, e.z).toss(); e.state = 'rest'; e.t = .6; e.cdThrow = 4.2 / mad;
+      }
+    } else if (e.state === 'rest') { e.t -= dt; if (e.t <= 0) e.state = 'walk'; }
+    else if (e.state === 'stun') { e.t -= dt; if (e.t <= 0) { e.state = 'walk'; e.armor = e.armorMax; e.cdPunch = .4; e.stunCd = 7; e.cdSlam = Math.min(e.cdSlam, .6); } } // (up again, he jumps to shake the hero off)
+    e.x = clamp(e.x, S.x0 + 1, S.x1 - 1); e.z = clamp(e.z, S.z0 + 1, S.z1 - 1);
+    if (e.y < 1) ttCrush(e.x, e.z, .75);
+    // the two never stand in each other
+    if (e.state !== 'leap' && dist < 1.2 && P.pos.y < 2.4) { const k = (1.2 - dist) / dist; P.pos.x += dx * k; P.pos.z += dz * k; }
+  }
+  function ttUpdate(dt) {
+    const S = ISL.tt; if (!S) return;
+    S.dust = 0; S.crushSnd -= dt; S.slowT -= dt;
+    const e = S.bot;
+    // the hero in the city, in a fight or out of it: what he walks into comes down, and so does what he lands on
+    const pg = P.onGround;
+    if (G.state === 'playing') {
+      ttCrush(P.pos.x, P.pos.z, HW + .22, P.pos.y);
+      if (pg && !S.wasG && S.pvy < -8) {
+        const k = clamp(-S.pvy / 20, .4, 1);
+        ttCrush(P.pos.x, P.pos.z, .7 + k * .8); wave(P.pos.x, P.pos.y, P.pos.z, 0xffffff, 1.4 + k * 1.2, .35); G.shake = Math.max(G.shake, .15 + k * .2);
+        if (ttFight() && e && Math.hypot(e.x - P.pos.x, e.z - P.pos.z) < 2.3) ttHit(6, P.pos.x, P.pos.z);
+      }
+    }
+    S.wasG = pg; S.pvy = P.vel.y;
+    if (e) {
+      if (!ttOn() && (e.state === 'dead' || e.state === 'cheer')) { // after the fight: he crumbles, or stands a while and sinks back
+        e.t += dt;
+        if (e.state === 'dead' && e.t > .9 && !e.gone) { e.gone = true; puff(e.x, 1, e.z, 0xb9b4a8, 24, 4, 2, 1.2, 1.6); emit(e.x, 1.2, e.z, 0x8a8478, 30, 6, 3, 14, .9, .2); Snd.at(e.x, 1, e.z).crush(); }
+        if (e.state === 'cheer' && e.t > 2.5) e.y -= dt * 1.4;
+        if ((e.state === 'dead' && e.t > 1.1) || e.y < -3) { L.group.remove(e.g.root); disposeGroup(e.g.root); S.bot = null; }
+        else ttBotPose(e, dt);
+      } else ttBotPose(e, dt);
+    }
+    if (!ttOn() || G.state !== 'playing') return;
+    S.t -= dt;
+    if (S.phase === 'count') { // he climbs out of the ground while the count runs
+      e.y = Math.min(0, e.y + dt * .9); e.face = Math.atan2(P.pos.x - e.x, P.pos.z - e.z);
+      if (Math.random() < dt * 20) puff(e.x + (Math.random() - .5) * 1.4, .2, e.z + (Math.random() - .5) * 1.4, 0xb9b4a8, 1, 1.5, 1, .7, 1);
+      ttCrush(e.x, e.z, .9);
+      const k = Math.ceil(S.t);
+      if (k < S.tick && k >= 1 && k <= 3) { S.tick = k; toast(String(k), 'Бой титанов!'); Snd.sfx.tock(false); }
+      if (S.t <= 0) { S.phase = 'fight'; e.y = 0; e.state = 'walk'; toast('Бой!', 'Каменный колосс'); Snd.sfx.bossRoar(); }
+      ttHud(); return;
+    }
+    S.time += dt; S.hitT += dt;
+    S.punchCd -= dt; S.comboT -= dt; S.beamCd -= dt; S.coreCd -= dt; S.dashCd -= dt;
+    if (ttIn.dash) { ttIn.dash = false; ttDash(); }
+    // the shield: held, while there is energy; run dry, it wants a rest before it comes back
+    const want = (keys.has('KeyT') || ttIn.shield) && S.dashT <= 0;
+    if (S.shieldLock && (!want || S.energy > 30)) S.shieldLock = S.energy <= 30 && want;
+    const sh = want && !S.shieldLock && S.energy > 0;
+    if (sh && !S.shield) Snd.sfx.power();
+    S.shield = sh;
+    if (sh) { S.energy = Math.max(0, S.energy - 24 * dt); if (S.energy <= 0) { S.shieldLock = true; Snd.sfx.shieldPop(); } }
+    else S.energy = Math.min(100, S.energy + 14 * dt);
+    if (S.armor < TT.ARMOR && S.hitT > 6) S.armor = Math.min(TT.ARMOR, S.armor + 8 * dt);
+    // the dash: a short ram straight ahead, through houses, into the Colossus
+    if (S.dashT > 0) {
+      S.dashT -= dt; const [fx, fz] = ttFwd();
+      P.vel.x = fx * 17; P.vel.z = fz * 17; ttCrush(P.pos.x + fx * .5, P.pos.z + fz * .5, .8);
+      if (Math.random() < dt * 60) puff(P.pos.x, P.pos.y + .6, P.pos.z, 0x8ff3ff, 1, .5, .2, .3, .6);
+      if (!S.dashHit && Math.hypot(e.x - P.pos.x, e.z - P.pos.z) < 1.7 && e.state !== 'leap') {
+        S.dashHit = true; S.dashT = 0; P.vel.x *= -.3; P.vel.z *= -.3;
+        ttHit(8, P.pos.x, P.pos.z, { push: 7, heavy: true, breakUp: true }); G.shake = Math.max(G.shake, .4); Snd.sfx.clang();
+      }
+    }
+    if (!ttFight()) return; // (a hit above may have ended it)
+    ttBot(dt);
+    if (!ttFight()) return;
+    ttShots(dt);
+    if (!ttFight()) return;
+    // the waves his landings send out: on the ground when one arrives, it hits
+    for (let i = S.rings.length - 1; i >= 0; i--) {
+      const r = S.rings[i]; r.t += dt; const k = r.t, rad = lerp(1.8, 9, 1 - (1 - k) * (1 - k)), d = Math.hypot(P.pos.x - r.x, P.pos.z - r.z);
+      if (!r.hit && Math.abs(d - rad) < .6 && P.pos.y < .5) { r.hit = true; ttHurt(14, r.x, r.z, 7); }
+      if (k >= 1) S.rings.splice(i, 1);
+    }
+    if (!ttFight()) return;
+    for (let i = S.orbs.length - 1; i >= 0; i--) {
+      const o = S.orbs[i]; o.t -= dt; o.m.position.y = .45 + Math.sin(time * 4 + i) * .08; o.m.rotation.y += dt * 3;
+      const got = Math.hypot(P.pos.x - o.x, P.pos.z - o.z) < .9 && P.pos.y < 1.2;
+      if (got) { S.hp = Math.min(TT.HP, S.hp + 14); Snd.sfx.heal(); glow(o.x, .8, o.z, 0x7dffa0, 14, 3, 2, 2, .6, .25); popup('+14', P.pos.x, P.pos.y + PH + .5, P.pos.z, 'gold'); }
+      if (got || o.t <= 0) { L.group.remove(o.m); S.orbs.splice(i, 1); }
+    }
+    if (P.pos.x < S.x0 - 3 || P.pos.x > S.x1 + 3 || P.pos.z < S.z0 - 3 || P.pos.z > S.z1 + 3) { ttEnd(false, 'Бой окончен: ты вышел из города'); return; }
+    ttHud();
+  }
+  // the shield's bubble follows the hero every frame (the fight itself runs in steps)
+  function ttAnimate() {
+    const S = ISL.tt; if (!S) return;
+    const m = S.shield0; if (!m) return;
+    const on = ttFight() && S.shield;
+    m.visible = on;
+    if (on) { m.position.set(P.pos.x, P.pos.y + PH * .5, P.pos.z); m.rotation.y = time * 2; TT_MAT.shield.opacity = .2 + Math.sin(time * 12) * .06 + (S.energy < 25 ? Math.sin(time * 30) * .1 : 0); }
+  }
+  // the bars at the top: ours on the left, his on the right
+  function ttHud() {
+    const S = ISL.tt, e = S.bot, h = S.hud;
+    const set = (id, v) => { v = Math.round(clamp(v, 0, 1) * 100); if (h[id] !== v) { h[id] = v; $(id).style.width = v + '%'; } };
+    set('ttMyArmor', S.armor / TT.ARMOR); set('ttMyHp', S.hp / TT.HP); set('ttMyEn', S.energy / 100); set('ttMySup', S.sup / 100);
+    set('ttFoeArmor', e.armor / TT.BOT_ARMOR); set('ttFoeHp', e.hp / TT.BOT_HP);
+    const sup = S.sup >= 100; if (h.sup !== sup) { h.sup = sup; $('ttHud').classList.toggle('super', sup); }
+    const city = Math.round(S.left / S.list.length * 100), txt = (S.phase === 'count' ? 'Приготовься' : fmtT(S.time * 1000).slice(0, -2)) + ' · город ' + city + '%';
+    if (h.txt !== txt) { h.txt = txt; $('ttMid').textContent = txt; }
+  }
+
   // ================= bosses =================
   // One rule for all of them: dodge the attack, then stomp the boss while it is dazed (stars circle its head). Three hits.
   const ONE = new T.Vector3(1, 1, 1);
@@ -19999,6 +20596,7 @@ import * as THREE from 'three';
       if (e.code === 'KeyC' && !e.repeat && G.state === 'playing') input.nadeQueued = true; // a KV-44's grenade launcher
       if (e.code === 'KeyR' && !e.repeat && G.state === 'playing') input.rocketQueued = true; // and its rockets
     }
+    if (e.code === 'KeyH' && !e.repeat && G.state === 'playing' && ttFight()) ttIn.dash = true; // a titan's dash (T held is his shield)
     keys.add(e.code);
   });
   addEventListener('keyup', (e) => keys.delete(e.code));
@@ -20096,11 +20694,29 @@ import * as THREE from 'three';
     b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('pointerleave', up);
     b.addEventListener('contextmenu', (e) => e.preventDefault());
   }
-  let kvBtnsOn = false;
+  // a titan's fight borrows the two for the beam and the Core, and adds a shield (held) and a dash
+  const btnTtShield = $('btnTtShield'), btnTtDash = $('btnTtDash');
+  for (const [b, down, up] of [[btnTtShield, () => { ttIn.shield = true; }, () => { ttIn.shield = false; }], [btnTtDash, () => { ttIn.dash = true; }, () => {}]]) {
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); Snd.init(); if (G.state === 'playing') down(); b.classList.add('on'); });
+    const off = () => { up(); b.classList.remove('on'); };
+    b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  let kvBtnsOn = false, kvTt = false;
   function updateKvBtns() {
-    const on = !!(P.veh && P.veh.launchers);
+    const tt = ttFight(), on = tt || !!(P.veh && P.veh.launchers);
     if (on !== kvBtnsOn) { kvBtnsOn = on; btnNade.hidden = btnRocket.hidden = !on; }
+    if (tt !== kvTt) {
+      kvTt = tt; btnTtShield.hidden = btnTtDash.hidden = !tt; if (!tt) ttIn.shield = false;
+      btnNade.querySelector('span').textContent = tt ? 'ЛУЧ' : 'ГРАНАТЫ'; btnRocket.querySelector('span').textContent = tt ? 'ЯДРО' : 'РАКЕТЫ';
+    }
     if (!on) return;
+    if (tt) {
+      const S = ISL.tt;
+      kvLoad(btnNade, S.beamCd / TT.BEAM_CD); kvLoad(btnRocket, S.sup >= 100 ? 0 : S.coreCd / TT.CORE_CD);
+      kvLoad(btnTtDash, S.dashCd / TT.DASH_CD); kvLoad(btnTtShield, S.shieldLock ? 1 : 1 - S.energy / 100);
+      return;
+    }
     kvLoad(btnNade, P.nadeQ > 0 ? 1 : P.nadeCd / NADE_CD); kvLoad(btnRocket, P.rkQ > 0 ? 1 : P.rkCd / ROCKET_CD);
   }
   function kvLoad(b, k) { const v = Math.round(clamp(k, 0, 1) * 20) / 20; if (b.kvCd !== v) { b.kvCd = v; b.style.setProperty('--cd', v); } }
@@ -20190,6 +20806,7 @@ import * as THREE from 'three';
   $('btnModeDuels').addEventListener('click', () => startGame('duels', true));
   $('btnModeRoblox').addEventListener('click', () => startGame('roblox', true));
   $('btnModeRacing').addEventListener('click', () => startGame('racing', true));
+  $('btnModeTitans').addEventListener('click', () => startGame('titans', true));
   // a fresh start wipes the saved stars; it asks for a second tap first
   $('btnReset').addEventListener('click', (e) => {
     const b = e.currentTarget;
@@ -20908,7 +21525,7 @@ import * as THREE from 'three';
   const duelHiding = () => !!duel && duel.kind === 'hide' && (duel.phase === 'hide' || duel.phase === 'seek');
   // nobody moves during the race's countdown, the seeker not while the others hide
   const duelFrozen = () => !!duel && (duel.phase === 'count' || (duel.phase === 'hide' && duel.seeker === duelMe()));
-  const holdStill = () => duelFrozen() || cupFrozen() || gpFrozen() || ftFrozen() || P.koT > 0; // and the dragons' cup's countdown, a duel's, a knock-out
+  const holdStill = () => duelFrozen() || cupFrozen() || gpFrozen() || ftFrozen() || ttFrozen() || P.koT > 0; // and the dragons' cup's countdown, a duel's, a knock-out
   const duelTanking = () => !!duel && duel.kind === 'tank' && (duel.phase === 'count' || duel.phase === 'run');
   const duelGunning = () => !!duel && (duel.kind === 'gun' || duel.kind === 'snipe') && (duel.phase === 'count' || duel.phase === 'run');
   const duelGunRun = () => duelGunning() && duel.phase === 'run';
@@ -21934,6 +22551,7 @@ import * as THREE from 'three';
     updateFairy(dt);
     animateCoins();
     animateHero(dt);
+    ttAnimate();
     ftAnimate(dt);
     netUpdate(dt);
     updateBlob();
