@@ -12093,7 +12093,7 @@ import * as THREE from 'three';
   // Progress is saved: stars (world ones by name, level ones as 'l:<level id>'), the wallet of badges, what each collection
   // quest has found so far (red badges, lost ones, ingredients, switches), finished quests, and what came from the shop:
   // perks (each can be switched off), costumes, caps, hats and rides.
-  const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'sentinel', sentOn: 1,
+  const SAVE_NEW = () => ({ stars: [], bank: 0, done: [], sets: {}, perks: [], perksOff: [], skins: ['classic'], skin: 'sentinel',
     caps: ['auto', 'classic'], cap: 'auto', hats: [], hat: '', rides: [], ride: '',
     // the best survival game (waves lasted through, seconds), the dragon last picked at the roost, the best tank battle (waves,
     // tanks knocked out), how many times Leviathan has been beaten
@@ -12123,7 +12123,8 @@ import * as THREE from 'three';
   // Mario became the main hero (2026-09-28): a save still in the classic costume puts him on, once (the classic stays in the shop)
   if (!SAVE.marioOn) { if (SAVE.skin === 'classic') SAVE.skin = 'mario'; SAVE.marioOn = 1; }
   // the Neon Sentinel became the main hero (2026-10-31): a save in Mario or the classic costume puts him on, once (both stay
-  // in the shop), everyone gets his blaster and core, and his set of guns starts with them
+  // in the shop), everyone gets his blaster and core, and his set of guns starts with them. (The flag is not in SAVE_NEW:
+  // a loaded save is laid over SAVE_NEW, so a default there would mark every old save as already switched)
   if (!SAVE.sentOn) {
     if (SAVE.skin === 'mario' || SAVE.skin === 'classic') SAVE.skin = 'sentinel';
     for (const id of ['blaster', 'core']) if (!SAVE.guns.includes(id)) SAVE.guns.push(id);
